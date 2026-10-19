@@ -40,23 +40,17 @@ async function postToScript(payload: Record<string, unknown>): Promise<void> {
   const url = getScriptUrl();
   if (!url) throw new Error('Google Script URL not configured');
 
-  const response = await fetch(url, {
+  await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(payload),
-    redirect: 'follow',
   });
-
-  if (!response.ok) {
-    throw new Error(`Script returned ${response.status}`);
-  }
 }
 
 export async function fetchAllData(): Promise<SheetData> {
   const url = getScriptUrl();
   if (!url) throw new Error('Google Script URL not configured');
 
-  const response = await fetch(`${url}?action=getAll`, { redirect: 'follow' });
+  const response = await fetch(`${url}?action=getAll`);
   if (!response.ok) {
     throw new Error(`Fetch failed with status ${response.status}`);
   }
