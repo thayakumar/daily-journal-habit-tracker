@@ -7,6 +7,7 @@ function doGet(e) {
     // Read Entries
     var entriesSheet = ss.getSheetByName('Entries');
     var entriesData = entriesSheet.getDataRange().getValues();
+    var entriesDisplay = entriesSheet.getDataRange().getDisplayValues();
     var entriesHeaders = entriesData[0];
     var entries = [];
     for (var i = 1; i < entriesData.length; i++) {
@@ -14,7 +15,14 @@ function doGet(e) {
       if (!row[0]) continue;
       var obj = {};
       for (var j = 0; j < entriesHeaders.length; j++) {
-        obj[entriesHeaders[j]] = row[j];
+        var val = row[j];
+        if (val instanceof Date) {
+          var yyyy = val.getFullYear();
+          var mm = String(val.getMonth() + 1).padStart(2, '0');
+          var dd = String(val.getDate()).padStart(2, '0');
+          val = yyyy + '-' + mm + '-' + dd;
+        }
+        obj[entriesHeaders[j]] = val;
       }
       if (obj.habits_json) {
         try { obj.habits = JSON.parse(obj.habits_json); } catch (err) { obj.habits = {}; }
