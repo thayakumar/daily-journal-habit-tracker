@@ -62,6 +62,29 @@ const INITIAL_ROWS: Row[] = [
   },
 ];
 
+function normalizeDateStr(val: string): string {
+  if (!val) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return val;
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function normalizeRows(entries: Row[]): Row[] {
+  return entries.map(r => {
+    const dateStr = normalizeDateStr(r.dateStr);
+    return {
+      ...r,
+      dateStr,
+      displayDate: formatToDDMM(dateStr),
+      dayName: getDayShortName(dateStr),
+    };
+  });
+}
+
 function formatToDDMM(dateString: string): string {
   if (!dateString) return '';
   const parts = dateString.split('-');
@@ -134,7 +157,7 @@ export default function App() {
     (async () => {
       try {
         const data = await fetchAllData();
-        if (data.entries.length > 0) setRows(data.entries);
+        if (data.entries.length > 0) setRows(normalizeRows(data.entries));
         if (data.habits.length > 0) setHabits(data.habits);
         if (data.settings.showTasksColumn !== undefined) {
           setShowTasksColumn(data.settings.showTasksColumn === 'true');
@@ -155,7 +178,7 @@ export default function App() {
     setSaveStatus('Refreshing...');
     try {
       const data = await fetchAllData();
-      if (data.entries.length > 0) setRows(data.entries);
+      if (data.entries.length > 0) setRows(normalizeRows(data.entries));
       if (data.habits.length > 0) setHabits(data.habits);
       if (data.settings.showTasksColumn !== undefined) {
         setShowTasksColumn(data.settings.showTasksColumn === 'true');
