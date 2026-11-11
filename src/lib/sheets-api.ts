@@ -1,3 +1,4 @@
+import type { Workspace } from "../workspace/model";
 export interface Habit {
   id: string;
   name: string;
@@ -30,30 +31,60 @@ export interface SheetData {
   entries: Row[];
   habits: Habit[];
   settings: Settings;
+  storageSchemaVersion?: number;
+  workspace?: Workspace;
+  workspaceRevision?: string;
 }
 
 function getScriptUrl(): string {
-  return import.meta.env.VITE_GOOGLE_SCRIPT_URL || '';
+  return import.meta.env.VITE_GOOGLE_SCRIPT_URL || "";
 }
 
-async function postToScript(payload: Record<string, unknown>): Promise<void> {
+async function postToScript(
+  payload: Record<string, unknown>,
+): Promise<{ workspaceRevision?: string }> {
   const url = getScriptUrl();
-  if (!url) throw new Error('Google Script URL not configured');
+  if (!url) throw new Error("Google Script URL not configured");
 
   const response = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify(payload),
   });
-  if (!response.ok) throw new Error(`Save failed with status ${response.status}`);
+  if (!response.ok)
+    throw new Error(`Save failed with status ${response.status}`);
   const result: unknown = await response.json();
-  if (!result || typeof result !== 'object' || !('success' in result) || result.success !== true) {
-    throw new Error('Google Sheet did not confirm the save');
+  if (
+    !result ||
+    typeof result !== "object" ||
+    !("success" in result) ||
+    result.success !== true
+  ) {
+    const error =
+      result && typeof result === "object" && "error" in result
+        ? String(result.error)
+        : "Google Sheet did not confirm the save";
+    throw new Error(error);
   }
+  return result as { workspaceRevision?: string };
+}
+
+export async function saveWorkspace(
+  data: Workspace,
+  baseRevision: string,
+): Promise<string> {
+  const result = await postToScript({
+    action: "saveWorkspace",
+    data,
+    baseRevision,
+  });
+  if (!result.workspaceRevision)
+    throw new Error("Missing spreadsheet revision");
+  return result.workspaceRevision;
 }
 
 export async function fetchAllData(): Promise<SheetData> {
   const url = getScriptUrl();
-  if (!url) throw new Error('Google Script URL not configured');
+  if (!url) throw new Error("Google Script URL not configured");
 
   const response = await fetch(`${url}?action=getAll`);
   if (!response.ok) {
@@ -63,30 +94,33 @@ export async function fetchAllData(): Promise<SheetData> {
 }
 
 export async function saveEntries(entries: Row[]): Promise<void> {
-  await postToScript({ action: 'saveEntries', data: entries });
+  await postToScript({ action: "saveEntries", data: entries });
 }
 
 export async function saveHabits(habits: Habit[]): Promise<void> {
-  await postToScript({ action: 'saveHabits', data: habits });
+  await postToScript({ action: "saveHabits", data: habits });
 }
 
 export async function saveSetting(key: string, value: string): Promise<void> {
-  await postToScript({ action: 'saveSetting', key, value });
+  await postToScript({ action: "saveSetting", key, value });
 }
 
 export async function addEntry(entry: Row): Promise<void> {
-  await postToScript({ action: 'addEntry', data: entry });
+  await postToScript({ action: "addEntry", data: entry });
 }
 
 export async function updateEntry(entry: Row): Promise<void> {
-  await postToScript({ action: 'updateEntry', data: entry });
+  await postToScript({ action: "updateEntry", data: entry });
 }
 
 export async function deleteEntry(id: string): Promise<void> {
-  await postToScript({ action: 'deleteEntry', id });
+  await postToScript({ action: "deleteEntry", id });
 }
 
 export function isConfigured(): boolean {
   const url = getScriptUrl();
-  return !!url && url !== 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
+  return (
+    !!url &&
+    url !== "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"
+  );
 }

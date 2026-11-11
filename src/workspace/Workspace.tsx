@@ -132,7 +132,8 @@ function useToday() {
   return today;
 }
 export default function WorkspaceApp() {
-  const { data, update, status, retrySync } = useWorkspace();
+  const { data, update, status, retrySync, reloadCloud, tableStorage } =
+    useWorkspace();
   const [tab, setTab] = useState<Tab>(currentTab);
   const [menu, setMenu] = useState(false);
   const [journal, setJournal] = useState<JournalBridge | null>(null);
@@ -290,7 +291,11 @@ export default function WorkspaceApp() {
               >
                 <CheckCircle2 className="h-3 w-3" />
                 <span>
-                  {isConfigured() ? "Storage & sync" : "Device storage"}
+                  {isConfigured()
+                    ? tableStorage
+                      ? "Per-page tables"
+                      : "Legacy sync"
+                    : "Device storage"}
                 </span>
               </button>
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500">
@@ -391,6 +396,8 @@ export default function WorkspaceApp() {
                 update={update}
                 status={status}
                 retrySync={retrySync}
+                reloadCloud={reloadCloud}
+                tableStorage={tableStorage}
               />
             )}
           </main>
@@ -722,11 +729,15 @@ function SettingsPanel({
   update,
   status,
   retrySync,
+  reloadCloud,
+  tableStorage,
 }: {
   data: Workspace;
   update: Update;
   status: string;
   retrySync: () => Promise<void>;
+  reloadCloud: () => Promise<void>;
+  tableStorage: boolean;
 }) {
   const [message, setMessage] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -802,7 +813,7 @@ function SettingsPanel({
             </p>
             <p className="mt-2 text-xs leading-relaxed text-slate-500">
               {isConfigured()
-                ? "Planner sections sync to a separate Settings value in your existing Google Sheet. Journal records continue to use the Entries and Habits sheets."
+                ? "Planner sections save to their own Sheet tables after the Apps Script update. Journal records continue to use Entries and Habits. The sync status above identifies the active storage mode."
                 : "Changes stay in this browser, on this device. Your existing GitHub Pages deployment keeps its Sheets configuration when this update is merged."}
             </p>
           </div>
@@ -817,6 +828,21 @@ function SettingsPanel({
             Retry planner sync
           </button>
         )}
+        {isConfigured() && (
+          <button
+            className={`${secondaryClass} mt-3`}
+            onClick={() => {
+              if (
+                confirm(
+                  "Load the latest planner from Google Sheets and replace this device’s planner? Export a backup first if you have unsynced edits.",
+                )
+              )
+                void reloadCloud();
+            }}
+          >
+            Load latest Sheet tables
+          </button>
+        )}
         <div className="mt-4 rounded-xl border border-slate-200 p-4 text-xs leading-relaxed text-slate-500">
           <p className="font-semibold text-slate-700">
             Where your data is stored
@@ -826,11 +852,16 @@ function SettingsPanel({
             <code>personal-workspace.v1</code>.
           </p>
           <p className="mt-2">
-            In your connected Google Sheet: journal rows go to Entries, habit
-            definitions go to Habits, and planner data goes to Settings. In
-            Settings, find <code>personalWorkspaceV1</code> in column A; column
-            B contains the planner as JSON. Planner sections do not create
-            separate sheet tabs.
+            {tableStorage
+              ? "Live per-page storage is active. Each planner section reads and writes its corresponding Sheet table."
+              : "The deployed Apps Script still uses legacy JSON. The new per-page tables become live after the backend update is deployed."}
+          </p>
+          <p className="mt-2">
+            Journal: Entries. Habits: Habits, HabitChecks, RecurringHabits,
+            HabitReminders. Calendar: Calendar. Personal: PersonalTasks,
+            ShoppingWishlist, Groceries, WatchRead. Fitness: FitnessPlan,
+            FitnessSchedule, FitnessSessions. Meals: Meals. Brain dump:
+            BrainDump. Ideas: Ideas. Preferences: Settings.
           </p>
           <p className="mt-2">
             Only a successful sync confirms that a browser edit has reached the
@@ -839,8 +870,9 @@ function SettingsPanel({
         </div>
         <p className="mt-4 text-xs leading-relaxed text-slate-400">
           Keep a backup before clearing browser data or changing devices.
-          Journal sync and planner sync have separate status indicators. Planner
-          data over the Sheet cell limit stays on your device.
+          Journal sync and planner sync have separate status indicators. Legacy
+          JSON storage has a per-cell size limit; per-page table storage removes
+          that combined planner limit.
         </p>
       </Card>
       <Card

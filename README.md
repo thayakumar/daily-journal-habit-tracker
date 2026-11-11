@@ -1,73 +1,59 @@
 # My Space · Daily Journal & Personal Planner
 
-An expanded personal workspace built on the original Daily Journal & Habit Tracker. The rose-and-slate design, coloured habit circles, editable journal grid, CSV export, and Google Sheets integration are retained.
+A personal workspace built around the original daily food, wellness and habit grid. The journal, coloured circles, CSV/copy controls and GitHub Pages URL are preserved.
 
-## What’s included
+## Pages
 
-- **Overview** — today’s habit checkmarks, open tasks, weekly fitness progress, upcoming events, and quick thought capture.
-- **Daily journal** — the original food, sleep, exercise, notes, and habits matrix. Data is shared with the overview and weekly habit view.
-- **Habits** — weekly checkmarks, optional daily reminder times, and recurring routines with due-date countdowns.
-- **Calendar** — events, manually entered public holidays, and leave planning. Tuesday/Thursday holidays suggest adjacent leave days, assuming Saturday–Sunday weekends.
-- **Personal** — personal tasks, groceries, a watch/read list, and a shopping wishlist. Wishlist items move to a review archive after 30 days and remain recoverable.
-- **Fitness** — editable seven-day exercise schedule, exercises/sets/reps, programme duration and countdown, milestones, weekly targets, and completion tracking. The starting schedule is a template, not an AI-generated personal training plan.
-- **Meals** — editable meal plans by week and ingredient entry that feeds the grocery checklist. Planned meals and the journal’s actual meals are separate.
-- **Brain dump** — timestamped chat-style notes with delete controls.
-- **Ideas** — save notes and HTTP(S) reference links, or move an idea into the brain dump.
-- **Settings & backup** — workspace name, storage/sync status, validated full JSON backup and restore.
+Overview · Daily journal · Habits (daily/recurring) · Calendar · Personal lists · Fitness · Meals · Brain dump · Ideas · Settings & backup.
 
-## Run locally
+Work, Prayer & goals and Content planner pages have been removed. Historical records remain recoverable in the backup-compatible data format.
 
-Requires **Node.js 24** and npm.
+## Run and test
+
+Requires Node.js 24.
 
 ```bash
 npm ci
 npm run dev
+npm test
+npm run build
 ```
 
-Open the Vite URL, including `/daily-journal-habit-tracker/` when necessary. The app works without credentials using local browser storage. No new server, paid API, or package service is required at runtime.
+The production base path is `/daily-journal-habit-tracker/`. Local browser storage works without credentials. Tests use the real React handlers, API client and Apps Script functions, with an in-memory implementation of Google's spreadsheet service.
 
-```bash
-npm test       # date/data validation and React interaction/sync tests
-npm run build # TypeScript checks + GitHub Pages production bundle
-```
+## Storage
 
-## Google Sheets setup
+**Backend v2 gives each page readable spreadsheet tables**, rather than one combined JSON cell. See [the exact table mapping and activation steps](docs/SHEETS_STORAGE.md) and [test coverage](docs/TEST_REPORT.md).
 
-The existing deployment keeps using the repository’s `VITE_GOOGLE_SCRIPT_URL` GitHub Actions secret. No sheet-column changes or Apps Script redeployment are required for the new planner sections.
+The original Entries, Habits and Settings tabs are retained. Added tabs include Overview, HabitChecks, RecurringHabits, HabitReminders, Calendar, PersonalTasks, ShoppingWishlist, Groceries, WatchRead, FitnessPlan, FitnessSchedule, FitnessSessions, Meals, BrainDump and Ideas.
 
-For a new connection:
+Browser copies use `daily-journal.v1` and `personal-workspace.v1`. Full JSON backup/restore is available in Settings. Clearing browser storage removes the local copies.
 
-1. Open your existing Google Sheet.
-2. Go to **Extensions → Apps Script** and use `google-apps-script/Code.gs`.
-3. Deploy as a **Web app**, executing as yourself, with the access needed by your existing app.
-4. Copy `.env.example` to `.env` and set `VITE_GOOGLE_SCRIPT_URL` to the deployment URL.
-5. For GitHub Pages, set that same value as the repository’s `VITE_GOOGLE_SCRIPT_URL` Actions secret.
+## Activate per-page sync
 
-The spreadsheet needs these existing sheets and header columns:
+Updating the repository does **not** redeploy the Google Apps Script bound to your spreadsheet.
 
-- **Entries:** `id, dateStr, displayDate, dayName, sleepTime, exercise, morningFood, afternoonFood, dinnerFood, snack, tasks, habits_json`
-- **Habits:** `id, name, colorClass, lightBgClass, ringColorClass`
-- **Settings:** key/value columns, including `showTasksColumn`.
+1. Open the spreadsheet → Extensions → Apps Script.
+2. Replace Code.gs with [the updated backend](google-apps-script/Code.gs), then save.
+3. Deploy → Manage deployments → Edit the existing Web app → New version → Deploy.
+4. Keep the existing URL and execution/access settings. Refresh the app; Settings should show **Connected to per-page Sheet tables**.
 
-New planner data uses the `personalWorkspaceV1` key in **Settings**. It does not change the original journal schema. Planner JSON exceeding 45,000 characters stays local rather than exceeding Google Sheets’ per-cell limit; the app shows this in Settings. Export a backup if you reach that limit.
+Until this is done, the app remains compatible with the old backend and explicitly reports legacy JSON storage. Prepared tabs are a migration snapshot until activation. The first v2 request migrates the latest legacy snapshot automatically and retains the old JSON as a backup.
 
-## Storage and recovery
+For a new installation, create Entries, Habits and Settings with the original headers documented in `docs/SHEETS_STORAGE.md`/Code.gs, deploy the bound script as a Web app, and set its `/exec` URL as `VITE_GOOGLE_SCRIPT_URL` in `.env` and the GitHub repository Actions secret. GitHub Actions supplies that value during the frontend build.
 
-- Journal and planner edits persist in this browser’s local storage. Refreshing or changing tabs keeps your data.
-- When configured, the planner compares its `updatedAt` timestamp with the saved Sheet value on load; the newer snapshot wins. Simultaneous multi-device editing is not merged field by field.
-- The journal loads from Sheets when there are no pending local changes. Cloud saves are debounced and serialized. Edits made during a save are included in a subsequent snapshot.
-- If journal sync fails, the local copy remains marked as pending. On the next visit, it is kept instead of replaced by an older Sheet copy. Use **Sync** in Daily journal to reconnect. Replacing a remote journal with a pending local/restored copy requires confirmation.
-- Full backup exports include the journal, habit definitions, and all planner sections. Restore validates the file and asks before replacing data. A restored journal remains local until explicitly synced; the restored planner resumes normal sync.
-- Clearing browser storage removes the local copy. Export a backup before changing browsers or devices when Sheets is not connected.
-- Notifications require browser support, permission, and the app to remain open. They are not background push notifications.
-- The service worker caches only same-origin app resources, never Google Sheets responses. Offline loading is available after visiting online.
+## Behaviour and limits
+
+- Planner writes use a content revision to detect stale saves. Direct spreadsheet edits are loaded on the next normal app reload or through **Load latest Sheet tables**. Export unsynced local edits before replacing the local copy.
+- Journal writes are serialized and retain pending local changes after failures. HabitChecks stores checkmarks as readable dated records; Entries keeps its original habits_json compatibility column.
+- Native tables have frozen headers. Keep their header names unchanged. Empty collections keep their headers ready for new records.
+- Planner data is no longer limited to one combined JSON cell in v2. Google's per-cell limits still apply to individual fields.
+- Habit notifications need browser permission and the app open. They are not background push notifications.
+- Calendar holidays are entered manually; leave suggestions assume a Saturday–Sunday weekend.
+- Fitness sessions are editable templates. Planned meals and the journal's actual meals remain separate.
+- Wishlist records move to a review archive after 30 days and are not permanently deleted.
+- The service worker caches only same-origin app resources, never Google Sheets responses.
 
 ## Deployment
 
-The existing GitHub Pages workflow runs tests and builds before deploying `dist/` on a push to `main`. Pull requests run the same validation without deployment. The original `/daily-journal-habit-tracker/` URL is retained.
-
-## Tech stack
-
-React · TypeScript · Vite · Tailwind CSS · Lucide · Google Sheets / Apps Script
-
-Removed Work, Prayer & goals, and Content planner pages are no longer available in navigation or deep links. Existing stored records for those sections remain in the backup-compatible data format; this UI update does not delete saved user data.
+Pull requests run tests and a production build. Pushes to main run the same checks and publish dist/ through the existing GitHub Pages workflow. Apps Script deployment is separate from frontend deployment.
