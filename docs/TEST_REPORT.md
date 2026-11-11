@@ -23,6 +23,16 @@ Additional tests verify migration, backup validation, recurrence/date boundaries
 
 The existing spreadsheet received 15 new tabs: Overview plus 14 data tables. The migration snapshot contains 70 habit-check records, one saved meal-plan row, one fitness-plan row and seven weekly fitness-schedule rows. Other collections are currently empty. All populated cells were re-read and compared with the source snapshot; all matched. Frozen headers and native table ranges were verified through Sheets metadata. Existing journal/habit records and the legacy JSON value were preserved.
 
-## Pending live verification
+## Live backend and Google Sheets verification
 
-The deployed Apps Script must be upgraded using `docs/SHEETS_STORAGE.md`. Until the live endpoint returns `storageSchemaVersion: 2`, new app edits still use legacy storage and the prepared tables are only a snapshot. Production per-page write/read verification is pending that deployment. Shared Chrome control is unavailable in this environment; visual browser QA remains unverified.
+The owner deployed Apps Script v2. The supplied deployment URL differed from the old frontend configuration; the production build configuration now points to the supplied v2 endpoint.
+
+Labelled temporary records were written through the real deployed Apps Script API, read back through that API, and independently compared cell by cell using the connected Google Sheets service. All 14 data tables matched: PersonalTasks, ShoppingWishlist, Groceries, WatchRead, Calendar, RecurringHabits, HabitReminders, Meals, FitnessPlan, FitnessSchedule, FitnessSessions, BrainDump, Ideas and HabitChecks. A temporary journal entry was also verified in Entries, and the workspace name was verified in Settings.
+
+The test covered personal-list completion, event dates and notes, recurrence interval, reminder time, all four planned meals, fitness target and schedule, a completed session, thought text, idea URL/notes and a dated habit checkmark. Overview reports the new storage as active.
+
+All temporary records were removed. The temporary name, weekly target and schedule title were restored. A fresh API read confirmed the original planner data (excluding the expected updatedAt timestamp), all eight journal entries and all ten habit definitions were restored. Independent Sheet reads found no remaining test markers in the inspected tables.
+
+## Verification limits
+
+The React integration tests exercise actual page handlers and the API client with a mock SpreadsheetApp environment. The live tests exercise the real deployed API and independently read the actual Google Sheet. Shared Chrome control is unavailable in this environment; interactive browser behaviour and visual layout remain unverified.

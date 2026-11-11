@@ -9,7 +9,7 @@ The updated frontend works with both backend versions. Settings shows the active
 3. Choose **Deploy → Manage deployments → Edit (pencil)** on the existing Web app deployment. Select **New version**, then **Deploy**. Retain the existing execution/access settings and `/exec` URL. Authorize if Google prompts.
 4. Refresh the app. In **Settings & backup**, check for **Connected to per-page Sheet tables**. Make a small edit; the status should become **Saved to per-page Sheet tables**.
 
-Do not create a different Web app URL unless you also update the repository's `VITE_GOOGLE_SCRIPT_URL` secret and rebuild the frontend.
+Do not create a different Web app URL unless you also update the production `VITE_GOOGLE_SCRIPT_URL` value in `.github/workflows/deploy.yml` and rebuild the frontend.
 
 The first v2 API request migrates the latest legacy planner snapshot into the tables. The original `Settings.personalWorkspaceV1` value is retained as a migration backup. Before activation, the prepared tables are a migration snapshot; keep using the app rather than editing those tables until v2 is active.
 

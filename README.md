@@ -29,9 +29,9 @@ The original Entries, Habits and Settings tabs are retained. Added tabs include 
 
 Browser copies use `daily-journal.v1` and `personal-workspace.v1`. Full JSON backup/restore is available in Settings. Clearing browser storage removes the local copies.
 
-## Activate per-page sync
+## Activate per-page sync (new deployments)
 
-Updating the repository does **not** redeploy the Google Apps Script bound to your spreadsheet.
+The current production backend is active on v2 and has passed live Sheet write/read verification. For future deployments, updating the repository does **not** redeploy the Google Apps Script bound to your spreadsheet.
 
 1. Open the spreadsheet → Extensions → Apps Script.
 2. Replace Code.gs with [the updated backend](google-apps-script/Code.gs), then save.
@@ -40,7 +40,7 @@ Updating the repository does **not** redeploy the Google Apps Script bound to yo
 
 Until this is done, the app remains compatible with the old backend and explicitly reports legacy JSON storage. Prepared tabs are a migration snapshot until activation. The first v2 request migrates the latest legacy snapshot automatically and retains the old JSON as a backup.
 
-For a new installation, create Entries, Habits and Settings with the original headers documented in `docs/SHEETS_STORAGE.md`/Code.gs, deploy the bound script as a Web app, and set its `/exec` URL as `VITE_GOOGLE_SCRIPT_URL` in `.env` and the GitHub repository Actions secret. GitHub Actions supplies that value during the frontend build.
+For a new installation, create Entries, Habits and Settings with the original headers documented in `docs/SHEETS_STORAGE.md`/Code.gs, deploy the bound script as a Web app, and set its `/exec` URL as `VITE_GOOGLE_SCRIPT_URL` in `.env` for local development. The current production Web app URL is declared as VITE_GOOGLE_SCRIPT_URL in .github/workflows/deploy.yml; update it there when changing deployments. This URL is a public endpoint, not an authentication secret.
 
 ## Behaviour and limits
 
