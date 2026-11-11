@@ -588,6 +588,18 @@ function doPost(e) {
       action === "deleteEntry"
     ) {
       var entries = journalRows(ss);
+      // Keep direct edits to normalized checks when appending/deleting a different entry.
+      var savedChecks = readTable(ss, "HabitChecks", HABIT_CHECK_HEADERS);
+      entries.forEach(function (entry) {
+        entry.habits = {};
+        savedChecks
+          .filter(function (row) {
+            return dateValue(row[0]) === entry.dateStr;
+          })
+          .forEach(function (row) {
+            entry.habits[stringValue(row[1])] = boolValue(row[2]);
+          });
+      });
       if (action === "addEntry") {
         if (
           entries.some(function (r) {

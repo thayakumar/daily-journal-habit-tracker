@@ -189,3 +189,13 @@ test("native checkbox defaults do not become phantom records or expand the meani
   );
   assert.equal(sheet.grid[999][2], false);
 });
+
+test('adding or deleting another journal day preserves direct Sheet habit-check edits', () => {
+  const original = blankRow('2026-11-11'); original.habits = { h1: true };
+  const b = createBackend(populated(), { entries: [original], habits: [] }); b.get();
+  b.sheets.get('HabitChecks').grid[1][2] = false;
+  const qa = blankRow('2026-11-12'); qa.habits = { h1: true };
+  assert.equal(b.post({ action: 'addEntry', data: qa }).success, true);
+  assert.equal(b.post({ action: 'deleteEntry', id: qa.id }).success, true);
+  assert.equal(b.get().entries[0].habits.h1, false);
+});

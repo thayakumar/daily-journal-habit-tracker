@@ -2,7 +2,7 @@
 
 ## Automated checks
 
-25 automated tests pass, including a native-table checkbox regression check. The suite executes the actual React page handlers, API client and Code.gs backend functions, with Google SpreadsheetApp represented by an in-memory test implementation. This does not constitute live Google Apps Script execution or browser visual QA.
+26 automated tests pass, including a native-table checkbox regression check. The suite executes the actual React page handlers, API client and Code.gs backend functions, with Google SpreadsheetApp represented by an in-memory test implementation. This does not constitute live Google Apps Script execution or browser visual QA.
 
 | Page | Verified actions | Table(s) inspected in integration test |
 | --- | --- | --- |
