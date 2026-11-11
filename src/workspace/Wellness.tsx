@@ -1,19 +1,6 @@
 import { useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  RotateCcw,
-  Check,
-  Plus,
-} from "lucide-react";
-import {
-  addDays,
-  daysBetween,
-  uid,
-  weekDates,
-  type MealDay,
-  type Workspace,
-} from "./model";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { addDays, uid, weekDates, type MealDay, type Workspace } from "./model";
 import {
   Card,
   Field,
@@ -22,248 +9,6 @@ import {
   secondaryClass,
   type Update,
 } from "./ui";
-export function Fitness({
-  data,
-  update,
-  today,
-}: {
-  data: Workspace;
-  update: Update;
-  today: string;
-}) {
-  const f = data.fitness,
-    total = f.weeks * 7,
-    elapsed = Math.max(0, daysBetween(f.start, today));
-  const started = today >= f.start;
-  const current = Math.min(total, elapsed + 1);
-  const thisWeek = weekDates(today);
-  const count = thisWeek.filter((d) => f.completed.includes(d)).length;
-  const dayIndex = (new Date(`${today}T12:00`).getDay() + 6) % 7;
-  const completed = f.completed.includes(today);
-  return (
-    <div className="space-y-5">
-      <Card
-        title="Your training, your pace"
-        subtitle="An editable weekly template for gym, cardio, swimming and rest. Adjust every session to your own programme."
-      >
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Programme start">
-            <input
-              type="date"
-              required
-              className={inputClass}
-              value={f.start}
-              onChange={(e) => {
-                if (e.target.value)
-                  update((s) => ({
-                    ...s,
-                    fitness: { ...s.fitness, start: e.target.value },
-                  }));
-              }}
-            />
-          </Field>
-          <Field label="Programme length (weeks)">
-            <input
-              type="number"
-              min="1"
-              max="104"
-              className={inputClass}
-              value={f.weeks}
-              onChange={(e) => {
-                const n = Number(e.target.value);
-                if (Number.isInteger(n) && n >= 1 && n <= 104)
-                  update((s) => ({
-                    ...s,
-                    fitness: { ...s.fitness, weeks: n },
-                  }));
-              }}
-            />
-          </Field>
-          <Field label="Weekly session target">
-            <input
-              type="number"
-              min="1"
-              max="7"
-              className={inputClass}
-              value={f.target}
-              onChange={(e) => {
-                const n = Number(e.target.value);
-                if (Number.isInteger(n) && n >= 1 && n <= 7)
-                  update((s) => ({
-                    ...s,
-                    fitness: { ...s.fitness, target: n },
-                  }));
-              }}
-            />
-          </Field>
-        </div>
-        <div className="mt-6 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-3xl font-bold tracking-tight text-slate-900">
-              {started ? `Day ${current}` : "Starting soon"}
-              <span className="ml-2 text-sm font-normal text-slate-400">
-                {started
-                  ? `of ${total} · ${Math.max(0, total - elapsed - 1)} days to go`
-                  : f.start}
-              </span>
-            </p>
-          </div>
-          <button
-            className={secondaryClass}
-            onClick={() => {
-              if (
-                confirm(
-                  "Restart the programme countdown from today? Your completed sessions will be kept.",
-                )
-              )
-                update((s) => ({
-                  ...s,
-                  fitness: { ...s.fitness, start: today },
-                }));
-            }}
-          >
-            <RotateCcw className="h-4 w-4" />
-            Restart countdown
-          </button>
-        </div>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-rose-50">
-          <div
-            className="h-full rounded-full bg-rose-500"
-            style={{
-              width: `${started ? Math.min(100, ((elapsed + 1) / total) * 100) : 0}%`,
-            }}
-          />
-        </div>
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          {[
-            Math.max(1, Math.round(total / 3)),
-            Math.max(1, Math.round(total / 2)),
-            total,
-          ].map((day, i) => (
-            <div key={i} className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs font-semibold text-rose-500">
-                Day {day} · {addDays(f.start, day - 1)}
-              </p>
-              <p className="mt-1 text-sm text-slate-600">
-                {
-                  [
-                    "Check in on your energy",
-                    "Review your routine",
-                    "Reflect on your progress",
-                  ][i]
-                }
-              </p>
-            </div>
-          ))}
-        </div>
-      </Card>
-      <div className="grid gap-5 lg:grid-cols-[1fr_2fr]">
-        <Card
-          title={`Today: ${f.schedule[dayIndex].title || "Your session"}`}
-          subtitle={`${count} of ${f.target} sessions this week`}
-        >
-          <button
-            className={`${completed ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"} flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white`}
-            aria-pressed={completed}
-            onClick={() =>
-              update((s) => ({
-                ...s,
-                fitness: {
-                  ...s.fitness,
-                  completed: completed
-                    ? s.fitness.completed.filter((d) => d !== today)
-                    : [...s.fitness.completed, today],
-                },
-              }))
-            }
-          >
-            <Check className="h-4 w-4" />
-            {completed ? "Done today · tap to undo" : "Mark today complete"}
-          </button>
-          <p className="mt-5 whitespace-pre-wrap text-sm leading-relaxed text-slate-500">
-            {f.schedule[dayIndex].exercises ||
-              "No exercises added. Edit today’s session in the weekly plan."}
-          </p>
-          <div className="mt-6 flex justify-between">
-            {thisWeek.map((d) => (
-              <div key={d} className="flex flex-col items-center gap-1.5">
-                <span
-                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs ${f.completed.includes(d) ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}
-                >
-                  {f.completed.includes(d) ? "✓" : d.slice(8)}
-                </span>
-                <span className="text-[10px] text-slate-400">
-                  {new Date(`${d}T12:00`).toLocaleDateString("en", {
-                    weekday: "narrow",
-                  })}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card>
-        <Card
-          title="Weekly menu"
-          subtitle="Open any day to edit the session, exercises, sets and reps."
-        >
-          <div className="divide-y divide-slate-100">
-            {f.schedule.map((session, i) => (
-              <details
-                key={i}
-                className="group py-3"
-                open={i === dayIndex ? true : undefined}
-              >
-                <summary className="cursor-pointer text-sm font-medium text-slate-700">
-                  <span className="mr-2 text-slate-400">
-                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i]}
-                  </span>
-                  {session.title || "Untitled session"}
-                </summary>
-                <div className="mt-4 space-y-3">
-                  <Field label="Session name">
-                    <input
-                      className={inputClass}
-                      value={session.title}
-                      onChange={(e) =>
-                        update((s) => ({
-                          ...s,
-                          fitness: {
-                            ...s.fitness,
-                            schedule: s.fitness.schedule.map((d, j) =>
-                              j === i ? { ...d, title: e.target.value } : d,
-                            ),
-                          },
-                        }))
-                      }
-                    />
-                  </Field>
-                  <Field label="Exercises, sets & reps">
-                    <textarea
-                      rows={4}
-                      className={inputClass}
-                      value={session.exercises}
-                      onChange={(e) =>
-                        update((s) => ({
-                          ...s,
-                          fitness: {
-                            ...s.fitness,
-                            schedule: s.fitness.schedule.map((d, j) =>
-                              j === i ? { ...d, exercises: e.target.value } : d,
-                            ),
-                          },
-                        }))
-                      }
-                      placeholder="One exercise per line…"
-                    />
-                  </Field>
-                </div>
-              </details>
-            ))}
-          </div>
-        </Card>
-      </div>
-    </div>
-  );
-}
 const EMPTY_MEAL: MealDay = { breakfast: "", lunch: "", dinner: "", snack: "" };
 export function Meals({
   data,
@@ -274,17 +19,17 @@ export function Meals({
   update: Update;
   today: string;
 }) {
-  const [week, setWeek] = useState(today);
-  const [grocery, setGrocery] = useState("");
-  const [added, setAdded] = useState(false);
+  const [week, setWeek] = useState(today),
+    [grocery, setGrocery] = useState(""),
+    [added, setAdded] = useState(false);
   const dates = weekDates(week);
   return (
     <div className="space-y-5">
       <Card
         title="A week at your table"
-        subtitle="Plan ahead here. Record what you actually ate in your daily journal."
+        subtitle="Plan each day’s meals. Your existing meal records are preserved."
         action={
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-2">
             <button
               aria-label="Previous meal week"
               className={secondaryClass}
@@ -308,76 +53,62 @@ export function Meals({
         <p className="mb-4 text-xs text-slate-400">
           {dates[0]} — {dates[6]} · saves as you type
         </p>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[780px] text-sm">
-            <thead>
-              <tr>
-                <th className="pb-3 text-left text-xs text-slate-400">Day</th>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {dates.map((d) => (
+            <details
+              key={d}
+              className={`min-w-0 rounded-xl border p-4 ${d === today ? "border-rose-200 bg-rose-50/20" : "border-slate-200"}`}
+              open={d === today || undefined}
+            >
+              <summary className="cursor-pointer text-sm font-semibold text-slate-700">
+                {new Date(`${d}T12:00`).toLocaleDateString("en", {
+                  weekday: "long",
+                  month: "short",
+                  day: "numeric",
+                })}
+                {d === today ? " · Today" : ""}
+              </summary>
+              <div className="mt-4 space-y-3">
                 {(["breakfast", "lunch", "dinner", "snack"] as const).map(
                   (meal) => (
-                    <th
+                    <Field
                       key={meal}
-                      className="px-2 pb-3 text-left text-xs font-semibold capitalize text-slate-500"
+                      label={meal.charAt(0).toUpperCase() + meal.slice(1)}
                     >
-                      {meal}
-                    </th>
+                      <textarea
+                        rows={2}
+                        aria-label={`${meal} for ${d}`}
+                        className={inputClass}
+                        placeholder="What sounds good?"
+                        value={data.meals[d]?.[meal] ?? ""}
+                        onChange={(e) =>
+                          update((s) => ({
+                            ...s,
+                            meals: {
+                              ...s.meals,
+                              [d]: {
+                                ...EMPTY_MEAL,
+                                ...s.meals[d],
+                                [meal]: e.target.value,
+                              },
+                            },
+                          }))
+                        }
+                      />
+                    </Field>
                   ),
                 )}
-              </tr>
-            </thead>
-            <tbody>
-              {dates.map((d) => (
-                <tr key={d} className="border-t border-slate-100">
-                  <td className="pr-3 align-top pt-5">
-                    <p
-                      className={`text-xs font-semibold ${d === today ? "text-rose-600" : "text-slate-700"}`}
-                    >
-                      {new Date(`${d}T12:00`).toLocaleDateString("en", {
-                        weekday: "short",
-                      })}
-                    </p>
-                    <p className="mt-1 text-[10px] text-slate-400">
-                      {d.slice(5)}
-                    </p>
-                  </td>
-                  {(["breakfast", "lunch", "dinner", "snack"] as const).map(
-                    (meal) => (
-                      <td key={meal} className="p-2">
-                        <textarea
-                          rows={3}
-                          aria-label={`${meal} for ${d}`}
-                          className={`${inputClass} resize-y !bg-slate-50/50 !text-xs`}
-                          placeholder="What sounds good?"
-                          value={data.meals[d]?.[meal] ?? ""}
-                          onChange={(e) =>
-                            update((s) => ({
-                              ...s,
-                              meals: {
-                                ...s.meals,
-                                [d]: {
-                                  ...EMPTY_MEAL,
-                                  ...s.meals[d],
-                                  [meal]: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                        />
-                      </td>
-                    ),
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </div>
+            </details>
+          ))}
         </div>
       </Card>
       <Card
         title="Shopping prep"
-        subtitle="Add the ingredients you’ll need, one per line. They go straight into your Personal grocery list."
+        subtitle="One ingredient per line. Add them directly to your grocery list."
       >
         <form
-          className="flex flex-col gap-3 sm:flex-row sm:items-start"
+          className="space-y-3"
           onSubmit={(e) => {
             e.preventDefault();
             const lines = grocery
@@ -407,17 +138,14 @@ export function Meals({
             aria-label="Ingredients, one per line"
             rows={3}
             className={inputClass}
-            placeholder={"Eggs\nSpinach\nRice"}
             value={grocery}
+            placeholder={"Eggs\nSpinach\nRice"}
             onChange={(e) => {
               setGrocery(e.target.value);
               setAdded(false);
             }}
           />
-          <button
-            className={`${primaryClass} shrink-0`}
-            disabled={!grocery.trim()}
-          >
+          <button className={primaryClass} disabled={!grocery.trim()}>
             <Plus className="h-4 w-4" />
             Add to groceries
           </button>

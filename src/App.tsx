@@ -68,7 +68,7 @@ const INITIAL_HABITS: Habit[] = [
   },
 ];
 
-const COLOR_OPTIONS = [
+export const COLOR_OPTIONS = [
   {
     name: "Sky",
     color: "bg-sky-500 border-sky-500",
@@ -109,9 +109,15 @@ const COLOR_OPTIONS = [
 
 export interface JournalBridge extends JournalSnapshot {
   toggleDay: (date: string, habitId: string) => void;
+  addHabit: (name: string, colorIndex: number) => void;
+  editHabit: (id: string, name: string, colorIndex: number) => void;
+  removeHabit: (id: string, name: string) => void;
+  sync: () => Promise<void>;
+  saveStatus: string;
 }
 interface JournalProps {
   onReady: (bridge: JournalBridge) => void;
+  headless?: boolean;
 }
 
 function normalizeDateStr(val: string): string {
@@ -169,7 +175,7 @@ function getNextDateStr(lastDateStr?: string): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-export default function Journal({ onReady }: JournalProps) {
+export default function Journal({ onReady, headless = false }: JournalProps) {
   const [cached] = useState(() => readJournal());
   const [isLoaded, setIsLoaded] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string>("Loading...");
@@ -438,8 +444,19 @@ export default function Journal({ onReady }: JournalProps) {
   };
 
   useEffect(() => {
-    if (isLoaded) onReady({ rows, habits, showTasksColumn, toggleDay });
-  }, [rows, habits, showTasksColumn, isLoaded, onReady]);
+    if (isLoaded)
+      onReady({
+        rows,
+        habits,
+        showTasksColumn,
+        toggleDay,
+        addHabit,
+        editHabit,
+        removeHabit: handleRemoveHabit,
+        sync: handleRefresh,
+        saveStatus,
+      });
+  }, [rows, habits, showTasksColumn, isLoaded, saveStatus, onReady]);
 
   useEffect(() => {
     try {
@@ -469,26 +486,44 @@ export default function Journal({ onReady }: JournalProps) {
     return () => window.removeEventListener("journal-restored", restore);
   }, []);
 
-  // Add habit
-  const handleAddHabit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = newHabitName.trim();
+  const addHabit = (name: string, colorIndex: number) => {
+    const trimmed = name.trim();
     if (!trimmed) return;
-
-    const colorTheme = COLOR_OPTIONS[selectedColorIdx % COLOR_OPTIONS.length];
-    const newHabit: Habit = {
-      id: `h-${Date.now()}`,
-      name: trimmed,
-      color: colorTheme.color,
-      lightBg: colorTheme.lightBg,
-      ringColor: colorTheme.ringColor,
-    };
-    const updatedHabits = [...habits, newHabit];
+    const colorTheme = COLOR_OPTIONS[colorIndex % COLOR_OPTIONS.length];
     markDirty();
-    setHabits(updatedHabits);
+    setHabits((previous) => [
+      ...previous,
+      {
+        id: crypto.randomUUID(),
+        name: trimmed,
+        color: colorTheme.color,
+        lightBg: colorTheme.lightBg,
+        ringColor: colorTheme.ringColor,
+      },
+    ]);
+  };
+  const editHabit = (id: string, name: string, colorIndex: number) => {
+    if (!name.trim()) return;
+    const colorTheme = COLOR_OPTIONS[colorIndex % COLOR_OPTIONS.length];
+    markDirty();
+    setHabits((previous) =>
+      previous.map((h) =>
+        h.id === id
+          ? {
+              ...h,
+              name,
+              color: colorTheme.color,
+              lightBg: colorTheme.lightBg,
+              ringColor: colorTheme.ringColor,
+            }
+          : h,
+      ),
+    );
+  };
+  const handleAddHabit = (event: React.FormEvent) => {
+    event.preventDefault();
+    addHabit(newHabitName, selectedColorIdx);
     setNewHabitName("");
-    setSelectedColorIdx((prev) => (prev + 1) % COLOR_OPTIONS.length);
-    triggerToast(`Added habit "${trimmed}"`);
   };
 
   // Remove habit
@@ -597,6 +632,8 @@ export default function Journal({ onReady }: JournalProps) {
       possibleChecks > 0 ? Math.round((totalChecks / possibleChecks) * 100) : 0;
     return { totalDays: rows.length, totalChecks, completionRate };
   }, [rows, habits]);
+
+  if (headless) return null;
 
   if (!isLoaded) {
     return (

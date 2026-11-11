@@ -32,6 +32,7 @@ export interface SheetData {
   habits: Habit[];
   settings: Settings;
   storageSchemaVersion?: number;
+  features?: { workoutSets?: boolean; recurringChecks?: boolean };
   workspace?: Workspace;
   workspaceRevision?: string;
 }
@@ -82,15 +83,30 @@ export async function saveWorkspace(
   return result.workspaceRevision;
 }
 
+let pendingRead: Promise<SheetData> | null = null;
 export async function fetchAllData(): Promise<SheetData> {
+  if (pendingRead) return pendingRead;
   const url = getScriptUrl();
   if (!url) throw new Error("Google Script URL not configured");
-
-  const response = await fetch(`${url}?action=getAll`);
-  if (!response.ok) {
-    throw new Error(`Fetch failed with status ${response.status}`);
+  const request = (async () => {
+    const response = await fetch(`${url}?action=getAll`);
+    if (!response.ok)
+      throw new Error(`Fetch failed with status ${response.status}`);
+    const data = await response.json();
+    if (
+      !Array.isArray(data.entries) ||
+      !Array.isArray(data.habits) ||
+      !data.settings
+    )
+      throw new Error(data.error || "Invalid spreadsheet response");
+    return data as SheetData;
+  })();
+  pendingRead = request;
+  try {
+    return await request;
+  } finally {
+    if (pendingRead === request) pendingRead = null;
   }
-  return response.json();
 }
 
 export async function saveEntries(entries: Row[]): Promise<void> {

@@ -4,9 +4,9 @@ A personal workspace built around the original daily food, wellness and habit gr
 
 ## Pages
 
-Overview · Daily journal · Habits (daily/recurring) · Calendar · Personal lists · Fitness · Meals · Brain dump · Ideas · Settings & backup.
+Overview · Habits (daily/recurring) · Personal lists · Fitness daily workout log · Meals · Brain dump · Ideas · Settings & backup.
 
-Work, Prayer & goals and Content planner pages have been removed. Historical records remain recoverable in the backup-compatible data format.
+Work, Prayer & goals, Content planner, Calendar and Daily journal pages have been removed. Historical records remain recoverable in the backup-compatible data format.
 
 ## Run and test
 
@@ -49,11 +49,14 @@ For a new installation, create Entries, Habits and Settings with the original he
 - Native tables have frozen headers. Keep their header names unchanged. Empty collections keep their headers ready for new records.
 - Planner data is no longer limited to one combined JSON cell in v2. Google's per-cell limits still apply to individual fields.
 - Habit notifications need browser permission and the app open. They are not background push notifications.
-- Calendar holidays are entered manually; leave suggestions assume a Saturday–Sunday weekend.
-- Fitness sessions are editable templates. Planned meals and the journal's actual meals remain separate.
+- Fitness records multiple exercises per date, with individual weight/reps per strength set and cardio duration/distance. The weekly menu has been retired.
+- Due/overdue recurring habits appear alongside daily habits. Habit customization is available directly in Habits.
+- Meals use responsive day cards. Historical journal meals remain preserved in Entries and backups.
 - Wishlist records move to a review archive after 30 days and are not permanently deleted.
 - The service worker caches only same-origin app resources, never Google Sheets responses.
 
 ## Deployment
 
 Pull requests run tests and a production build. Pushes to main run the same checks and publish dist/ through the existing GitHub Pages workflow. Apps Script deployment is separate from frontend deployment.
+
+See [mobile verification and daily workout storage](docs/MOBILE_AND_WORKOUTS.md) for the latest UI and backend activation details. Run `npm run test:responsive` for real Chromium viewport checks.

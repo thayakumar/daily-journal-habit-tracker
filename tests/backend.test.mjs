@@ -190,12 +190,64 @@ test("native checkbox defaults do not become phantom records or expand the meani
   assert.equal(sheet.grid[999][2], false);
 });
 
-test('adding or deleting another journal day preserves direct Sheet habit-check edits', () => {
-  const original = blankRow('2026-11-11'); original.habits = { h1: true };
-  const b = createBackend(populated(), { entries: [original], habits: [] }); b.get();
-  b.sheets.get('HabitChecks').grid[1][2] = false;
-  const qa = blankRow('2026-11-12'); qa.habits = { h1: true };
-  assert.equal(b.post({ action: 'addEntry', data: qa }).success, true);
-  assert.equal(b.post({ action: 'deleteEntry', id: qa.id }).success, true);
+test("adding or deleting another journal day preserves direct Sheet habit-check edits", () => {
+  const original = blankRow("2026-11-11");
+  original.habits = { h1: true };
+  const b = createBackend(populated(), { entries: [original], habits: [] });
+  b.get();
+  b.sheets.get("HabitChecks").grid[1][2] = false;
+  const qa = blankRow("2026-11-12");
+  qa.habits = { h1: true };
+  assert.equal(b.post({ action: "addEntry", data: qa }).success, true);
+  assert.equal(b.post({ action: "deleteEntry", id: qa.id }).success, true);
   assert.equal(b.get().entries[0].habits.h1, false);
+});
+
+test("dated workout sets and recurring completions persist in independent row tables", () => {
+  const w = populated();
+  w.workoutSets = [
+    {
+      id: "set1",
+      exerciseId: "ex1",
+      date: "2026-11-12",
+      exercise: "Dumbbell lifts",
+      type: "strength",
+      setNumber: 1,
+      weight: "10",
+      unit: "kg",
+      reps: "12",
+      durationMinutes: "",
+      distanceKm: "",
+      notes: "",
+    },
+    {
+      id: "set2",
+      exerciseId: "ex1",
+      date: "2026-11-12",
+      exercise: "Dumbbell lifts",
+      type: "strength",
+      setNumber: 2,
+      weight: "12.5",
+      unit: "kg",
+      reps: "10",
+      durationMinutes: "",
+      distanceKm: "",
+      notes: "",
+    },
+  ];
+  w.recurringChecks = [
+    {
+      id: "check1",
+      habitId: "r1",
+      date: "2026-11-12",
+      previousLastDone: "2026-11-05",
+    },
+  ];
+  const b = createBackend(w),
+    remote = b.get();
+  assert.deepEqual(remote.workspace.workoutSets, w.workoutSets);
+  assert.deepEqual(remote.workspace.recurringChecks, w.recurringChecks);
+  assert.equal(remote.features.workoutSets, true);
+  assert.equal(b.sheets.get("WorkoutSets").grid[2][6], 12.5);
+  assert.equal(b.sheets.get("RecurringChecks").grid[1][2], "2026-11-12");
 });
