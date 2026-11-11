@@ -6,7 +6,6 @@ import {
   WorkspaceApp,
   Journal,
   BrainDump,
-  Content,
   ListPanel,
   useWorkspace,
 } from "../work/test-build/components.js";
@@ -91,40 +90,35 @@ test("full workspace shares habit completion across overview, journal and weekly
   );
 });
 
-test("a brain-dump entry becomes one content idea and retains its source text", async () => {
-  const data = createWorkspace();
-  let state = data;
+test("brain dump saves thoughts without content planner actions", async () => {
+  let state = createWorkspace();
   const update = (fn) => {
     state = fn(state);
   };
-  await render(
-    React.createElement(BrainDump, { data: state, update, openContent() {} }),
-  );
+  await render(React.createElement(BrainDump, { data: state, update }));
   await change(
     renderer.root.findByProps({ "aria-label": "New thought" }),
-    "My first video idea",
+    "A thought to keep",
   );
   await act(async () =>
     renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }),
   );
-  assert.equal(state.thoughts.length, 1);
+  assert.equal(state.thoughts[0].text, "A thought to keep");
   await act(async () =>
-    renderer.update(
-      React.createElement(BrainDump, { data: state, update, openContent() {} }),
-    ),
+    renderer.update(React.createElement(BrainDump, { data: state, update })),
   );
-  await click(buttonsWith("Send to content")[0]);
-  assert.equal(state.content.length, 1);
-  assert.equal(state.content[0].stage, "Idea");
-  assert.equal(state.content[0].note, "My first video idea");
-  assert.equal(state.thoughts[0].contentId, state.content[0].id);
-  await act(async () =>
-    renderer.update(
-      React.createElement(BrainDump, { data: state, update, openContent() {} }),
-    ),
-  );
-  await click(buttonsWith("Open in planner")[0]);
-  assert.equal(state.content.length, 1);
+  assert.equal(buttonsWith("Send to content").length, 0);
+  assert.equal(state.content.length, 0);
+});
+
+test("removed pages and old deep links do not expose removed features", async () => {
+  window.location.hash = "#content";
+  await render(React.createElement(WorkspaceApp));
+  for (const id of ["content", "work", "prayer"]) {
+    assert.equal(renderer.root.findAllByProps({ href: "#" + id }).length, 0);
+  }
+  assert.match(text(renderer), /Today, a little more intentional/);
+  assert.equal(buttonsWith("Content in motion").length, 0);
 });
 
 test("tasks support dates, completion and recovery in the completed filter", async () => {
@@ -167,26 +161,6 @@ test("tasks support dates, completion and recovery in the completed filter", asy
   );
   await click(buttonsWith("done")[0]);
   assert.match(text(renderer), /Finish proposal/);
-});
-
-test("content cards can be moved through the planning stages", async () => {
-  let state = createWorkspace();
-  state.content = [
-    {
-      id: "c1",
-      title: "Test story",
-      platform: "Threads",
-      date: "",
-      stage: "Idea",
-      note: "",
-    },
-  ];
-  const update = (fn) => {
-    state = fn(state);
-  };
-  await render(React.createElement(Content, { data: state, update }));
-  await change(renderer.root.findByType("select"), "Published");
-  assert.equal(state.content[0].stage, "Published");
 });
 
 test("workspace edits persist immediately and survive a remount", async () => {

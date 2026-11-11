@@ -16,22 +16,20 @@ import {
   ListTodo,
   Menu,
   MessageCircle,
-  MoonStar,
   Plus,
   Settings,
   Sparkles,
   Sprout,
   Upload,
   Utensils,
-  Video,
   X,
 } from "lucide-react";
 import Journal, { type JournalBridge } from "../App";
 import { isConfigured } from "../lib/sheets-api";
 import { Habits } from "./Habits";
 import { CalendarPanel } from "./Calendar";
-import { Fitness, Meals, Prayer } from "./Wellness";
-import { BrainDump, Content, Ideas } from "./Creativity";
+import { Fitness, Meals } from "./Wellness";
+import { BrainDump, Ideas } from "./Creativity";
 import { useWorkspace } from "./useWorkspace";
 import {
   downloadJson,
@@ -84,22 +82,10 @@ const NAV = [
     description: "Make room for what matters.",
   },
   {
-    id: "work",
-    label: "Work",
-    icon: ListTodo,
-    description: "Less mental clutter. More focus.",
-  },
-  {
     id: "personal",
     label: "Personal",
     icon: Heart,
     description: "The everyday things, all together.",
-  },
-  {
-    id: "prayer",
-    label: "Prayer & goals",
-    icon: MoonStar,
-    description: "A moment to pause and reconnect.",
   },
   {
     id: "fitness",
@@ -124,12 +110,6 @@ const NAV = [
     label: "Ideas",
     icon: Lightbulb,
     description: "Keep the things that spark something.",
-  },
-  {
-    id: "content",
-    label: "Content planner",
-    icon: Video,
-    description: "Give your ideas somewhere to go.",
   },
   {
     id: "settings",
@@ -241,7 +221,7 @@ export default function WorkspaceApp() {
           aria-label="Main navigation"
           className="flex-1 space-y-1 overflow-y-auto px-3 pb-4"
         >
-          {NAV.map((n, i) => (
+          {NAV.map((n) => (
             <a
               key={n.id}
               href={`#${n.id}`}
@@ -250,7 +230,7 @@ export default function WorkspaceApp() {
                 navigate(n.id);
               }}
               aria-current={tab === n.id ? "page" : undefined}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition ${i === 12 ? "!mt-5 border-t border-slate-100" : ""} ${tab === n.id ? "bg-rose-50 text-rose-600" : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"}`}
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition ${n.id === "settings" ? "!mt-5 border-t border-slate-100" : ""} ${tab === n.id ? "bg-rose-50 text-rose-600" : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"}`}
             >
               <n.icon
                 className={`h-[17px] w-[17px] ${tab === n.id ? "text-rose-500" : "text-slate-400"}`}
@@ -361,16 +341,6 @@ export default function WorkspaceApp() {
             {tab === "calendar" && (
               <CalendarPanel data={data} update={update} today={today} />
             )}
-            {tab === "work" && (
-              <ListPanel
-                kind="work"
-                title="Work to-do list"
-                subtitle="One clear next step at a time. Add a due date when you need one."
-                data={data}
-                update={update}
-                today={today}
-              />
-            )}
             {tab === "personal" && (
               <div className="grid items-start gap-5 xl:grid-cols-2">
                 <ListPanel
@@ -407,24 +377,14 @@ export default function WorkspaceApp() {
                 />
               </div>
             )}
-            {tab === "prayer" && (
-              <Prayer data={data} update={update} today={today} />
-            )}
             {tab === "fitness" && (
               <Fitness data={data} update={update} today={today} />
             )}
             {tab === "meals" && (
               <Meals data={data} update={update} today={today} />
             )}
-            {tab === "dump" && (
-              <BrainDump
-                data={data}
-                update={update}
-                openContent={() => navigate("content")}
-              />
-            )}
+            {tab === "dump" && <BrainDump data={data} update={update} />}
             {tab === "ideas" && <Ideas data={data} update={update} />}
-            {tab === "content" && <Content data={data} update={update} />}
             {tab === "settings" && (
               <SettingsPanel
                 data={data}
@@ -472,7 +432,7 @@ function Overview({
   const done = journal?.habits.filter((h) => row?.habits[h.id]).length ?? 0;
   const total = journal?.habits.length ?? 0;
   const tasks = data.items
-    .filter((i) => ["work", "personal"].includes(i.kind) && !i.done)
+    .filter((i) => i.kind === "personal" && !i.done)
     .sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999"));
   const due = data.recurring.filter((h) => recurrenceDue(h, today) <= 0);
   const events = data.events
@@ -499,7 +459,7 @@ function Overview({
       detail: `${tasks.filter((i) => i.due && i.due <= today).length} due today or earlier`,
       icon: ListTodo,
       colour: "text-sky-500 bg-sky-50",
-      tab: "work" as Tab,
+      tab: "personal" as Tab,
     },
     {
       label: "Sessions this week",
@@ -508,14 +468,6 @@ function Overview({
       icon: Dumbbell,
       colour: "text-emerald-500 bg-emerald-50",
       tab: "fitness" as Tab,
-    },
-    {
-      label: "Content in motion",
-      value: data.content.filter((c) => c.stage !== "Published").length,
-      detail: "Ideas waiting for their moment",
-      icon: Video,
-      colour: "text-violet-500 bg-violet-50",
-      tab: "content" as Tab,
     },
   ];
   return (
@@ -546,7 +498,7 @@ function Overview({
           </button>
         </div>
       </section>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {stats.map((s) => (
           <button
             key={s.label}
@@ -631,7 +583,7 @@ function Overview({
             action={
               <button
                 className="text-xs font-semibold text-rose-500"
-                onClick={() => navigate("work")}
+                onClick={() => navigate("personal")}
               >
                 All tasks →
               </button>
@@ -667,8 +619,7 @@ function Overview({
               </ul>
             ) : (
               <Empty>
-                Nothing pressing. Add a task in Work or Personal when you’re
-                ready.
+                Nothing pressing. Add a task in Personal when you’re ready.
               </Empty>
             )}
           </Card>
@@ -866,6 +817,26 @@ function SettingsPanel({
             Retry planner sync
           </button>
         )}
+        <div className="mt-4 rounded-xl border border-slate-200 p-4 text-xs leading-relaxed text-slate-500">
+          <p className="font-semibold text-slate-700">
+            Where your data is stored
+          </p>
+          <p className="mt-2">
+            On this browser: localStorage keys <code>daily-journal.v1</code> and{" "}
+            <code>personal-workspace.v1</code>.
+          </p>
+          <p className="mt-2">
+            In your connected Google Sheet: journal rows go to Entries, habit
+            definitions go to Habits, and planner data goes to Settings. In
+            Settings, find <code>personalWorkspaceV1</code> in column A; column
+            B contains the planner as JSON. Planner sections do not create
+            separate sheet tabs.
+          </p>
+          <p className="mt-2">
+            Only a successful sync confirms that a browser edit has reached the
+            Sheet. A configured connection alone does not confirm a saved copy.
+          </p>
+        </div>
         <p className="mt-4 text-xs leading-relaxed text-slate-400">
           Keep a backup before clearing browser data or changing devices.
           Journal sync and planner sync have separate status indicators. Planner
@@ -936,20 +907,12 @@ function SettingsPanel({
             Habit reminders need notification permission and the app open.
           </li>
           <li>
-            Prayer times are entered manually. Adjust them as your local times
-            change.
-          </li>
-          <li>
             Calendar holidays are the dates you add. Leave ideas assume a
             Saturday–Sunday weekend.
           </li>
           <li>
             The fitness schedule is an editable starting template. It does not
             generate a personalised training plan.
-          </li>
-          <li>
-            Content stages help you plan; they don’t publish posts to your
-            accounts.
           </li>
         </ul>
       </Card>
