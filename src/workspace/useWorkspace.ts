@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchAllData, isConfigured, saveSetting } from "../lib/sheets-api";
+import {
+  fetchAllData,
+  isConfigured,
+  saveSetting,
+  saveWorkspace,
+  type SheetData,
+} from "../lib/sheets-api";
 import {
   isWorkspace,
   readWorkspace,
@@ -8,14 +14,76 @@ import {
 } from "./model";
 
 const CLOUD_KEY = "personalWorkspaceV1";
+const ACK_KEY = "personal-workspace.cloud-ack.v2";
+function remoteWorkspace(remote: SheetData): Workspace | null {
+  const data: unknown =
+    remote.storageSchemaVersion === 2
+      ? remote.workspace
+      : remote.settings[CLOUD_KEY]
+        ? JSON.parse(remote.settings[CLOUD_KEY])
+        : null;
+  if (data === null) return null;
+  if (!isWorkspace(data))
+    throw new Error(
+      "Saved planner has invalid data. Check the spreadsheet before syncing.",
+    );
+  return data;
+}
+function readAck(): { timestamp: number; revision: string } {
+  try {
+    return JSON.parse(
+      localStorage.getItem(ACK_KEY) || '{"timestamp":0,"revision":""}',
+    );
+  } catch {
+    return { timestamp: 0, revision: "" };
+  }
+}
 export function useWorkspace() {
   const [data, setData] = useState(readWorkspace);
   const [status, setStatus] = useState("Saved on this device");
   const [ready, setReady] = useState(!isConfigured());
+  const [tableStorage, setTableStorage] = useState(false);
   const latest = useRef(data);
-  const cloudTimestamp = useRef(0);
-  const saving = useRef(false);
   latest.current = data;
+  const ack = useRef(readAck());
+  const cloudTimestamp = useRef(0);
+  const cloudRevision = useRef("");
+  const tableMode = useRef(false);
+  const saving = useRef(false);
+  function acknowledge(timestamp: number, revision: string) {
+    ack.current = { timestamp, revision };
+    localStorage.setItem(ACK_KEY, JSON.stringify(ack.current));
+  }
+  function acceptRemote(remote: SheetData, force = false) {
+    tableMode.current = remote.storageSchemaVersion === 2;
+    setTableStorage(tableMode.current);
+    cloudRevision.current = remote.workspaceRevision || "";
+    const parsed = remoteWorkspace(remote);
+    if (parsed) {
+      cloudTimestamp.current = parsed.updatedAt;
+      const dirty = latest.current.updatedAt > ack.current.timestamp;
+      if (
+        tableMode.current &&
+        dirty &&
+        ack.current.revision &&
+        ack.current.revision !== cloudRevision.current &&
+        !force
+      )
+        throw new Error(
+          "Sheet data changed while this device had unsynced edits. Export a backup, then load the latest Sheet tables.",
+        );
+      if (force || !dirty || parsed.updatedAt > latest.current.updatedAt) {
+        setData(parsed);
+        acknowledge(parsed.updatedAt, cloudRevision.current);
+      }
+    }
+    setStatus(
+      tableMode.current
+        ? "Connected to per-page Sheet tables"
+        : "Legacy cloud storage · update Apps Script for per-page tables",
+    );
+    setReady(true);
+  }
   const update = useCallback((change: (previous: Workspace) => Workspace) => {
     setData((previous) => ({
       ...change(previous),
@@ -28,22 +96,13 @@ export function useWorkspace() {
     setStatus("Checking saved planner…");
     fetchAllData()
       .then((remote) => {
-        if (cancelled) return;
-        const raw = remote.settings[CLOUD_KEY];
-        if (raw) {
-          const parsed: unknown = JSON.parse(raw);
-          if (!isWorkspace(parsed))
-            throw new Error("Unsupported saved planner");
-          cloudTimestamp.current = parsed.updatedAt;
-          if (parsed.updatedAt > latest.current.updatedAt) setData(parsed);
-        }
-        setStatus("Planner connected");
-        setReady(true);
+        if (!cancelled) acceptRemote(remote);
       })
-      .catch(() => {
-        if (cancelled) return;
-        setStatus("Device saved · cloud unavailable");
-        // Do not overwrite remote data when it could not be read. Retry explicitly.
+      .catch((error) => {
+        if (!cancelled)
+          setStatus(
+            `Device saved · ${error instanceof Error ? error.message : "cloud unavailable"}`,
+          );
       });
     return () => {
       cancelled = true;
@@ -67,48 +126,55 @@ export function useWorkspace() {
       void sync();
     }, 1200);
     return () => clearTimeout(timer);
-    // sync reads latest.current; only one write is allowed at a time.
   }, [data, ready]);
   async function sync() {
     if (saving.current || !isConfigured()) return;
     saving.current = true;
     try {
       if (!ready) {
-        const remote = await fetchAllData();
-        const raw = remote.settings[CLOUD_KEY];
-        if (raw) {
-          const parsed: unknown = JSON.parse(raw);
-          if (!isWorkspace(parsed))
-            throw new Error("Unsupported saved planner");
-          if (parsed.updatedAt > latest.current.updatedAt) {
-            setData(parsed);
-            cloudTimestamp.current = parsed.updatedAt;
-            setReady(true);
-            setStatus("Planner synced");
-            return;
-          }
-        }
-        setReady(true);
+        acceptRemote(await fetchAllData());
+        return;
       }
       let next = latest.current;
       while (next.updatedAt > cloudTimestamp.current) {
-        const payload = JSON.stringify(next);
-        if (payload.length > 45_000) {
-          setStatus(
-            "Device saved · planner exceeds Sheet cell limit; export a backup",
+        if (tableMode.current) {
+          cloudRevision.current = await saveWorkspace(
+            next,
+            cloudRevision.current,
           );
-          return;
+        } else {
+          const payload = JSON.stringify(next);
+          if (payload.length > 45000)
+            throw new Error(
+              "legacy Sheet cell limit reached; update Apps Script for table storage",
+            );
+          await saveSetting(CLOUD_KEY, payload);
         }
-        await saveSetting(CLOUD_KEY, payload);
         cloudTimestamp.current = next.updatedAt;
+        acknowledge(next.updatedAt, cloudRevision.current);
         next = latest.current;
       }
-      setStatus("Planner synced to Sheets");
-    } catch {
-      setStatus("Device saved · cloud sync failed; retry");
+      setStatus(
+        tableMode.current
+          ? "Saved to per-page Sheet tables"
+          : "Saved to legacy JSON · update Apps Script for per-page tables",
+      );
+    } catch (error) {
+      setStatus(
+        `Device saved · ${error instanceof Error ? error.message : "cloud sync failed; retry"}`,
+      );
     } finally {
       saving.current = false;
     }
   }
-  return { data, update, status, retrySync: sync };
+  async function reloadCloud() {
+    try {
+      acceptRemote(await fetchAllData(), true);
+    } catch (error) {
+      setStatus(
+        error instanceof Error ? error.message : "Could not load Sheet tables",
+      );
+    }
+  }
+  return { data, update, status, retrySync: sync, reloadCloud, tableStorage };
 }
