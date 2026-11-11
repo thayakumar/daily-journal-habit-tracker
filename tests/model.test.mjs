@@ -138,3 +138,28 @@ test("saved workspace round-trips and corrupt storage falls back without deletin
   assert.equal(isWorkspace(readWorkspace()), true);
   assert.equal(store.get(WORKSPACE_KEY), "{broken");
 });
+
+test("recurring habits enter today on their due date, remain overdue, and support completion undo", async () => {
+  const { todayRecurring, toggleRecurring, recurringDone } =
+    await import("../src/workspace/model.ts");
+  const w = createWorkspace();
+  w.recurring = [
+    {
+      id: "r1",
+      name: "Bedsheets",
+      interval: 7,
+      lastDone: "2026-11-01",
+      reminder: "",
+    },
+  ];
+  assert.equal(todayRecurring(w, "2026-11-07").length, 0);
+  assert.equal(todayRecurring(w, "2026-11-08").length, 1);
+  assert.equal(todayRecurring(w, "2026-11-09").length, 1);
+  const done = toggleRecurring(w, "r1", "2026-11-09", "check1");
+  assert.equal(recurringDone(done, "r1", "2026-11-09"), true);
+  assert.equal(todayRecurring(done, "2026-11-10").length, 0);
+  assert.equal(todayRecurring(done, "2026-11-16").length, 1);
+  const undo = toggleRecurring(done, "r1", "2026-11-09", "unused");
+  assert.equal(undo.recurring[0].lastDone, "2026-11-01");
+  assert.equal(undo.recurringChecks.length, 0);
+});

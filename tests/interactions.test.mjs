@@ -65,7 +65,7 @@ const buttonsWith = (value) =>
 test("full workspace shares habit completion across overview, journal and weekly habit view", async () => {
   await render(React.createElement(WorkspaceApp));
   assert.match(text(renderer), /Today, a little more intentional/);
-  const habit = buttonsWith("2L Water").at(0);
+  const habit = renderer.root.findByProps({ "aria-label": "2L Water today" });
   assert.ok(habit);
   await click(habit);
   let journal = JSON.parse(store.get(JOURNAL_KEY));
@@ -114,7 +114,7 @@ test("brain dump saves thoughts without content planner actions", async () => {
 test("removed pages and old deep links do not expose removed features", async () => {
   window.location.hash = "#content";
   await render(React.createElement(WorkspaceApp));
-  for (const id of ["content", "work", "prayer"]) {
+  for (const id of ["content", "work", "prayer", "calendar", "journal"]) {
     assert.equal(renderer.root.findAllByProps({ href: "#" + id }).length, 0);
   }
   assert.match(text(renderer), /Today, a little more intentional/);
@@ -362,4 +362,91 @@ test("edits during an in-flight journal save are serialized into a second snapsh
   assert.equal(entries.length, 2);
   assert.equal(entries[1][0].habits.h1, false);
   assert.equal(store.get("journal.pending.v1"), undefined);
+});
+
+test("workout logs survive an older backend and upload when detailed-log support is activated", async () => {
+  const { createBackend } = await import("./apps-script-mock.mjs");
+  const backend = createBackend(createWorkspace());
+  let upgraded = false;
+  let api;
+  globalThis.__TEST_SCRIPT_URL__ = "https://sheet.test/exec";
+  globalThis.fetch = async (_url, options) => ({
+    ok: true,
+    json: async () => {
+      if (options?.method === "POST") {
+        const payload = JSON.parse(options.body);
+        if (!upgraded && payload.action === "saveWorkspace") {
+          delete payload.data.workoutSets;
+          delete payload.data.recurringChecks;
+        }
+        return backend.post(payload);
+      }
+      const value = backend.get();
+      if (!upgraded) {
+        delete value.features;
+        delete value.workspace.workoutSets;
+        delete value.workspace.recurringChecks;
+      }
+      return value;
+    },
+  });
+  function Harness() {
+    api = useWorkspace();
+    return null;
+  }
+  await render(React.createElement(Harness));
+  await act(async () =>
+    api.update((s) => ({
+      ...s,
+      workoutSets: [
+        {
+          id: "set-local",
+          exerciseId: "ex-local",
+          date: localDate(),
+          exercise: "Dumbbell lifts",
+          type: "strength",
+          setNumber: 1,
+          weight: "10",
+          unit: "kg",
+          reps: "12",
+          durationMinutes: "",
+          distanceKm: "",
+          notes: "",
+        },
+      ],
+    })),
+  );
+  await act(async () => sleep(1300));
+  assert.equal(api.data.workoutSets.length, 1);
+  assert.match(api.status, /saved locally/);
+  await act(async () => renderer.unmount());
+  renderer = null;
+  await render(React.createElement(Harness));
+  assert.equal(api.data.workoutSets.length, 1);
+  await act(async () => renderer.unmount());
+  renderer = null;
+  upgraded = true;
+  await render(React.createElement(Harness));
+  await act(async () => sleep(1300));
+  assert.equal(api.logStorageReady, true);
+  assert.equal(backend.get().workspace.workoutSets.length, 1);
+});
+
+test("initial habit and planner reads share one cloud request", async () => {
+  const { createBackend } = await import("./apps-script-mock.mjs");
+  const backend = createBackend(createWorkspace());
+  let reads = 0;
+  globalThis.__TEST_SCRIPT_URL__ = "https://sheet.test/exec";
+  globalThis.fetch = async (_url, options) => {
+    if (!options?.method) reads++;
+    return {
+      ok: true,
+      json: async () =>
+        options?.method === "POST"
+          ? backend.post(JSON.parse(options.body))
+          : backend.get(),
+    };
+  };
+  await render(React.createElement(WorkspaceApp));
+  assert.equal(reads, 1);
 });

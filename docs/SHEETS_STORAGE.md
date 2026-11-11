@@ -18,19 +18,21 @@ The first v2 API request migrates the latest legacy planner snapshot into the ta
 | App page | Spreadsheet tab(s) | Row structure |
 | --- | --- | --- |
 | Overview | Overview | Calculated record counts; no duplicate app records |
-| Daily journal | Entries | One journal record per day, original columns preserved |
+| Historical journal / habit engine | Entries | Original daily records preserved; the grid page is retired |
 | Habits | Habits | Habit definitions, original columns preserved |
 | Habits | HabitChecks | date, habitId, completed |
 | Habits | RecurringHabits | id, name, intervalDays, lastDone, reminder |
 | Habits | HabitReminders | habitId, time |
-| Calendar | Calendar | id, title, date, type, note |
+| Archived calendar | Calendar | Historical events preserved; the page is retired |
 | Personal | PersonalTasks | id, text, done, created, due |
 | Personal | ShoppingWishlist | id, text, done, created, due |
 | Personal | Groceries | id, text, done, created, due |
 | Personal | WatchRead | id, text, done, created, due |
 | Fitness | FitnessPlan | id, start, weeks, weeklyTarget |
-| Fitness | FitnessSchedule | day (Monday=1), title, exercises |
+| Archived weekly menu | FitnessSchedule | Existing weekly templates retained as history |
 | Fitness | FitnessSessions | date, completed |
+| Fitness | WorkoutSets | One row per dated exercise set; see MOBILE_AND_WORKOUTS.md |
+| Habits | RecurringChecks | id, habitId, date, previousLastDone |
 | Meals | Meals | date, breakfast, lunch, dinner, snack |
 | Brain dump | BrainDump | id, text, created, contentId (legacy reference) |
 | Ideas | Ideas | id, title, url, note |
@@ -55,3 +57,5 @@ The migrated tabs include frozen headers and native tables. ISO dates are readab
 `npm test` runs the real `Code.gs` in a mock SpreadsheetApp environment and drives the actual React page handlers through the API client. It covers all remaining pages, table writes/readback, reload, direct Sheet edits, conflicts, literal text handling, migration and failed cloud saves. This is integration testing, not an interactive Chrome session.
 
 Live cloud write/read tests must run after Apps Script v2 is deployed. Repository access and Sheets editing access do not grant Apps Script deployment access. Updating this source file does not deploy the bound script automatically.
+
+The detailed workout and recurring-completion extension requires the latest Code.gs deployment. The frontend detects its feature flags and keeps these records local until the server supports them. Other table sync continues unchanged.

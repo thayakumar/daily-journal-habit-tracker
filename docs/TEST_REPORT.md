@@ -1,3 +1,13 @@
+# Latest mobile, habit and workout verification
+
+30 automated model/React/backend tests pass. Tests cover dated multi-set exercises, independent weights/reps, recurring due dates and undo, customization, persistence and upgrade from an older backend without losing local logs.
+
+Real Chromium checks pass on all eight active pages at 320, 375, 390, 768 and 1440 pixels: 40 layout checks with no document-wide horizontal overflow or clipped inputs. Phone interactions verify multiple exercises, treadmill time/distance, per-set edits, date isolation, reload persistence, habit creation/rename/colour and due-routine completion. Screenshots were inspected. The API is mocked for these browser checks; physical iOS/Safari devices were not tested.
+
+The WorkoutSets and RecurringChecks native tables have been created with verified headers, numeric measurement columns, frozen headers and native table ranges. Their live API support requires a new deployment of the latest Code.gs. Until then, detailed logs are saved locally and their status says so. Older per-page live verification below remains valid for the previous schema; it does not certify the new log tables.
+
+---
+
 # Per-page storage test report
 
 ## Automated checks

@@ -81,7 +81,7 @@ test("every remaining page writes its own table through the actual Apps Script c
       "QA overview thought",
     );
     await submit(app.root.findByProps({ "aria-label": "Quick thought" }));
-    await click(button("Water"));
+    await click(app.root.findByProps({ "aria-label": "Water today" }));
     await settle();
     assert.equal(
       backend.sheets.get("BrainDump").grid[1][1],
@@ -89,12 +89,6 @@ test("every remaining page writes its own table through the actual Apps Script c
     );
     assert.equal(backend.get().entries[0].habits["qa-water"], true);
     assert.equal(backend.sheets.get("HabitChecks").grid[1][2], true);
-    // Journal: edit a meal in the original grid.
-    await navigate("journal");
-    const journalText = app.root.findAllByType("textarea")[0];
-    await change(journalText, "QA actual breakfast");
-    await settle();
-    assert.equal(backend.get().entries[0].morningFood, "QA actual breakfast");
     // Habits: timed reminder and recurring interval.
     await navigate("habits");
     await change(
@@ -112,20 +106,6 @@ test("every remaining page writes its own table through the actual Apps Script c
       backend.sheets.get("RecurringHabits").grid[1][1],
       "QA recurring",
     );
-    // Calendar: event, note and selected date.
-    await navigate("calendar");
-    const eventTitle = app.root.findByProps({
-      placeholder: "What’s happening?",
-    });
-    await change(eventTitle, "QA calendar");
-    await change(
-      app.root.findByProps({ placeholder: "Anything to remember…" }),
-      "QA calendar note",
-    );
-    await submit(app.root.findByProps({ placeholder: "What’s happening?" }));
-    await settle();
-    assert.equal(backend.sheets.get("Calendar").grid[1][1], "QA calendar");
-    assert.equal(backend.sheets.get("Calendar").grid[1][2], today);
     // Personal: all four independent lists.
     await navigate("personal");
     for (const [title, table] of [
@@ -154,25 +134,29 @@ test("every remaining page writes its own table through the actual Apps Script c
     );
     await settle();
     assert.equal(backend.sheets.get("PersonalTasks").grid[1][2], true);
-    // Fitness: programme settings, editable weekly session and today's completion.
+    // Fitness: dated exercises and independently editable sets.
     await navigate("fitness");
-    const numbers = app.root
-      .findAllByType("input")
-      .filter((n) => n.props.type === "number");
-    await change(numbers[0], "10");
-    await change(numbers[1], "3");
-    const fitnessInput = app.root
-      .findAllByType("input")
-      .find((n) => n.props.value === "Strength A");
-    await change(fitnessInput, "QA strength");
-    await click(button("Mark today complete"));
-    await settle();
-    assert.equal(backend.sheets.get("FitnessPlan").grid[1][2], 10);
-    assert.equal(backend.sheets.get("FitnessPlan").grid[1][3], 3);
-    assert.equal(
-      backend.sheets.get("FitnessSchedule").grid[1][1],
-      "QA strength",
+    await change(
+      app.root.findByProps({ "aria-label": "Exercise name" }),
+      "QA dumbbell lifts",
     );
+    await change(
+      app.root.findByProps({ "aria-label": "Exercise weight" }),
+      "10",
+    );
+    await submit(app.root.findByProps({ "aria-label": "Exercise name" }));
+    await settle();
+    assert.equal(backend.get().workspace.workoutSets.length, 3);
+    await change(
+      app.root.findByProps({
+        "aria-label": "Weight for QA dumbbell lifts set 3",
+      }),
+      "12.5",
+    );
+    await click(button("Mark session complete"));
+    await settle();
+    assert.equal(backend.sheets.get("WorkoutSets").grid[3][6], 12.5);
+    assert.equal(backend.sheets.get("WorkoutSets").grid[1][2], today);
     assert.equal(backend.sheets.get("FitnessSessions").grid[1][0], today);
     // Meals: date-specific row and grocery handoff.
     await navigate("meals");

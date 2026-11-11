@@ -14,6 +14,7 @@ import {
 } from "./model";
 
 const CLOUD_KEY = "personalWorkspaceV1";
+const LOG_PENDING_KEY = "personal-workspace.logs-pending.v1";
 const ACK_KEY = "personal-workspace.cloud-ack.v2";
 function remoteWorkspace(remote: SheetData): Workspace | null {
   const data: unknown =
@@ -43,6 +44,8 @@ export function useWorkspace() {
   const [status, setStatus] = useState("Saved on this device");
   const [ready, setReady] = useState(!isConfigured());
   const [tableStorage, setTableStorage] = useState(false);
+  const [logStorageReady, setLogStorageReady] = useState(false);
+  const logSupport = useRef(false);
   const latest = useRef(data);
   latest.current = data;
   const ack = useRef(readAck());
@@ -58,9 +61,53 @@ export function useWorkspace() {
     tableMode.current = remote.storageSchemaVersion === 2;
     setTableStorage(tableMode.current);
     cloudRevision.current = remote.workspaceRevision || "";
-    const parsed = remoteWorkspace(remote);
+    logSupport.current =
+      remote.features?.workoutSets === true &&
+      remote.features?.recurringChecks === true;
+    setLogStorageReady(logSupport.current);
+    let parsed = remoteWorkspace(remote);
+    const cloudDate = parsed?.updatedAt ?? 0;
+    const pendingLogs = localStorage.getItem(LOG_PENDING_KEY) === "true";
+    if (parsed && !logSupport.current && !force) {
+      parsed = {
+        ...parsed,
+        workoutSets: latest.current.workoutSets ?? [],
+        recurringChecks: latest.current.recurringChecks ?? [],
+      };
+    }
+    if (parsed && logSupport.current && pendingLogs && !force) {
+      const merge = <T extends { id: string }>(
+        remoteRows: T[],
+        localRows: T[],
+      ) => [
+        ...new Map(
+          [...remoteRows, ...localRows].map((r) => [r.id, r]),
+        ).values(),
+      ];
+      parsed = {
+        ...parsed,
+        workoutSets: merge(
+          parsed.workoutSets ?? [],
+          latest.current.workoutSets ?? [],
+        ),
+        recurringChecks: merge(
+          parsed.recurringChecks ?? [],
+          latest.current.recurringChecks ?? [],
+        ),
+        updatedAt: Math.max(
+          Date.now(),
+          latest.current.updatedAt + 1,
+          cloudDate + 1,
+        ),
+      };
+      cloudTimestamp.current = cloudDate;
+      setData(parsed);
+      setReady(true);
+      setStatus("Uploading device workout and routine history…");
+      return;
+    }
     if (parsed) {
-      cloudTimestamp.current = parsed.updatedAt;
+      cloudTimestamp.current = cloudDate;
       const dirty = latest.current.updatedAt > ack.current.timestamp;
       if (
         tableMode.current &&
@@ -112,6 +159,12 @@ export function useWorkspace() {
     if (!data.updatedAt) return;
     try {
       localStorage.setItem(WORKSPACE_KEY, JSON.stringify(data));
+      if (
+        !logSupport.current &&
+        ((data.workoutSets?.length ?? 0) > 0 ||
+          (data.recurringChecks?.length ?? 0) > 0)
+      )
+        localStorage.setItem(LOG_PENDING_KEY, "true");
     } catch {
       setStatus("Device storage full · export a backup");
       return;
@@ -152,11 +205,18 @@ export function useWorkspace() {
         }
         cloudTimestamp.current = next.updatedAt;
         acknowledge(next.updatedAt, cloudRevision.current);
+        if (logSupport.current) localStorage.removeItem(LOG_PENDING_KEY);
         next = latest.current;
       }
       setStatus(
         tableMode.current
-          ? "Saved to per-page Sheet tables"
+          ? logSupport.current ||
+            !(
+              (latest.current.workoutSets?.length ?? 0) +
+              (latest.current.recurringChecks?.length ?? 0)
+            )
+            ? "Saved to per-page Sheet tables"
+            : "Workout and routine history saved locally · deploy the updated Apps Script"
           : "Saved to legacy JSON · update Apps Script for per-page tables",
       );
     } catch (error) {
@@ -176,5 +236,13 @@ export function useWorkspace() {
       );
     }
   }
-  return { data, update, status, retrySync: sync, reloadCloud, tableStorage };
+  return {
+    data,
+    update,
+    status,
+    retrySync: sync,
+    reloadCloud,
+    tableStorage,
+    logStorageReady,
+  };
 }

@@ -2,6 +2,21 @@
 // Existing Entries/Habits/Settings stay compatible. New tables are the source of truth.
 var TABLE_SCHEMA_VERSION = 2;
 var PLANNER_TABLES = {
+  WorkoutSets: [
+    "id",
+    "exerciseId",
+    "date",
+    "exercise",
+    "type",
+    "setNumber",
+    "weight",
+    "unit",
+    "reps",
+    "durationMinutes",
+    "distanceKm",
+    "notes",
+  ],
+  RecurringChecks: ["id", "habitId", "date", "previousLastDone"],
   PersonalTasks: ["id", "text", "done", "created", "due"],
   ShoppingWishlist: ["id", "text", "done", "created", "due"],
   Groceries: ["id", "text", "done", "created", "due"],
@@ -191,6 +206,15 @@ function validateWorkspace(w) {
   )
     throw new Error("Invalid fitness plan");
 }
+function numericCell(value, integer) {
+  if (value === "") return "";
+  var n = Number(value);
+  if (!Number.isFinite(n) || n < 0 || (integer && !Number.isInteger(n)))
+    throw new Error(
+      "Workout measurements must be non-negative numbers; reps must be whole numbers.",
+    );
+  return n;
+}
 function plannerToTables(w) {
   validateWorkspace(w);
   var tables = {};
@@ -238,6 +262,25 @@ function plannerToTables(w) {
   tables.Ideas = w.ideas.map(function (i) {
     return [i.id, i.title, i.url, i.note];
   });
+  tables.WorkoutSets = (w.workoutSets || []).map(function (r) {
+    return [
+      r.id,
+      r.exerciseId,
+      r.date,
+      r.exercise,
+      r.type,
+      r.setNumber,
+      numericCell(r.weight),
+      r.unit,
+      numericCell(r.reps, true),
+      numericCell(r.durationMinutes),
+      numericCell(r.distanceKm),
+      r.notes,
+    ];
+  });
+  tables.RecurringChecks = (w.recurringChecks || []).map(function (r) {
+    return [r.id, r.habitId, r.date, r.previousLastDone];
+  });
   // Validate all tables before writing any of them.
   Object.keys(PLANNER_TABLES).forEach(function (name) {
     tables[name].forEach(function (row) {
@@ -253,6 +296,14 @@ function plannerToTables(w) {
   return tables;
 }
 function writePlanner(ss, w) {
+  // Older clients/backups must not erase newer detailed logs they do not know about.
+  if (w.workoutSets === undefined || w.recurringChecks === undefined) {
+    var existingLogs = readPlanner(ss, settingsOf(ss));
+    w = JSON.parse(JSON.stringify(w));
+    if (w.workoutSets === undefined) w.workoutSets = existingLogs.workoutSets;
+    if (w.recurringChecks === undefined)
+      w.recurringChecks = existingLogs.recurringChecks;
+  }
   var tables = plannerToTables(w);
   Object.keys(PLANNER_TABLES).forEach(function (name) {
     ensureSheet(ss, name, PLANNER_TABLES[name]);
@@ -281,6 +332,8 @@ function readPlanner(ss, settings) {
   var legacy = parseJson(settings.personalWorkspaceV1 || "{}", {});
   var extras = parseJson(settings.workspaceLegacyExtras || "{}", {});
   var w = {
+    workoutSets: [],
+    recurringChecks: [],
     version: 1,
     updatedAt: Number(
       settings.workspaceTablesUpdatedAt || legacy.updatedAt || 0,
@@ -416,6 +469,36 @@ function readPlanner(ss, settings) {
       note: stringValue(r[3]),
     };
   });
+  w.workoutSets = readTable(ss, "WorkoutSets", PLANNER_TABLES.WorkoutSets).map(
+    function (r) {
+      return {
+        id: stringValue(r[0]),
+        exerciseId: stringValue(r[1]),
+        date: dateValue(r[2]),
+        exercise: stringValue(r[3]),
+        type: stringValue(r[4]),
+        setNumber: Number(r[5]),
+        weight: stringValue(r[6]),
+        unit: stringValue(r[7]),
+        reps: stringValue(r[8]),
+        durationMinutes: stringValue(r[9]),
+        distanceKm: stringValue(r[10]),
+        notes: stringValue(r[11]),
+      };
+    },
+  );
+  w.recurringChecks = readTable(
+    ss,
+    "RecurringChecks",
+    PLANNER_TABLES.RecurringChecks,
+  ).map(function (r) {
+    return {
+      id: stringValue(r[0]),
+      habitId: stringValue(r[1]),
+      date: dateValue(r[2]),
+      previousLastDone: dateValue(r[3]),
+    };
+  });
   return w;
 }
 function plannerRevision(ss) {
@@ -500,6 +583,7 @@ function getAll(ss) {
     habits: habits,
     settings: settings,
     storageSchemaVersion: TABLE_SCHEMA_VERSION,
+    features: { workoutSets: true, recurringChecks: true },
     workspace: readPlanner(ss, settings),
     workspaceRevision: plannerRevision(ss),
   };

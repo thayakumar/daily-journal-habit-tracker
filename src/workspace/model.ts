@@ -109,7 +109,29 @@ export interface WorkoutDay {
   title: string;
   exercises: string;
 }
+export interface WorkoutSet {
+  id: string;
+  exerciseId: string;
+  date: string;
+  exercise: string;
+  type: "strength" | "cardio";
+  setNumber: number;
+  weight: string;
+  unit: "kg" | "lb";
+  reps: string;
+  durationMinutes: string;
+  distanceKm: string;
+  notes: string;
+}
+export interface RecurringCheck {
+  id: string;
+  habitId: string;
+  date: string;
+  previousLastDone: string;
+}
 export interface Workspace {
+  workoutSets?: WorkoutSet[];
+  recurringChecks?: RecurringCheck[];
   version: 1;
   updatedAt: number;
   name: string;
@@ -136,6 +158,8 @@ export interface Workspace {
 }
 export function createWorkspace(): Workspace {
   return {
+    workoutSets: [],
+    recurringChecks: [],
     version: 1,
     updatedAt: 0,
     name: "My Space",
@@ -211,6 +235,40 @@ export function isWorkspace(value: unknown): value is Workspace {
   const p = value.prayer,
     f = value.fitness;
   return (
+    (value.workoutSets === undefined ||
+      records(
+        value.workoutSets,
+        (r) =>
+          [
+            "id",
+            "exerciseId",
+            "exercise",
+            "weight",
+            "reps",
+            "durationMinutes",
+            "distanceKm",
+            "notes",
+          ].every((k) => text(r[k])) &&
+          date(r.date) &&
+          ["strength", "cardio"].includes(String(r.type)) &&
+          ["kg", "lb"].includes(String(r.unit)) &&
+          Number.isInteger(r.setNumber) &&
+          Number(r.setNumber) > 0 &&
+          ["weight", "reps", "durationMinutes", "distanceKm"].every(
+            (k) =>
+              r[k] === "" ||
+              (Number.isFinite(Number(r[k])) && Number(r[k]) >= 0),
+          ),
+      )) &&
+    (value.recurringChecks === undefined ||
+      records(
+        value.recurringChecks,
+        (r) =>
+          text(r.id) &&
+          text(r.habitId) &&
+          date(r.date) &&
+          date(r.previousLastDone),
+      )) &&
     records(
       value.items,
       (r) =>
@@ -373,4 +431,65 @@ export function downloadJson(value: unknown, name: string) {
   a.download = name;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+export function recurringDone(
+  data: Workspace,
+  habitId: string,
+  today: string,
+): boolean {
+  return (
+    (data.recurringChecks ?? []).some(
+      (c) => c.habitId === habitId && c.date === today,
+    ) || data.recurring.some((h) => h.id === habitId && h.lastDone === today)
+  );
+}
+export function todayRecurring(
+  data: Workspace,
+  today: string,
+): RecurringHabit[] {
+  return data.recurring.filter(
+    (h) => recurrenceDue(h, today) <= 0 || recurringDone(data, h.id, today),
+  );
+}
+export function toggleRecurring(
+  data: Workspace,
+  habitId: string,
+  today: string,
+  checkId: string,
+): Workspace {
+  const habit = data.recurring.find((h) => h.id === habitId);
+  if (!habit) return data;
+  const check = (data.recurringChecks ?? []).find(
+    (c) => c.habitId === habitId && c.date === today,
+  );
+  if (check)
+    return {
+      ...data,
+      recurring: data.recurring.map((h) =>
+        h.id === habitId ? { ...h, lastDone: check.previousLastDone } : h,
+      ),
+      recurringChecks: (data.recurringChecks ?? []).filter(
+        (c) => c.id !== check.id,
+      ),
+    };
+  if (habit.lastDone === today) return data;
+  return {
+    ...data,
+    recurring: data.recurring.map((h) =>
+      h.id === habitId ? { ...h, lastDone: today } : h,
+    ),
+    recurringChecks: [
+      ...(data.recurringChecks ?? []),
+      { id: checkId, habitId, date: today, previousLastDone: habit.lastDone },
+    ],
+  };
+}
+export function workoutDates(data: Workspace): string[] {
+  return [
+    ...new Set([
+      ...data.fitness.completed,
+      ...(data.workoutSets ?? []).map((s) => s.date),
+    ]),
+  ];
 }

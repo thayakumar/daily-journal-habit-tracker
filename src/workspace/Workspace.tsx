@@ -2,8 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   BookOpen,
-  CalendarDays,
-  Check,
   CheckCircle2,
   ChevronRight,
   Cloud,
@@ -26,9 +24,9 @@ import {
 } from "lucide-react";
 import Journal, { type JournalBridge } from "../App";
 import { isConfigured } from "../lib/sheets-api";
-import { Habits } from "./Habits";
-import { CalendarPanel } from "./Calendar";
-import { Fitness, Meals } from "./Wellness";
+import { Habits, TodayHabits } from "./Habits";
+import { Meals } from "./Wellness";
+import { Fitness } from "./Fitness";
 import { BrainDump, Ideas } from "./Creativity";
 import { useWorkspace } from "./useWorkspace";
 import {
@@ -38,7 +36,9 @@ import {
   JOURNAL_KEY,
   localDate,
   readJournal,
-  recurrenceDue,
+  todayRecurring,
+  recurringDone,
+  workoutDates,
   uid,
   weekDates,
   WORKSPACE_KEY,
@@ -64,22 +64,10 @@ const NAV = [
     description: "A little clarity for your day.",
   },
   {
-    id: "journal",
-    label: "Daily journal",
-    icon: BookOpen,
-    description: "Your familiar daily matrix.",
-  },
-  {
     id: "habits",
     label: "Habits",
     icon: Sprout,
     description: "Small steps, a little more often.",
-  },
-  {
-    id: "calendar",
-    label: "Calendar",
-    icon: CalendarDays,
-    description: "Make room for what matters.",
   },
   {
     id: "personal",
@@ -132,8 +120,15 @@ function useToday() {
   return today;
 }
 export default function WorkspaceApp() {
-  const { data, update, status, retrySync, reloadCloud, tableStorage } =
-    useWorkspace();
+  const {
+    data,
+    update,
+    status,
+    retrySync,
+    reloadCloud,
+    tableStorage,
+    logStorageReady,
+  } = useWorkspace();
   const [tab, setTab] = useState<Tab>(currentTab);
   const [menu, setMenu] = useState(false);
   const [journal, setJournal] = useState<JournalBridge | null>(null);
@@ -304,110 +299,106 @@ export default function WorkspaceApp() {
             </div>
           </div>
         </header>
-        {tab !== "journal" && (
-          <main
-            id="main-content"
-            className="mx-auto max-w-[1600px] px-4 py-7 sm:px-7 sm:py-9"
-          >
-            <div className="mb-7">
-              <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.18em] text-rose-500">
-                <heading.icon className="h-3.5 w-3.5" />
-                {tab === "overview"
-                  ? "Make a little space"
-                  : "Your personal planner"}
-              </div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                {tab === "overview"
-                  ? "Today, a little more intentional."
-                  : heading.label}
-              </h1>
-              <p className="mt-2 text-sm text-slate-500">
-                {heading.description}
-              </p>
+        <main
+          id="main-content"
+          className="mx-auto max-w-[1600px] px-4 py-7 sm:px-7 sm:py-9"
+        >
+          <div className="mb-7">
+            <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.18em] text-rose-500">
+              <heading.icon className="h-3.5 w-3.5" />
+              {tab === "overview"
+                ? "Make a little space"
+                : "Your personal planner"}
             </div>
-            {tab === "overview" && (
-              <Overview
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              {tab === "overview"
+                ? "Today, a little more intentional."
+                : heading.label}
+            </h1>
+            <p className="mt-2 text-sm text-slate-500">{heading.description}</p>
+          </div>
+          {tab === "overview" && (
+            <Overview
+              data={data}
+              update={update}
+              today={today}
+              journal={journal}
+              navigate={navigate}
+            />
+          )}
+          {tab === "habits" && (
+            <Habits
+              data={data}
+              update={update}
+              journal={journal}
+              today={today}
+            />
+          )}
+          {tab === "personal" && (
+            <div className="grid items-start gap-5 xl:grid-cols-2">
+              <ListPanel
+                kind="personal"
+                title="Personal to-do list"
+                subtitle="Appointments, errands and things just for you."
                 data={data}
                 update={update}
                 today={today}
-                journal={journal}
-                navigate={navigate}
               />
-            )}
-            {tab === "habits" && (
-              <Habits
+              <ListPanel
+                kind="wishlist"
+                title="Shopping wishlist"
+                subtitle="Park a want here. After 30 days it moves to the review archive, so you can decide whether it still matters."
                 data={data}
                 update={update}
-                journal={journal}
                 today={today}
-                openJournal={() => navigate("journal")}
               />
-            )}
-            {tab === "calendar" && (
-              <CalendarPanel data={data} update={update} today={today} />
-            )}
-            {tab === "personal" && (
-              <div className="grid items-start gap-5 xl:grid-cols-2">
-                <ListPanel
-                  kind="personal"
-                  title="Personal to-do list"
-                  subtitle="Appointments, errands and things just for you."
-                  data={data}
-                  update={update}
-                  today={today}
-                />
-                <ListPanel
-                  kind="wishlist"
-                  title="Shopping wishlist"
-                  subtitle="Park a want here. After 30 days it moves to the review archive, so you can decide whether it still matters."
-                  data={data}
-                  update={update}
-                  today={today}
-                />
-                <ListPanel
-                  kind="grocery"
-                  title="Groceries"
-                  subtitle="Your next trip, a little more organised."
-                  data={data}
-                  update={update}
-                  today={today}
-                />
-                <ListPanel
-                  kind="watch"
-                  title="Watch & read"
-                  subtitle="Movies, shows and books worth making time for."
-                  data={data}
-                  update={update}
-                  today={today}
-                />
-              </div>
-            )}
-            {tab === "fitness" && (
-              <Fitness data={data} update={update} today={today} />
-            )}
-            {tab === "meals" && (
-              <Meals data={data} update={update} today={today} />
-            )}
-            {tab === "dump" && <BrainDump data={data} update={update} />}
-            {tab === "ideas" && <Ideas data={data} update={update} />}
-            {tab === "settings" && (
-              <SettingsPanel
+              <ListPanel
+                kind="grocery"
+                title="Groceries"
+                subtitle="Your next trip, a little more organised."
                 data={data}
                 update={update}
-                status={status}
-                retrySync={retrySync}
-                reloadCloud={reloadCloud}
-                tableStorage={tableStorage}
+                today={today}
               />
-            )}
-          </main>
-        )}
-        <div hidden={tab !== "journal"}>
-          <Journal onReady={onJournalReady} />
-        </div>
+              <ListPanel
+                kind="watch"
+                title="Watch & read"
+                subtitle="Movies, shows and books worth making time for."
+                data={data}
+                update={update}
+                today={today}
+              />
+            </div>
+          )}
+          {tab === "fitness" && (
+            <Fitness
+              data={data}
+              update={update}
+              today={today}
+              logStorageReady={logStorageReady}
+            />
+          )}
+          {tab === "meals" && (
+            <Meals data={data} update={update} today={today} />
+          )}
+          {tab === "dump" && <BrainDump data={data} update={update} />}
+          {tab === "ideas" && <Ideas data={data} update={update} />}
+          {tab === "settings" && (
+            <SettingsPanel
+              data={data}
+              update={update}
+              status={status}
+              retrySync={retrySync}
+              reloadCloud={reloadCloud}
+              tableStorage={tableStorage}
+              logStorageReady={logStorageReady}
+            />
+          )}
+        </main>
+        <Journal onReady={onJournalReady} headless />
         <footer className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-4 py-6 text-[11px] text-slate-400 sm:px-7">
           <span>
-            Built around your daily journal. Made for the rest of your life.
+            Your habits, workouts, meals and ideas. One personal space.
           </span>
           <button
             className="hover:text-rose-500"
@@ -436,17 +427,15 @@ function Overview({
   const [thought, setThought] = useState("");
   const [captured, setCaptured] = useState(false);
   const row = journal?.rows.find((r) => r.dateStr === today);
-  const done = journal?.habits.filter((h) => row?.habits[h.id]).length ?? 0;
-  const total = journal?.habits.length ?? 0;
+  const dueRecurring = todayRecurring(data, today);
+  const done =
+    (journal?.habits.filter((h) => row?.habits[h.id]).length ?? 0) +
+    dueRecurring.filter((h) => recurringDone(data, h.id, today)).length;
+  const total = (journal?.habits.length ?? 0) + dueRecurring.length;
   const tasks = data.items
     .filter((i) => i.kind === "personal" && !i.done)
     .sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999"));
-  const due = data.recurring.filter((h) => recurrenceDue(h, today) <= 0);
-  const events = data.events
-    .filter((e) => e.date >= today)
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 3);
-  const weeklySessions = data.fitness.completed.filter((d) =>
+  const weeklySessions = workoutDates(data).filter((d) =>
     weekDates(today).includes(d),
   ).length;
   const stats = [
@@ -497,10 +486,10 @@ function Overview({
           </p>
           <button
             className={`${primaryClass} mt-5`}
-            onClick={() => navigate("journal")}
+            onClick={() => navigate("habits")}
           >
             <Plus className="h-4 w-4" />
-            Open daily journal
+            Open today’s habits
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>
@@ -542,47 +531,12 @@ function Overview({
               </button>
             }
           >
-            {journal?.habits.length ? (
-              <div className="flex flex-wrap gap-x-7 gap-y-5">
-                {journal.habits.map((h) => {
-                  const checked = !!row?.habits[h.id];
-                  return (
-                    <button
-                      key={h.id}
-                      aria-pressed={checked}
-                      onClick={() => journal.toggleDay(today, h.id)}
-                      className="flex w-20 flex-col items-center gap-2"
-                    >
-                      <span
-                        className={`flex h-12 w-12 items-center justify-center rounded-full border-2 transition ${checked ? `${h.color} text-white shadow-sm` : "border-slate-200 bg-white text-slate-300 hover:border-rose-300"}`}
-                      >
-                        <Check className="h-5 w-5" />
-                      </span>
-                      <span className="max-w-full truncate text-xs text-slate-500">
-                        {h.name}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <Empty>Your daily habits will appear here.</Empty>
-            )}
-            {due.length > 0 && (
-              <div className="mt-5 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs text-amber-700">
-                <button
-                  onClick={() => navigate("habits")}
-                  className="flex w-full items-center justify-between gap-2 text-left"
-                >
-                  <span>
-                    {due.length} recurring{" "}
-                    {due.length === 1 ? "habit needs" : "habits need"} a little
-                    attention
-                  </span>
-                  <ArrowRight className="h-4 w-4 shrink-0" />
-                </button>
-              </div>
-            )}
+            <TodayHabits
+              data={data}
+              update={update}
+              journal={journal}
+              today={today}
+            />
           </Card>
           <Card
             title="Next on your list"
@@ -679,44 +633,42 @@ function Overview({
             </form>
           </Card>
           <Card
-            title="Coming up"
-            subtitle="A little look ahead."
+            title="Recent training"
+            subtitle="Your recorded workout days."
             action={
               <button
                 className="text-xs font-semibold text-rose-500"
-                onClick={() => navigate("calendar")}
+                onClick={() => navigate("fitness")}
               >
-                Calendar →
+                Workout log →
               </button>
             }
           >
-            {events.length ? (
-              <div className="space-y-4">
-                {events.map((e) => (
-                  <div key={e.id} className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-xl bg-rose-50 text-rose-600">
-                      <span className="text-sm font-bold leading-none">
-                        {e.date.slice(8)}
-                      </span>
-                      <span className="mt-0.5 text-[8px] uppercase">
-                        {new Date(`${e.date}T12:00`).toLocaleDateString("en", {
-                          month: "short",
-                        })}
+            {workoutDates(data).length ? (
+              <div className="space-y-3">
+                {workoutDates(data)
+                  .sort()
+                  .reverse()
+                  .slice(0, 3)
+                  .map((date) => (
+                    <div
+                      key={date}
+                      className="flex items-center justify-between gap-3 text-sm"
+                    >
+                      <span className="text-slate-600">{date}</span>
+                      <span className="text-xs text-slate-400">
+                        {
+                          (data.workoutSets ?? []).filter(
+                            (s) => s.date === date,
+                          ).length
+                        }{" "}
+                        logged sets / entries
                       </span>
                     </div>
-                    <div>
-                      <p className="break-words text-sm font-medium text-slate-700">
-                        {e.title}
-                      </p>
-                      <p className="mt-1 text-xs capitalize text-slate-400">
-                        {e.type}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             ) : (
-              <Empty>Make a plan to look forward to.</Empty>
+              <Empty>Log your first workout in Fitness.</Empty>
             )}
           </Card>
         </div>
@@ -731,6 +683,7 @@ function SettingsPanel({
   retrySync,
   reloadCloud,
   tableStorage,
+  logStorageReady,
 }: {
   data: Workspace;
   update: Update;
@@ -738,6 +691,7 @@ function SettingsPanel({
   retrySync: () => Promise<void>;
   reloadCloud: () => Promise<void>;
   tableStorage: boolean;
+  logStorageReady: boolean;
 }) {
   const [message, setMessage] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -757,7 +711,7 @@ function SettingsPanel({
         throw new Error("This file is not a valid My Space backup.");
       if (
         !confirm(
-          "Restore this backup? It will replace the planner and journal on this device. If Sheets is connected, the planner will sync automatically; the journal will remain local until you press its Sync button. Export your current backup first if you want to keep both.",
+          "Restore this backup? It will replace the planner and journal on this device. If Sheets is connected, the planner will sync automatically; the journal will remain local until you press Sync habits in Habits. Export your current backup first if you want to keep both.",
         )
       )
         return;
@@ -772,7 +726,7 @@ function SettingsPanel({
       const restored = backup.workspace;
       update(() => restored);
       setMessage(
-        "Backup restored. Your journal is saved locally; use Sync in Daily journal to send it to Sheets.",
+        "Backup restored. Your journal is saved locally; use Sync habits in Habits to send it to Sheets.",
       );
     } catch (e) {
       setMessage(
@@ -797,13 +751,14 @@ function SettingsPanel({
           />
         </Field>
         <p className="mt-4 text-sm leading-relaxed text-slate-500">
-          All sections are ready to use. Start with the daily journal you know,
-          then add the routines and plans that matter to you.
+          Your habits, daily workouts, meals and personal lists live in their
+          own sections. Historical journal records are preserved in your
+          backups.
         </p>
       </Card>
       <Card
         title="Storage & sync"
-        subtitle="Your existing journal and Google Sheets connection are preserved."
+        subtitle="Your existing Google Sheets connection and historical records are preserved."
       >
         <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
           <Cloud className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
@@ -853,14 +808,17 @@ function SettingsPanel({
           </p>
           <p className="mt-2">
             {tableStorage
-              ? "Live per-page storage is active. Each planner section reads and writes its corresponding Sheet table."
+              ? logStorageReady
+                ? "Per-page storage, including dated workout sets and routine completion history, is active."
+                : "Existing per-page sync is active. Detailed workout sets and routine completion history stay on this device until the latest connection update is deployed."
               : "The deployed Apps Script still uses legacy JSON. The new per-page tables become live after the backend update is deployed."}
           </p>
           <p className="mt-2">
-            Journal: Entries. Habits: Habits, HabitChecks, RecurringHabits,
-            HabitReminders. Calendar: Calendar. Personal: PersonalTasks,
-            ShoppingWishlist, Groceries, WatchRead. Fitness: FitnessPlan,
-            FitnessSchedule, FitnessSessions. Meals: Meals. Brain dump:
+            Habits: Habits, HabitChecks, RecurringHabits, RecurringChecks and
+            HabitReminders. Historical journal records: Entries. Personal:
+            PersonalTasks, ShoppingWishlist, Groceries, WatchRead. Fitness:
+            FitnessPlan, FitnessSessions and WorkoutSets. The old weekly
+            schedule is preserved as an archive. Meals: Meals. Brain dump:
             BrainDump. Ideas: Ideas. Preferences: Settings.
           </p>
           <p className="mt-2">
@@ -926,8 +884,7 @@ function SettingsPanel({
           </p>
         )}
         <p className="mt-4 text-xs leading-relaxed text-slate-400">
-          For a spreadsheet-friendly copy of daily entries, use CSV or Copy in
-          Daily journal.
+          Historical journal records remain in Entries and in your full backup.
         </p>
       </Card>
       <Card
@@ -939,12 +896,12 @@ function SettingsPanel({
             Habit reminders need notification permission and the app open.
           </li>
           <li>
-            Calendar holidays are the dates you add. Leave ideas assume a
-            Saturday–Sunday weekend.
+            Due and overdue recurring habits automatically appear in Today’s
+            habits.
           </li>
           <li>
-            The fitness schedule is an editable starting template. It does not
-            generate a personalised training plan.
+            Fitness records dated exercises and individual sets. Weights, reps,
+            cardio time and distance stay attached to the day you logged them.
           </li>
         </ul>
       </Card>
