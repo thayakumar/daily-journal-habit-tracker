@@ -8,14 +8,11 @@ An expanded personal workspace built on the original Daily Journal & Habit Track
 - **Daily journal** — the original food, sleep, exercise, notes, and habits matrix. Data is shared with the overview and weekly habit view.
 - **Habits** — weekly checkmarks, optional daily reminder times, and recurring routines with due-date countdowns.
 - **Calendar** — events, manually entered public holidays, and leave planning. Tuesday/Thursday holidays suggest adjacent leave days, assuming Saturday–Sunday weekends.
-- **Work** — task checklists, due dates, and completed-task history.
 - **Personal** — personal tasks, groceries, a watch/read list, and a shopping wishlist. Wishlist items move to a review archive after 30 days and remain recoverable.
-- **Prayer & goals** — five daily prayer checkmarks, manually entered prayer times, monthly totals, and monthly goals.
 - **Fitness** — editable seven-day exercise schedule, exercises/sets/reps, programme duration and countdown, milestones, weekly targets, and completion tracking. The starting schedule is a template, not an AI-generated personal training plan.
 - **Meals** — editable meal plans by week and ingredient entry that feeds the grocery checklist. Planned meals and the journal’s actual meals are separate.
-- **Brain dump** — timestamped chat-style notes with a one-click action to create a content idea without duplicating it.
+- **Brain dump** — timestamped chat-style notes with delete controls.
 - **Ideas** — save notes and HTTP(S) reference links, or move an idea into the brain dump.
-- **Content planner** — editable Idea → Draft → Scheduled → Published stages, platform, planned date, draft text, and search. It does not publish to social networks.
 - **Settings & backup** — workspace name, storage/sync status, validated full JSON backup and restore.
 
 ## Run locally
@@ -72,3 +69,5 @@ The existing GitHub Pages workflow runs tests and builds before deploying `dist/
 ## Tech stack
 
 React · TypeScript · Vite · Tailwind CSS · Lucide · Google Sheets / Apps Script
+
+Removed Work, Prayer & goals, and Content planner pages are no longer available in navigation or deep links. Existing stored records for those sections remain in the backup-compatible data format; this UI update does not delete saved user data.
