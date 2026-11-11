@@ -40,10 +40,15 @@ async function postToScript(payload: Record<string, unknown>): Promise<void> {
   const url = getScriptUrl();
   if (!url) throw new Error('Google Script URL not configured');
 
-  await fetch(url, {
+  const response = await fetch(url, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
+  if (!response.ok) throw new Error(`Save failed with status ${response.status}`);
+  const result: unknown = await response.json();
+  if (!result || typeof result !== 'object' || !('success' in result) || result.success !== true) {
+    throw new Error('Google Sheet did not confirm the save');
+  }
 }
 
 export async function fetchAllData(): Promise<SheetData> {
