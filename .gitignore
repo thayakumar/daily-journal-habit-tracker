@@ -25,3 +25,6 @@ dist-ssr
 
 # Environment
 .env
+
+# Test bundles and local scratch files
+work/
