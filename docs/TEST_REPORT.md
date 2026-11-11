@@ -4,7 +4,7 @@
 
 Real Chromium checks pass on all eight active pages at 320, 375, 390, 768 and 1440 pixels: 40 layout checks with no document-wide horizontal overflow or clipped inputs. Phone interactions verify multiple exercises, treadmill time/distance, per-set edits, date isolation, reload persistence, habit creation/rename/colour and due-routine completion. Screenshots were inspected. The API is mocked for these browser checks; physical iOS/Safari devices were not tested.
 
-The WorkoutSets and RecurringChecks native tables have been created with verified headers, numeric measurement columns, frozen headers and native table ranges. Their live API support requires a new deployment of the latest Code.gs. Until then, detailed logs are saved locally and their status says so. Older per-page live verification below remains valid for the previous schema; it does not certify the new log tables.
+The detailed-log backend is now active: the live endpoint advertises both workoutSets and recurringChecks. Live API tests wrote four labelled workout-set records across two dates and one recurring-completion record. Independent Google Sheets reads confirmed numeric weights (10 and 12.5), different reps (12 and 10), cardio duration (20 minutes), distance (2.5 km), date isolation and matching routine completion dates. All test records were removed. A fresh API read confirmed that the original workspace (excluding updatedAt), journal entries and habit definitions were restored, and independent Sheet reads found no remaining test markers. The new detailed logs are now live-verified; refresh the app to load the active capabilities.
 
 ---
 

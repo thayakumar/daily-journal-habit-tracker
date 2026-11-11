@@ -1,5 +1,7 @@
 # Mobile layout and dated workout logs
 
+The current connection has both detailed-log features active. Live API writes and independent Google Sheets reads have verified numeric per-set weights/reps, cardio values, separate workout dates and recurring-completion records. Temporary test data was removed and original records were preserved. Refresh the app after deployment to load these capabilities.
+
 ## Current pages
 
 Overview, Habits, Personal, Fitness, Meals, Brain dump, Ideas and Settings & backup.
