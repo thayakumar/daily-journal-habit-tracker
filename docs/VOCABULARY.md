@@ -1,5 +1,7 @@
 # Vocabulary
 
+The current Vocabulary connection is live and verified. A test word, definition, example and timestamps matched independent Google Sheets reads; the temporary entry was removed and original records were preserved. Refresh the app after deployment to load the active capability.
+
 Open Vocabulary in the sidebar and choose **Add word**. The popup asks for the word, definition and example usage. All three are required; leading/trailing spaces are removed. A duplicate word (ignoring case) directs you to edit the existing entry.
 
 Saved words appear in a table on desktop. On phones, the same rows show the definition and example beneath each word. Search matches any of the three fields, and sorting supports newest-first or A–Z. Each row has edit and confirmed-delete controls. Cancel, Escape and the close button discard unsaved popup changes. Keyboard focus stays in the popup and returns to the trigger when it closes.

@@ -2,7 +2,7 @@
 
 33 automated tests pass, including vocabulary table persistence, old-client protection, backup validation and delayed cloud capability activation without losing local words. Real Chromium testing covered all nine pages at five widths (45 layout checks) with no page-wide horizontal overflow or clipped form inputs. The phone flow verified popup focus, Escape, saving, editing, duplicate-word validation, search, sorting, deletion and reload persistence. Screenshots were inspected.
 
-A dedicated Vocabulary native table has been created with verified headers, text column types and a frozen header. The new word-table capability still requires deployment of the latest Code.gs. Until then, Vocabulary clearly indicates device-only saving. Previous live verification for workouts and routine history remains unchanged.
+Vocabulary sync is now active in the deployed backend. A labelled temporary word was saved through the live API and read back, then independently checked in the actual Vocabulary Sheet table: word, definition, example and both timestamps matched. The test entry was removed. A fresh API read confirmed the original workspace (excluding updatedAt), journal and habit data were restored, and a separate Sheet read confirmed the test marker was gone. Refresh the app to load the active capability and upload any words retained locally. Previous live verification for workouts and routine history remains unchanged.
 
 ---
 
