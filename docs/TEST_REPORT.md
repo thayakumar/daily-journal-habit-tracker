@@ -1,3 +1,11 @@
+# Live finance verification — 12 November 2026
+
+The deployed planner endpoint now advertises `features.finance: true`. A clearly labelled temporary expense and PDF receipt were created through the published mobile-width Finance UI. A native Google Sheets read independently confirmed the FinanceExpenses row, numeric amount, date, category, receipt name/link and timestamp. Drive metadata confirmed the PDF belongs to the original receipts folder. The expense loaded from the live Sheet in a fresh browser context and survived a page refresh.
+
+The temporary row was removed using the latest workspace revision; readback confirmed all other planner records, journal entries and habit definitions were preserved. The exact newly created receipt was deleted from Drive. A separate native Sheets read confirmed only the FinanceExpenses header remained. No test financial records or receipts were retained.
+
+---
+
 # Navigation, habit dialogs, meal table and finance verification
 
 36 automated tests pass. New tests execute the actual Apps Script finance table and receipt-upload actions against mocked SpreadsheetApp and DriveApp, verifying round trips, preservation by older clients, the exact original receipts folder and invalid-file rejection. Hook tests verify local expense retention and upload after the backend capability is enabled.
@@ -6,7 +14,7 @@ Real Chromium checks pass across all ten pages at 320, 375, 390, 768 and 1440 pi
 
 The mobile finance flow verifies receipt upload to the existing folder, expense persistence in FinanceExpenses, literal formula-like descriptions, category/search filters, reload persistence and retention of form values after a failed upload. Tests await the cloud save confirmation rather than assuming a fixed delay. Finance screenshots and the weekly meals table were inspected. Google APIs are mocked; no test expense or receipt was added to the real account.
 
-The finance backend requires a new Code.gs deployment and Drive authorization; live finance persistence is pending that step. See [Finance activation](FINANCE.md). Build passes. Existing earlier live verification below applies to the previously deployed features.
+The finance backend has been deployed and authorized; live verification is recorded above. See [Finance activation](FINANCE.md). Build passes. Existing earlier live verification below applies to the previously deployed features.
 
 ---
 

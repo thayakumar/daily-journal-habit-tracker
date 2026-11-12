@@ -1,5 +1,7 @@
 # Finance inside My Space
 
+Live activation verified on 12 November 2026: expense saves, receipt uploads to the original folder, fresh-session loading and refresh persistence all passed. Temporary test records and the receipt were removed.
+
 Finance reuses the expense form, category choices, receipt upload and searchable/filterable expense history from `thayakumar/Finance-Tracker`, adapted to the planner’s rose/slate styling and mobile layout. Google sign-in, Firebase and direct browser access to the Google Sheets/Drive APIs are removed. No additional dependency is required.
 
 ## Storage and connection
