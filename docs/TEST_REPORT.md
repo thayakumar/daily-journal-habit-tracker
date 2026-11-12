@@ -1,10 +1,18 @@
+# Live monthly planning verification — 12 November 2026
+
+The deployed backend advertises financePlanning support. A labelled temporary cycle with a custom 26th start date, income, commitment, category budget, account balance and expense was saved through the live planner API. Independent native Sheets reads confirmed all six planning tables and their numeric values. The published mobile UI loaded the records, retained the custom dates across a refresh, calculated the expected totals and included Entertainment in the category chart. The phone viewport remained fixed with local table scrolling.
+
+The temporary cycle, planning rows and expense were removed using the latest revision. Full API readback confirmed other workspace, journal and habit data were preserved. Independent native Sheets reads confirmed no temporary markers remained in any affected table. The original receipts folder was not modified by this test.
+
+---
+
 # Configurable monthly finance verification
 
 42 automated tests pass, including salary-day boundaries, year transitions, leap years, inclusive date filtering, overlap/duplicate rejection, decimal money totals, every chart category, unallocated spending, separate account balances, table persistence, old-client preservation and pending-plan upload after a capability upgrade.
 
 Chromium checks pass across ten pages plus Monthly Budget at five widths (320, 375, 390, 768, 1440): 55 layout checks. Mobile flows verify adding income, month isolation, duplicate-cycle feedback, copying a setup with account balances reset, editing cycle dates, changing the default salary day and reload persistence. Table-card overflow and long-label overflow were corrected; tests include long record names and verify budget action buttons remain reachable by scrolling inside the card. Screenshots were inspected. The existing expense and receipt flow still passes.
 
-The new monthly tables require the updated Code.gs deployment. These monthly checks use the actual backend implementation with mocked Google services; live monthly table verification is pending the deployment. Previously verified live expenses and receipt uploads remain documented below.
+The new monthly tables are active; live verification is recorded above. Automated monthly checks also use the actual backend implementation with mocked Google services. Previously verified live expenses and receipt uploads remain documented below.
 
 ---
 

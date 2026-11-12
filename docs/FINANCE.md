@@ -30,6 +30,8 @@ The automated backend suite runs the actual Code.gs code against mocked Spreadsh
 
 ## Monthly Budget and configurable salary cycles
 
+Live monthly planning, custom dates, ledger-derived totals and the category chart were verified on 12 November 2026, including refresh persistence and cleanup of all temporary test records.
+
 Finance now has Expense Tracker and Monthly Budget tabs. Both use the same FinanceExpenses ledger. A shared cycle selector filters expenses by the selected inclusive start/end dates; no expense is copied to a second ledger.
 
 The default salary day is configurable from 1–31 (initially 27). A cycle is named for the month it funds: August normally spans 27 July through 26 August. Each cycle’s exact start/end dates are editable independently, including an early salary on the 26th. Changing the default only affects new cycles; it never rewrites historical cycles. Short months clamp a selected day to the month’s last valid day. Duplicate month labels and overlapping cycle dates are rejected.
