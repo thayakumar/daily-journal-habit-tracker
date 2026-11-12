@@ -36,6 +36,7 @@ The first v2 API request migrates the latest legacy planner snapshot into the ta
 | Meals | Meals | date, breakfast, lunch, dinner, snack |
 | Brain dump | BrainDump | id, text, created, contentId (legacy reference) |
 | Ideas | Ideas | id, title, url, note |
+| Vocabulary | Vocabulary | id, word, definition, example, createdAt, updatedAt |
 | Settings & backup | Settings | Key/value preferences and migration metadata |
 
 The migrated tabs include frozen headers and native tables. ISO dates are readable and sortable. Empty collections keep their headers ready for new records. The original Entries/Habits/Settings tabs are not restyled or cleared by the connector migration.

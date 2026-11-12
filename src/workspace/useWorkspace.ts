@@ -14,6 +14,7 @@ import {
 } from "./model";
 
 const CLOUD_KEY = "personalWorkspaceV1";
+const VOCAB_PENDING_KEY = "personal-workspace.vocabulary-pending.v1";
 const LOG_PENDING_KEY = "personal-workspace.logs-pending.v1";
 const ACK_KEY = "personal-workspace.cloud-ack.v2";
 function remoteWorkspace(remote: SheetData): Workspace | null {
@@ -46,6 +47,8 @@ export function useWorkspace() {
   const [tableStorage, setTableStorage] = useState(false);
   const [logStorageReady, setLogStorageReady] = useState(false);
   const logSupport = useRef(false);
+  const vocabularySupport = useRef(false);
+  const [vocabularyStorageReady, setVocabularyStorageReady] = useState(false);
   const latest = useRef(data);
   latest.current = data;
   const ack = useRef(readAck());
@@ -65,9 +68,15 @@ export function useWorkspace() {
       remote.features?.workoutSets === true &&
       remote.features?.recurringChecks === true;
     setLogStorageReady(logSupport.current);
+    vocabularySupport.current = remote.features?.vocabulary === true;
+    setVocabularyStorageReady(vocabularySupport.current);
     let parsed = remoteWorkspace(remote);
     const cloudDate = parsed?.updatedAt ?? 0;
     const pendingLogs = localStorage.getItem(LOG_PENDING_KEY) === "true";
+    const pendingVocabulary =
+      localStorage.getItem(VOCAB_PENDING_KEY) === "true";
+    if (parsed && !vocabularySupport.current && !force)
+      parsed = { ...parsed, vocabulary: latest.current.vocabulary ?? [] };
     if (parsed && !logSupport.current && !force) {
       parsed = {
         ...parsed,
@@ -75,7 +84,12 @@ export function useWorkspace() {
         recurringChecks: latest.current.recurringChecks ?? [],
       };
     }
-    if (parsed && logSupport.current && pendingLogs && !force) {
+    if (
+      parsed &&
+      ((logSupport.current && pendingLogs) ||
+        (vocabularySupport.current && pendingVocabulary)) &&
+      !force
+    ) {
       const merge = <T extends { id: string }>(
         remoteRows: T[],
         localRows: T[],
@@ -86,14 +100,21 @@ export function useWorkspace() {
       ];
       parsed = {
         ...parsed,
-        workoutSets: merge(
-          parsed.workoutSets ?? [],
-          latest.current.workoutSets ?? [],
-        ),
-        recurringChecks: merge(
-          parsed.recurringChecks ?? [],
-          latest.current.recurringChecks ?? [],
-        ),
+        workoutSets:
+          logSupport.current && pendingLogs
+            ? merge(parsed.workoutSets ?? [], latest.current.workoutSets ?? [])
+            : parsed.workoutSets,
+        recurringChecks:
+          logSupport.current && pendingLogs
+            ? merge(
+                parsed.recurringChecks ?? [],
+                latest.current.recurringChecks ?? [],
+              )
+            : parsed.recurringChecks,
+        vocabulary:
+          vocabularySupport.current && pendingVocabulary
+            ? merge(parsed.vocabulary ?? [], latest.current.vocabulary ?? [])
+            : parsed.vocabulary,
         updatedAt: Math.max(
           Date.now(),
           latest.current.updatedAt + 1,
@@ -103,7 +124,7 @@ export function useWorkspace() {
       cloudTimestamp.current = cloudDate;
       setData(parsed);
       setReady(true);
-      setStatus("Uploading device workout and routine history…");
+      setStatus("Uploading device records…");
       return;
     }
     if (parsed) {
@@ -159,6 +180,8 @@ export function useWorkspace() {
     if (!data.updatedAt) return;
     try {
       localStorage.setItem(WORKSPACE_KEY, JSON.stringify(data));
+      if (!vocabularySupport.current && (data.vocabulary?.length ?? 0) > 0)
+        localStorage.setItem(VOCAB_PENDING_KEY, "true");
       if (
         !logSupport.current &&
         ((data.workoutSets?.length ?? 0) > 0 ||
@@ -206,18 +229,23 @@ export function useWorkspace() {
         cloudTimestamp.current = next.updatedAt;
         acknowledge(next.updatedAt, cloudRevision.current);
         if (logSupport.current) localStorage.removeItem(LOG_PENDING_KEY);
+        if (vocabularySupport.current)
+          localStorage.removeItem(VOCAB_PENDING_KEY);
         next = latest.current;
       }
       setStatus(
-        tableMode.current
-          ? logSupport.current ||
-            !(
-              (latest.current.workoutSets?.length ?? 0) +
-              (latest.current.recurringChecks?.length ?? 0)
-            )
-            ? "Saved to per-page Sheet tables"
-            : "Workout and routine history saved locally · deploy the updated Apps Script"
-          : "Saved to legacy JSON · update Apps Script for per-page tables",
+        !vocabularySupport.current &&
+          (latest.current.vocabulary?.length ?? 0) > 0
+          ? "Vocabulary saved on this device · connection update needed"
+          : tableMode.current
+            ? logSupport.current ||
+              !(
+                (latest.current.workoutSets?.length ?? 0) +
+                (latest.current.recurringChecks?.length ?? 0)
+              )
+              ? "Saved to per-page Sheet tables"
+              : "Workout and routine history saved locally · deploy the updated Apps Script"
+            : "Saved to legacy JSON · update Apps Script for per-page tables",
       );
     } catch (error) {
       setStatus(
@@ -244,5 +272,6 @@ export function useWorkspace() {
     reloadCloud,
     tableStorage,
     logStorageReady,
+    vocabularyStorageReady,
   };
 }

@@ -163,3 +163,20 @@ test("recurring habits enter today on their due date, remain overdue, and suppor
   assert.equal(undo.recurring[0].lastDone, "2026-11-01");
   assert.equal(undo.recurringChecks.length, 0);
 });
+
+test("vocabulary backups validate word definitions, examples and timestamps", () => {
+  const w = createWorkspace();
+  w.vocabulary = [
+    {
+      id: "v1",
+      word: "Word",
+      definition: "Meaning",
+      example: "Example usage",
+      createdAt: "2026-11-12T01:00:00Z",
+      updatedAt: "2026-11-12T01:00:00Z",
+    },
+  ];
+  assert.equal(isWorkspace(w), true);
+  w.vocabulary[0].createdAt = "bad";
+  assert.equal(isWorkspace(w), false);
+});

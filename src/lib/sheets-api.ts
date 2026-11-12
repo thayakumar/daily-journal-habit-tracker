@@ -32,7 +32,11 @@ export interface SheetData {
   habits: Habit[];
   settings: Settings;
   storageSchemaVersion?: number;
-  features?: { workoutSets?: boolean; recurringChecks?: boolean };
+  features?: {
+    workoutSets?: boolean;
+    recurringChecks?: boolean;
+    vocabulary?: boolean;
+  };
   workspace?: Workspace;
   workspaceRevision?: string;
 }

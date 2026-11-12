@@ -129,7 +129,16 @@ export interface RecurringCheck {
   date: string;
   previousLastDone: string;
 }
+export interface VocabularyEntry {
+  id: string;
+  word: string;
+  definition: string;
+  example: string;
+  createdAt: string;
+  updatedAt: string;
+}
 export interface Workspace {
+  vocabulary?: VocabularyEntry[];
   workoutSets?: WorkoutSet[];
   recurringChecks?: RecurringCheck[];
   version: 1;
@@ -158,6 +167,7 @@ export interface Workspace {
 }
 export function createWorkspace(): Workspace {
   return {
+    vocabulary: [],
     workoutSets: [],
     recurringChecks: [],
     version: 1,
@@ -235,6 +245,21 @@ export function isWorkspace(value: unknown): value is Workspace {
   const p = value.prayer,
     f = value.fitness;
   return (
+    (value.vocabulary === undefined ||
+      records(
+        value.vocabulary,
+        (r) =>
+          [
+            "id",
+            "word",
+            "definition",
+            "example",
+            "createdAt",
+            "updatedAt",
+          ].every((k) => text(r[k])) &&
+          Number.isFinite(Date.parse(String(r.createdAt))) &&
+          Number.isFinite(Date.parse(String(r.updatedAt))),
+      )) &&
     (value.workoutSets === undefined ||
       records(
         value.workoutSets,
