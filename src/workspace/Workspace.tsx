@@ -143,6 +143,7 @@ export default function WorkspaceApp() {
     logStorageReady,
     vocabularyStorageReady,
     financeStorageReady,
+    planningStorageReady,
   } = useWorkspace();
   const [tab, setTab] = useState<Tab>(currentTab);
   const [menu, setMenu] = useState(false);
@@ -339,6 +340,7 @@ export default function WorkspaceApp() {
                 data={data}
                 update={update}
                 receiptReady={financeStorageReady}
+                planningReady={planningStorageReady}
                 onSync={() => void retrySync()}
               />
             </Suspense>

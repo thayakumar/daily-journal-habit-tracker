@@ -1,3 +1,4 @@
+import { money } from "../planning";
 import React, { useState } from "react";
 import { type Expense, Category } from "../types";
 import {
@@ -74,11 +75,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
               Total Recorded Spending
             </p>
             <p className="break-words text-xl font-sans font-bold text-slate-800 mt-1">
-              $
-              {totalAmount.toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
+              {money(totalAmount)}
             </p>
           </div>
           <div className="hidden 2xl:block p-3 bg-rose-50 rounded-lg text-rose-600 border border-rose-100 shadow-xs">
@@ -96,11 +93,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
               Average Expense
             </p>
             <p className="break-words text-xl font-sans font-bold text-slate-800 mt-1">
-              $
-              {averageAmount.toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
+              {money(averageAmount)}
             </p>
           </div>
           <div className="hidden 2xl:block p-3 bg-rose-50 rounded-lg text-rose-600 border border-rose-100 shadow-xs">
@@ -118,11 +111,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
               Highest Transaction
             </p>
             <p className="break-words text-xl font-sans font-bold text-slate-800 mt-1">
-              $
-              {maxExpense.toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
+              {money(maxExpense)}
             </p>
           </div>
           <div className="hidden 2xl:block p-3 bg-rose-50 rounded-lg text-rose-600 border border-rose-100 shadow-xs">
@@ -257,7 +246,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                       </td>
                       {/* Amount */}
                       <td className="px-4 py-3.5 whitespace-nowrap text-right font-mono font-bold text-slate-900">
-                        ${exp.amount.toFixed(2)}
+                        {money(exp.amount)}
                       </td>
                       {/* Receipt link */}
                       <td className="px-4 py-3.5 whitespace-nowrap text-center">

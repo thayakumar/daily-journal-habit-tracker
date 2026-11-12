@@ -3,7 +3,7 @@ import { Category, type Expense } from "../types";
 import { uploadFinanceReceipt } from "../../lib/sheets-api";
 import {
   Calendar,
-  DollarSign,
+  Coins,
   Tag,
   Car,
   ShoppingBag,
@@ -268,11 +268,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
         {/* Amount Row */}
         <div id="input-group-amount">
           <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-            Amount (USD) <span className="text-rose-600 font-bold">*</span>
+            Amount (RM) <span className="text-rose-600 font-bold">*</span>
           </label>
           <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-              <DollarSign className="h-4 w-4" />
+              <Coins className="h-4 w-4" />
             </span>
             <input
               type="number"

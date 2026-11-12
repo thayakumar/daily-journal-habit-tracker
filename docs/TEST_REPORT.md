@@ -1,3 +1,13 @@
+# Configurable monthly finance verification
+
+42 automated tests pass, including salary-day boundaries, year transitions, leap years, inclusive date filtering, overlap/duplicate rejection, decimal money totals, every chart category, unallocated spending, separate account balances, table persistence, old-client preservation and pending-plan upload after a capability upgrade.
+
+Chromium checks pass across ten pages plus Monthly Budget at five widths (320, 375, 390, 768, 1440): 55 layout checks. Mobile flows verify adding income, month isolation, duplicate-cycle feedback, copying a setup with account balances reset, editing cycle dates, changing the default salary day and reload persistence. A discovered table-card overflow was corrected; action buttons fit the phone viewport and wide tables scroll inside their cards. Screenshots were inspected. The existing expense and receipt flow still passes.
+
+The new monthly tables require the updated Code.gs deployment. These monthly checks use the actual backend implementation with mocked Google services; live monthly table verification is pending the deployment. Previously verified live expenses and receipt uploads remain documented below.
+
+---
+
 # Live finance verification — 12 November 2026
 
 The deployed planner endpoint now advertises `features.finance: true`. A clearly labelled temporary expense and PDF receipt were created through the published mobile-width Finance UI. A native Google Sheets read independently confirmed the FinanceExpenses row, numeric amount, date, category, receipt name/link and timestamp. Drive metadata confirmed the PDF belongs to the original receipts folder. The expense loaded from the live Sheet in a fresh browser context and survived a page refresh.
