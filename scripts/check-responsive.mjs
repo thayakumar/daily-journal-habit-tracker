@@ -295,8 +295,10 @@ try {
           .getByRole("table", { name: "Cycle expenses", exact: true })
           .waitFor();
         await page.waitForFunction(
-          () => document.documentElement.scrollWidth <= innerWidth + 1,
-          {},
+          (w) =>
+            document.documentElement.scrollWidth <= w + 1 &&
+            innerWidth <= w + 1,
+          width,
           { timeout: 2000 },
         );
         assert.equal(
