@@ -62,9 +62,16 @@ const buttonsWith = (value) =>
     .findAllByType("button")
     .filter((b) => nodeText(b).includes(value));
 
-test("full workspace shares habit completion across overview, journal and weekly habit view", async () => {
+test("overview navigates to habits and shares completion with weekly history", async () => {
   await render(React.createElement(WorkspaceApp));
-  assert.match(text(renderer), /Today, a little more intentional/);
+  assert.ok(renderer.root.findByProps({ "aria-label": "Open a page" }));
+  assert.equal(renderer.root.findAllByType("textarea").length, 0);
+  await click(
+    renderer.root
+      .findByProps({ "aria-label": "Open a page" })
+      .findAllByType("button")
+      .find((b) => nodeText(b) === "Habits"),
+  );
   const habit = renderer.root.findByProps({ "aria-label": "2L Water today" });
   assert.ok(habit);
   await click(habit);
@@ -72,11 +79,6 @@ test("full workspace shares habit completion across overview, journal and weekly
   assert.equal(
     journal.rows.find((r) => r.dateStr === localDate()).habits.h1,
     true,
-  );
-  await act(async () =>
-    renderer.root
-      .findByProps({ href: "#habits", "aria-current": undefined })
-      .props.onClick({ preventDefault() {} }),
   );
   const todayCircle = renderer.root.findByProps({
     "aria-label": `2L Water on ${localDate()}`,
@@ -117,7 +119,7 @@ test("removed pages and old deep links do not expose removed features", async ()
   for (const id of ["content", "work", "prayer", "calendar", "journal"]) {
     assert.equal(renderer.root.findAllByProps({ href: "#" + id }).length, 0);
   }
-  assert.match(text(renderer), /Today, a little more intentional/);
+  assert.ok(renderer.root.findByProps({ "aria-label": "Open a page" }));
   assert.equal(buttonsWith("Content in motion").length, 0);
 });
 
@@ -502,4 +504,62 @@ test("vocabulary stays local on an older backend and uploads after its feature f
   await act(async () => sleep(1300));
   assert.equal(api.vocabularyStorageReady, true);
   assert.equal(b.get().workspace.vocabulary[0].id, "local-word");
+});
+
+test("finance stays local on an older backend and uploads after its feature flag activates", async () => {
+  const { createBackend } = await import("./apps-script-mock.mjs");
+  const b = createBackend(createWorkspace());
+  let upgraded = false;
+  let api;
+  globalThis.__TEST_SCRIPT_URL__ = "https://sheet.test/exec";
+  globalThis.fetch = async (_url, options) => ({
+    ok: true,
+    json: async () => {
+      if (options?.method === "POST") {
+        const p = JSON.parse(options.body);
+        if (!upgraded && p.action === "saveWorkspace")
+          delete p.data.financeExpenses;
+        return b.post(p);
+      }
+      const d = b.get();
+      if (!upgraded) {
+        delete d.features.finance;
+        delete d.workspace.financeExpenses;
+      }
+      return d;
+    },
+  });
+  function Harness() {
+    api = useWorkspace();
+    return null;
+  }
+  await render(React.createElement(Harness));
+  const entry = {
+    id: "local-expense",
+    date: "2026-11-12",
+    item: "Lunch",
+    amount: 12.5,
+    category: "Food",
+    receiptName: "",
+    receiptUrl: "",
+    createdAt: "2026-11-12T01:00:00Z",
+  };
+  await act(async () =>
+    api.update((s) => ({ ...s, financeExpenses: [entry] })),
+  );
+  await act(async () => sleep(1300));
+  assert.equal(api.data.financeExpenses.length, 1);
+  assert.match(api.status, /Finance saved on this device/);
+  assert.equal(b.get().workspace.financeExpenses.length, 0);
+  await act(async () => renderer.unmount());
+  renderer = null;
+  await render(React.createElement(Harness));
+  assert.equal(api.data.financeExpenses[0].item, "Lunch");
+  await act(async () => renderer.unmount());
+  renderer = null;
+  upgraded = true;
+  await render(React.createElement(Harness));
+  await act(async () => sleep(1300));
+  assert.equal(api.financeStorageReady, true);
+  assert.equal(b.get().workspace.financeExpenses[0].id, "local-expense");
 });

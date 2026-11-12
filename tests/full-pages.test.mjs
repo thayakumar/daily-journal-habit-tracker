@@ -23,6 +23,10 @@ function setup() {
     location: { hash: "" },
     scrollTo() {},
   });
+  globalThis.document = {
+    activeElement: null,
+    body: { style: { overflow: "" } },
+  };
   globalThis.confirm = () => true;
   globalThis.alert = () => {};
   const today = localDate();
@@ -75,18 +79,12 @@ test("every remaining page writes its own table through the actual Apps Script c
     await act(async () => {
       app = create(React.createElement(WorkspaceApp));
     });
-    // Overview: one quick thought and a shared journal habit circle.
-    await change(
-      app.root.findByProps({ "aria-label": "Quick thought" }),
-      "QA overview thought",
-    );
-    await submit(app.root.findByProps({ "aria-label": "Quick thought" }));
+    // Overview contains navigation only; completion belongs to Habits.
+    assert.ok(app.root.findByProps({ "aria-label": "Open a page" }));
+    assert.equal(app.root.findAllByType("textarea").length, 0);
+    await navigate("habits");
     await click(app.root.findByProps({ "aria-label": "Water today" }));
     await settle();
-    assert.equal(
-      backend.sheets.get("BrainDump").grid[1][1],
-      "QA overview thought",
-    );
     assert.equal(backend.get().entries[0].habits["qa-water"], true);
     assert.equal(backend.sheets.get("HabitChecks").grid[1][2], true);
     // Habits: timed reminder and recurring interval.
@@ -95,6 +93,7 @@ test("every remaining page writes its own table through the actual Apps Script c
       app.root.findByProps({ "aria-label": "Reminder for Water" }),
       "09:15",
     );
+    await click(button("Add recurring routine"));
     await change(
       app.root.findByProps({ placeholder: "Change bedsheets" }),
       "QA recurring",

@@ -48,7 +48,12 @@ export interface JournalSnapshot {
   showTasksColumn: boolean;
 }
 export type ItemKind =
-  "work" | "personal" | "grocery" | "wishlist" | "watch" | "goal";
+  | "work"
+  | "personal"
+  | "grocery"
+  | "wishlist"
+  | "watch"
+  | "goal";
 export interface ListItem {
   id: string;
   kind: ItemKind;
@@ -137,7 +142,18 @@ export interface VocabularyEntry {
   createdAt: string;
   updatedAt: string;
 }
+export interface FinanceExpense {
+  id: string;
+  date: string;
+  item: string;
+  amount: number;
+  category: string;
+  receiptName: string;
+  receiptUrl: string;
+  createdAt: string;
+}
 export interface Workspace {
+  financeExpenses?: FinanceExpense[];
   vocabulary?: VocabularyEntry[];
   workoutSets?: WorkoutSet[];
   recurringChecks?: RecurringCheck[];
@@ -167,6 +183,7 @@ export interface Workspace {
 }
 export function createWorkspace(): Workspace {
   return {
+    financeExpenses: [],
     vocabulary: [],
     workoutSets: [],
     recurringChecks: [],
@@ -245,6 +262,23 @@ export function isWorkspace(value: unknown): value is Workspace {
   const p = value.prayer,
     f = value.fitness;
   return (
+    (value.financeExpenses === undefined ||
+      records(
+        value.financeExpenses,
+        (r) =>
+          [
+            "id",
+            "date",
+            "item",
+            "category",
+            "receiptName",
+            "receiptUrl",
+            "createdAt",
+          ].every((k) => text(r[k])) &&
+          Number.isFinite(r.amount) &&
+          Number(r.amount) >= 0 &&
+          Number.isFinite(Date.parse(String(r.createdAt))),
+      )) &&
     (value.vocabulary === undefined ||
       records(
         value.vocabulary,

@@ -1,3 +1,9 @@
+# Finance addition
+
+Finance uses the existing planner Apps Script endpoint and bound spreadsheet. Its rows live in `FinanceExpenses`; receipts stay in the original Finance Tracker Drive folder. Google sign-in is removed. See [the exact connection and activation instructions](FINANCE.md). Other page tables remain unchanged. The overview now contains navigation buttons only and writes no records of its own.
+
+---
+
 # Per-page Google Sheets storage (backend v2)
 
 The updated frontend works with both backend versions. Settings shows the active storage mode. A legacy backend continues to save the original JSON until its deployment is updated; creating the new tabs alone does not activate continuous per-page sync.

@@ -36,6 +36,7 @@ export interface SheetData {
     workoutSets?: boolean;
     recurringChecks?: boolean;
     vocabulary?: boolean;
+    finance?: boolean;
   };
   workspace?: Workspace;
   workspaceRevision?: string;
@@ -47,7 +48,11 @@ function getScriptUrl(): string {
 
 async function postToScript(
   payload: Record<string, unknown>,
-): Promise<{ workspaceRevision?: string }> {
+): Promise<{
+  workspaceRevision?: string;
+  receiptUrl?: string;
+  receiptName?: string;
+}> {
   const url = getScriptUrl();
   if (!url) throw new Error("Google Script URL not configured");
 
@@ -70,7 +75,11 @@ async function postToScript(
         : "Google Sheet did not confirm the save";
     throw new Error(error);
   }
-  return result as { workspaceRevision?: string };
+  return result as {
+    workspaceRevision?: string;
+    receiptUrl?: string;
+    receiptName?: string;
+  };
 }
 
 export async function saveWorkspace(
@@ -143,4 +152,34 @@ export function isConfigured(): boolean {
     !!url &&
     url !== "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"
   );
+}
+
+export async function uploadFinanceReceipt(
+  file: File,
+): Promise<{ receiptUrl: string; receiptName: string }> {
+  if (file.size > 10 * 1024 * 1024)
+    throw new Error("Receipts must be smaller than 10 MB.");
+  if (
+    !["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(
+      file.type,
+    )
+  )
+    throw new Error("Use a PDF, JPG, PNG or WebP receipt.");
+  const fileBase64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1]);
+    reader.onerror = () => reject(new Error("Could not read the receipt."));
+    reader.readAsDataURL(file);
+  });
+  const result = await postToScript({
+    action: "uploadFinanceReceipt",
+    fileBase64,
+    fileName: file.name,
+    fileMimeType: file.type,
+  });
+  if (!result.receiptUrl || !result.receiptName)
+    throw new Error(
+      "Receipt upload was not confirmed. Update the Apps Script connection.",
+    );
+  return { receiptUrl: result.receiptUrl, receiptName: result.receiptName };
 }

@@ -44,6 +44,7 @@ try {
     personal: "Personal",
     fitness: "Fitness",
     meals: "Meals",
+    finance: "Finance",
     dump: "Brain dump",
     ideas: "Ideas",
     vocabulary: "Vocabulary",
@@ -52,6 +53,18 @@ try {
   for (const width of [320, 375, 390, 768, 1440]) {
     const w = createWorkspace();
     w.updatedAt = 1;
+    w.financeExpenses = [
+      {
+        id: "qa-finance",
+        date: today,
+        item: "QA lunch",
+        amount: 12.5,
+        category: "Food",
+        receiptName: "",
+        receiptUrl: "",
+        createdAt: new Date().toISOString(),
+      },
+    ];
     w.recurring = [
       {
         id: "routine",
@@ -91,12 +104,27 @@ try {
     page.on("dialog", (dialog) => dialog.accept());
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
+    let failReceipt = false;
     await page.route("https://sheet.test/**", async (route) => {
       const request = route.request();
+      if (
+        failReceipt &&
+        request.method() === "POST" &&
+        request.postDataJSON().action === "uploadFinanceReceipt"
+      )
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: false,
+            error: "Temporary receipt failure",
+          }),
+        });
       const value =
         request.method() === "POST"
           ? backend.post(JSON.parse(request.postData()))
           : backend.get();
+      if (value.success === false) console.error("Mock API error", value.code, value.error);
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -106,7 +134,7 @@ try {
     });
     await page.goto(base);
     await page
-      .getByRole("button", { name: "Drink water today", exact: true })
+      .getByRole("navigation", { name: "Open a page", exact: true })
       .waitFor();
     async function navigate(id) {
       if (width < 1024)
@@ -121,6 +149,51 @@ try {
     }
     for (const id of Object.keys(labels)) {
       if (id !== "overview") await navigate(id);
+      if (id === "overview") {
+        assert.equal(await page.locator("main textarea,main input").count(), 0);
+        assert.equal(
+          await page
+            .getByRole("navigation", { name: "Open a page" })
+            .getByRole("button")
+            .count(),
+          9,
+        );
+      }
+      if (id === "finance")
+        await page.getByText("QA lunch", { exact: true }).waitFor();
+      if (id === "meals") {
+        assert.equal(
+          await page
+            .getByRole("table", { name: "Weekly meals" })
+            .locator("textarea")
+            .count(),
+          28,
+        );
+        assert.equal(await page.locator("main details").count(), 0);
+      }
+      if (id === "habits") {
+        assert.equal(await page.locator("details[open]").count(), 0);
+        await page
+          .getByRole("button", { name: "Add recurring routine", exact: true })
+          .click();
+        const popup = page.getByRole("dialog");
+        await popup.waitFor();
+        const rect = await popup.boundingBox();
+        assert.ok(rect.x >= 0 && rect.x + rect.width <= width);
+        assert.equal(
+          await popup.evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+          true,
+          "Routine dialog must fit its content",
+        );
+        await page.keyboard.press("Escape");
+        await popup.waitFor({ state: "hidden" });
+        assert.equal(
+          await page
+            .getByRole("button", { name: "Add recurring routine", exact: true })
+            .evaluate((el) => el === document.activeElement),
+          true,
+        );
+      }
       const layout = await page.evaluate(() => ({
         viewport: innerWidth,
         document: document.documentElement.scrollWidth,
@@ -136,7 +209,11 @@ try {
           nodes
             .filter((n) => {
               const r = n.getBoundingClientRect();
-              return r.width > 0 && (r.left < -1 || r.right > innerWidth + 1);
+              return (
+                !n.closest("[data-horizontal-scroll]") &&
+                r.width > 0 &&
+                (r.left < -1 || r.right > innerWidth + 1)
+              );
             })
             .map((n) => n.getAttribute("aria-label") || n.tagName),
         );
@@ -278,6 +355,11 @@ try {
           exact: true,
         })
         .waitFor();
+      assert.equal(await page.locator("details[open]").count(), 0);
+      await page
+        .getByRole("button", { name: "Add daily habit", exact: true })
+        .click();
+      await page.getByRole("dialog").waitFor();
       await page
         .getByLabel("New daily habit", { exact: true })
         .fill("Stretch daily");
@@ -287,6 +369,10 @@ try {
       await page
         .getByRole("button", { name: "Stretch daily today", exact: true })
         .waitFor();
+      await page
+        .locator("summary")
+        .filter({ hasText: "Customize daily habits" })
+        .click();
       await page.getByLabel("Name for water", { exact: true }).fill("");
       assert.equal(
         await page.getByLabel("Name for water", { exact: true }).inputValue(),
@@ -314,6 +400,75 @@ try {
           .getAttribute("class"),
         /bg-rose-500/,
       );
+      await navigate("finance");
+      await page.getByLabel("Expense description").fill("=QA coffee");
+      await page.getByLabel("Expense amount").fill("8.75");
+      await page
+        .getByLabel("Expense receipt")
+        .setInputFiles({
+          name: "receipt.pdf",
+          mimeType: "application/pdf",
+          buffer: Buffer.from("QA receipt"),
+        });
+      await page
+        .getByRole("button", { name: "Save expense", exact: true })
+        .click();
+      await page
+        .getByText(
+          "Expense saved. Sheet sync follows your planner connection.",
+          { exact: true },
+        )
+        .waitFor();
+      for (let n = 0; n < 50 && backend.get().workspace.financeExpenses.length !== 2; n++) await page.waitForTimeout(100);
+      if (backend.get().workspace.financeExpenses.length !== 2) console.error("Finance save status", await page.locator("header").innerText());
+      const savedExpense = backend.get().workspace.financeExpenses.at(-1);
+      assert.equal(backend.get().workspace.financeExpenses.length, 2);
+      assert.equal(savedExpense.item, "=QA coffee");
+      assert.equal(
+        savedExpense.receiptUrl,
+        "https://drive.google.com/file/d/receipt-1/view",
+      );
+      assert.equal(backend.receipts.length, 1);
+      assert.equal(
+        backend.receipts[0].folderId,
+        "1_fo4Fn8Oq-ttn1vhZAAZFUH49jIyJrXd",
+      );
+      await page.getByLabel("Search expenses").fill("=QA coffee");
+      assert.equal(await page.locator("#expense-table tbody tr").count(), 1);
+      await page.getByLabel("Search expenses").fill("");
+      await page
+        .getByLabel("Filter expense category")
+        .selectOption("Groceries");
+      await page
+        .getByText("No transactions recorded", { exact: true })
+        .waitFor();
+      await page.getByLabel("Filter expense category").selectOption("All");
+      await page.getByLabel("Expense description").fill("Keep on failure");
+      await page.getByLabel("Expense amount").fill("5");
+      failReceipt = true;
+      await page
+        .getByLabel("Expense receipt")
+        .setInputFiles({
+          name: "retry.pdf",
+          mimeType: "application/pdf",
+          buffer: Buffer.from("QA failed upload"),
+        });
+      await page
+        .getByRole("button", { name: "Save expense", exact: true })
+        .click();
+      await page.locator("#submit-error").waitFor();
+      assert.equal(
+        await page.getByLabel("Expense description").inputValue(),
+        "Keep on failure",
+      );
+      failReceipt = false;
+      await page
+        .getByRole("button", { name: "Sync expenses", exact: true })
+        .click();
+      await page.getByText("=QA coffee", { exact: true }).waitFor();
+      await page.reload();
+      await page.getByText("=QA coffee", { exact: true }).waitFor();
+      await page.screenshot({ path: "work/finance-390.png", fullPage: true });
       await navigate("fitness");
       await page
         .getByLabel("Exercise name", { exact: true })

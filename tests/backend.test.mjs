@@ -285,3 +285,69 @@ test("vocabulary entries round-trip through their own table and survive older cl
     w.vocabulary[0].definition,
   );
 });
+
+test("finance expenses use their own table and older clients preserve them", () => {
+  const w = createWorkspace();
+  w.financeExpenses = [
+    {
+      id: "expense-1",
+      date: "2026-11-12",
+      item: "=Lunch",
+      amount: 12.5,
+      category: "Food",
+      receiptName: "receipt.pdf",
+      receiptUrl: "https://drive.google.com/file/d/receipt-1/view",
+      createdAt: "2026-11-12T01:00:00Z",
+    },
+  ];
+  const b = createBackend(w);
+  const remote = b.get();
+  assert.equal(remote.features.finance, true);
+  assert.deepEqual(remote.workspace.financeExpenses, w.financeExpenses);
+  assert.equal(b.sheets.get("FinanceExpenses").grid[1][2], "=Lunch");
+  const oldClient = JSON.parse(JSON.stringify(remote.workspace));
+  delete oldClient.financeExpenses;
+  oldClient.updatedAt++;
+  assert.equal(
+    b.post({
+      action: "saveWorkspace",
+      data: oldClient,
+      baseRevision: remote.workspaceRevision,
+    }).success,
+    true,
+  );
+  assert.deepEqual(b.get().workspace.financeExpenses, w.financeExpenses);
+});
+
+test("receipt upload uses the original Drive folder and rejects invalid files before creating them", () => {
+  const b = createBackend(createWorkspace());
+  const response = b.post({
+    action: "uploadFinanceReceipt",
+    fileName: "receipt.pdf",
+    fileMimeType: "application/pdf",
+    fileBase64: Buffer.from("receipt bytes").toString("base64"),
+  });
+  assert.equal(response.success, true);
+  assert.equal(response.receiptName, "receipt.pdf");
+  assert.equal(b.receipts[0].folderId, "1_fo4Fn8Oq-ttn1vhZAAZFUH49jIyJrXd");
+  assert.equal(b.get().workspace.financeExpenses.length, 0);
+  assert.equal(
+    b.post({
+      action: "uploadFinanceReceipt",
+      fileName: "bad.txt",
+      fileMimeType: "text/plain",
+      fileBase64: "YQ==",
+    }).success,
+    false,
+  );
+  assert.equal(
+    b.post({
+      action: "uploadFinanceReceipt",
+      fileName: "bad.pdf",
+      fileMimeType: "application/pdf",
+      fileBase64: "not base64",
+    }).success,
+    false,
+  );
+  assert.equal(b.receipts.length, 1);
+});

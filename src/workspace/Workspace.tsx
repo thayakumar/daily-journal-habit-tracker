@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   ArrowRight,
   BookOpen,
@@ -11,20 +18,18 @@ import {
   Heart,
   LayoutDashboard,
   Lightbulb,
-  ListTodo,
   Menu,
   MessageCircle,
-  Plus,
   Settings,
-  Sparkles,
   Sprout,
   Upload,
   Utensils,
   X,
+  Wallet,
 } from "lucide-react";
 import Journal, { type JournalBridge } from "../App";
 import { isConfigured } from "../lib/sheets-api";
-import { Habits, TodayHabits } from "./Habits";
+import { Habits } from "./Habits";
 import { Meals } from "./Wellness";
 import { Fitness } from "./Fitness";
 import { Vocabulary } from "./Vocabulary";
@@ -37,18 +42,11 @@ import {
   JOURNAL_KEY,
   localDate,
   readJournal,
-  todayRecurring,
-  recurringDone,
-  workoutDates,
-  uid,
-  weekDates,
   WORKSPACE_KEY,
   type Workspace,
 } from "./model";
 import {
   Card,
-  Circle,
-  Empty,
   Field,
   ListPanel,
   inputClass,
@@ -56,6 +54,8 @@ import {
   secondaryClass,
   type Update,
 } from "./ui";
+
+const Finance = lazy(() => import("../finance/Finance"));
 
 const NAV = [
   {
@@ -81,6 +81,12 @@ const NAV = [
     label: "Fitness",
     icon: Dumbbell,
     description: "Show up for yourself.",
+  },
+  {
+    id: "finance",
+    label: "Finance",
+    icon: Wallet,
+    description: "Your expenses and receipts, together.",
   },
   {
     id: "meals",
@@ -136,6 +142,7 @@ export default function WorkspaceApp() {
     tableStorage,
     logStorageReady,
     vocabularyStorageReady,
+    financeStorageReady,
   } = useWorkspace();
   const [tab, setTab] = useState<Tab>(currentTab);
   const [menu, setMenu] = useState(false);
@@ -311,28 +318,30 @@ export default function WorkspaceApp() {
           id="main-content"
           className="mx-auto max-w-[1600px] px-4 py-7 sm:px-7 sm:py-9"
         >
-          <div className="mb-7">
-            <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.18em] text-rose-500">
-              <heading.icon className="h-3.5 w-3.5" />
-              {tab === "overview"
-                ? "Make a little space"
-                : "Your personal planner"}
+          {tab !== "overview" && (
+            <div className="mb-7">
+              <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.18em] text-rose-500">
+                <heading.icon className="h-3.5 w-3.5" />
+                Your personal planner
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                {heading.label}
+              </h1>
+              <p className="mt-2 text-sm text-slate-500">
+                {heading.description}
+              </p>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              {tab === "overview"
-                ? "Today, a little more intentional."
-                : heading.label}
-            </h1>
-            <p className="mt-2 text-sm text-slate-500">{heading.description}</p>
-          </div>
-          {tab === "overview" && (
-            <Overview
-              data={data}
-              update={update}
-              today={today}
-              journal={journal}
-              navigate={navigate}
-            />
+          )}
+          {tab === "overview" && <Overview navigate={navigate} />}
+          {tab === "finance" && (
+            <Suspense fallback={<p role="status">Loading finance…</p>}>
+              <Finance
+                data={data}
+                update={update}
+                receiptReady={financeStorageReady}
+                onSync={() => void retrySync()}
+              />
+            </Suspense>
           )}
           {tab === "habits" && (
             <Habits
@@ -426,269 +435,26 @@ export default function WorkspaceApp() {
     </div>
   );
 }
-function Overview({
-  data,
-  update,
-  today,
-  journal,
-  navigate,
-}: {
-  data: Workspace;
-  update: Update;
-  today: string;
-  journal: JournalBridge | null;
-  navigate: (tab: Tab) => void;
-}) {
-  const [thought, setThought] = useState("");
-  const [captured, setCaptured] = useState(false);
-  const row = journal?.rows.find((r) => r.dateStr === today);
-  const dueRecurring = todayRecurring(data, today);
-  const done =
-    (journal?.habits.filter((h) => row?.habits[h.id]).length ?? 0) +
-    dueRecurring.filter((h) => recurringDone(data, h.id, today)).length;
-  const total = (journal?.habits.length ?? 0) + dueRecurring.length;
-  const tasks = data.items
-    .filter((i) => i.kind === "personal" && !i.done)
-    .sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999"));
-  const weeklySessions = workoutDates(data).filter((d) =>
-    weekDates(today).includes(d),
-  ).length;
-  const stats = [
-    {
-      label: "Habits today",
-      value: `${done}/${total}`,
-      detail: total
-        ? `${Math.round((done / total) * 100)}% of your daily rhythm`
-        : "Add your first daily habit",
-      icon: Sprout,
-      colour: "text-rose-500 bg-rose-50",
-      tab: "habits" as Tab,
-    },
-    {
-      label: "Open to-dos",
-      value: tasks.length,
-      detail: `${tasks.filter((i) => i.due && i.due <= today).length} due today or earlier`,
-      icon: ListTodo,
-      colour: "text-sky-500 bg-sky-50",
-      tab: "personal" as Tab,
-    },
-    {
-      label: "Sessions this week",
-      value: `${weeklySessions}/${data.fitness.target}`,
-      detail: "A little stronger, at your pace",
-      icon: Dumbbell,
-      colour: "text-emerald-500 bg-emerald-50",
-      tab: "fitness" as Tab,
-    },
-  ];
+function Overview({ navigate }: { navigate: (tab: Tab) => void }) {
   return (
-    <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-2xl border border-rose-100 bg-gradient-to-r from-rose-50 via-orange-50/70 to-white p-6 sm:p-8">
-        <div className="pointer-events-none absolute -right-5 -top-14 h-52 w-52 rounded-full border-[28px] border-rose-100/50" />
-        <div className="relative max-w-xl">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white bg-white/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-rose-500">
-            <Sparkles className="h-3 w-3" />
-            Your life, a little lighter
+    <nav
+      aria-label="Open a page"
+      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+    >
+      {NAV.filter((item) => item.id !== "overview").map((item) => (
+        <button
+          key={item.id}
+          onClick={() => navigate(item.id)}
+          className="flex min-h-40 items-center gap-5 rounded-2xl border border-rose-100 bg-white p-6 text-left shadow-sm transition hover:border-rose-300 hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-rose-500"
+        >
+          <item.icon className="h-10 w-10 shrink-0 text-rose-500" />
+          <span className="flex-1 text-xl font-semibold text-slate-800">
+            {item.label}
           </span>
-          <h2 className="mt-4 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-            Plan the important things.
-            <br />
-            Leave room for the good things.
-          </h2>
-          <p className="mt-3 max-w-md text-sm leading-relaxed text-slate-500">
-            Your meals, habits, goals and bright ideas—together in a space that
-            grows with you.
-          </p>
-          <button
-            className={`${primaryClass} mt-5`}
-            onClick={() => navigate("habits")}
-          >
-            <Plus className="h-4 w-4" />
-            Open today’s habits
-            <ArrowRight className="h-4 w-4" />
-          </button>
-        </div>
-      </section>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {stats.map((s) => (
-          <button
-            key={s.label}
-            onClick={() => navigate(s.tab)}
-            className="rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-rose-200 hover:shadow-md"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500">
-                {s.label}
-              </span>
-              <span className={`rounded-xl p-2 ${s.colour}`}>
-                <s.icon className="h-4 w-4" />
-              </span>
-            </div>
-            <p className="mt-3 text-3xl font-bold tracking-tight text-slate-900">
-              {s.value}
-            </p>
-            <p className="mt-2 text-[11px] text-slate-400">{s.detail}</p>
-          </button>
-        ))}
-      </div>
-      <div className="grid items-start gap-5 xl:grid-cols-[1.45fr_1fr]">
-        <div className="space-y-5">
-          <Card
-            title="Your daily rhythm"
-            subtitle="A small promise to yourself."
-            action={
-              <button
-                className="flex items-center gap-1 text-xs font-semibold text-rose-500"
-                onClick={() => navigate("habits")}
-              >
-                See your week
-                <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            }
-          >
-            <TodayHabits
-              data={data}
-              update={update}
-              journal={journal}
-              today={today}
-            />
-          </Card>
-          <Card
-            title="Next on your list"
-            subtitle="Keep the next step simple."
-            action={
-              <button
-                className="text-xs font-semibold text-rose-500"
-                onClick={() => navigate("personal")}
-              >
-                All tasks →
-              </button>
-            }
-          >
-            {tasks.length ? (
-              <ul className="divide-y divide-slate-100">
-                {tasks.slice(0, 5).map((t) => (
-                  <li key={t.id} className="flex items-center gap-3 py-3">
-                    <Circle
-                      checked={false}
-                      label={`Complete ${t.text}`}
-                      onClick={() =>
-                        update((s) => ({
-                          ...s,
-                          items: s.items.map((i) =>
-                            i.id === t.id ? { ...i, done: true } : i,
-                          ),
-                        }))
-                      }
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="break-words text-sm text-slate-700">
-                        {t.text}
-                      </p>
-                      <p className="mt-1 text-[10px] capitalize text-slate-400">
-                        {t.kind}
-                        {t.due && ` · ${t.due}`}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <Empty>
-                Nothing pressing. Add a task in Personal when you’re ready.
-              </Empty>
-            )}
-          </Card>
-        </div>
-        <div className="space-y-5">
-          <Card
-            title="Catch a thought"
-            subtitle="Get it out of your head and into your space."
-          >
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!thought.trim()) return;
-                update((s) => ({
-                  ...s,
-                  thoughts: [
-                    ...s.thoughts,
-                    {
-                      id: uid(),
-                      text: thought.trim(),
-                      created: new Date().toISOString(),
-                    },
-                  ],
-                }));
-                setThought("");
-                setCaptured(true);
-              }}
-            >
-              <textarea
-                aria-label="Quick thought"
-                rows={3}
-                className={`${inputClass} !bg-slate-50/50`}
-                placeholder="An idea, a reminder, a random thought…"
-                value={thought}
-                onChange={(e) => {
-                  setThought(e.target.value);
-                  setCaptured(false);
-                }}
-              />
-              <div className="mt-3 flex items-center justify-between gap-2">
-                <span role="status" className="text-[11px] text-slate-400">
-                  {captured
-                    ? "Saved to your brain dump ✓"
-                    : "No need to organise it yet."}
-                </span>
-                <button className={primaryClass} disabled={!thought.trim()}>
-                  Save thought
-                </button>
-              </div>
-            </form>
-          </Card>
-          <Card
-            title="Recent training"
-            subtitle="Your recorded workout days."
-            action={
-              <button
-                className="text-xs font-semibold text-rose-500"
-                onClick={() => navigate("fitness")}
-              >
-                Workout log →
-              </button>
-            }
-          >
-            {workoutDates(data).length ? (
-              <div className="space-y-3">
-                {workoutDates(data)
-                  .sort()
-                  .reverse()
-                  .slice(0, 3)
-                  .map((date) => (
-                    <div
-                      key={date}
-                      className="flex items-center justify-between gap-3 text-sm"
-                    >
-                      <span className="text-slate-600">{date}</span>
-                      <span className="text-xs text-slate-400">
-                        {
-                          (data.workoutSets ?? []).filter(
-                            (s) => s.date === date,
-                          ).length
-                        }{" "}
-                        logged sets / entries
-                      </span>
-                    </div>
-                  ))}
-              </div>
-            ) : (
-              <Empty>Log your first workout in Fitness.</Empty>
-            )}
-          </Card>
-        </div>
-      </div>
-    </div>
+          <ArrowRight className="h-5 w-5 text-rose-400" />
+        </button>
+      ))}
+    </nav>
   );
 }
 function SettingsPanel({
