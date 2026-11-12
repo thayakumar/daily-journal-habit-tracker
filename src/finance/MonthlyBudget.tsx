@@ -110,7 +110,7 @@ export function MonthlyBudget({
       }));
   }
   return (
-    <div className="min-w-0 space-y-5">
+    <div className="min-w-0 space-y-5 overflow-x-clip">
       <Card
         title="Your salary cycles"
         subtitle="Name a cycle by the month it funds. Its start and end dates decide which expenses appear."

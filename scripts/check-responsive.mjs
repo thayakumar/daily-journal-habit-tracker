@@ -75,7 +75,7 @@ try {
           id: "salary",
           cycleId: "qa-cycle",
           kind: "income",
-          name: "Salary",
+          name: "Salary with a long reference " + "A".repeat(80),
           amount: 4000,
           categories: [],
           liquid: false,
@@ -84,7 +84,7 @@ try {
           id: "rent",
           cycleId: "qa-cycle",
           kind: "commitment",
-          name: "Rent",
+          name: "Commitment with a long reference " + "B".repeat(80),
           amount: 1000,
           categories: [],
           liquid: false,
@@ -93,7 +93,7 @@ try {
           id: "food-budget",
           cycleId: "qa-cycle",
           kind: "budget",
-          name: "Food budget",
+          name: "Food budget with a long reference " + "C".repeat(80),
           amount: 300,
           categories: ["Food"],
           liquid: false,
@@ -102,7 +102,7 @@ try {
           id: "cash",
           cycleId: "qa-cycle",
           kind: "balance",
-          name: "Cash account",
+          name: "Cash account with a long reference " + "D".repeat(80),
           amount: 2000,
           categories: [],
           liquid: true,
@@ -306,6 +306,23 @@ try {
             .count(),
           1,
         );
+        const budgetScroll = page
+          .getByRole("table", { name: "Spending budgets", exact: true })
+          .locator("..");
+        await budgetScroll.evaluate((el) => {
+          el.scrollLeft = el.scrollWidth;
+        });
+        const actionRect = await budgetScroll
+          .getByRole("button")
+          .first()
+          .boundingBox();
+        assert.ok(
+          actionRect.x >= 0 && actionRect.x + actionRect.width <= width + 1,
+          "Budget actions must remain reachable by local scrolling",
+        );
+        await budgetScroll.evaluate((el) => {
+          el.scrollLeft = 0;
+        });
         await page
           .getByRole("button", { name: "Edit cycle dates", exact: true })
           .click();

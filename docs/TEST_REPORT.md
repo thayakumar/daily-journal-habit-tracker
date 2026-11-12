@@ -2,7 +2,7 @@
 
 42 automated tests pass, including salary-day boundaries, year transitions, leap years, inclusive date filtering, overlap/duplicate rejection, decimal money totals, every chart category, unallocated spending, separate account balances, table persistence, old-client preservation and pending-plan upload after a capability upgrade.
 
-Chromium checks pass across ten pages plus Monthly Budget at five widths (320, 375, 390, 768, 1440): 55 layout checks. Mobile flows verify adding income, month isolation, duplicate-cycle feedback, copying a setup with account balances reset, editing cycle dates, changing the default salary day and reload persistence. A discovered table-card overflow was corrected; action buttons fit the phone viewport and wide tables scroll inside their cards. Screenshots were inspected. The existing expense and receipt flow still passes.
+Chromium checks pass across ten pages plus Monthly Budget at five widths (320, 375, 390, 768, 1440): 55 layout checks. Mobile flows verify adding income, month isolation, duplicate-cycle feedback, copying a setup with account balances reset, editing cycle dates, changing the default salary day and reload persistence. Table-card overflow and long-label overflow were corrected; tests include long record names and verify budget action buttons remain reachable by scrolling inside the card. Screenshots were inspected. The existing expense and receipt flow still passes.
 
 The new monthly tables require the updated Code.gs deployment. These monthly checks use the actual backend implementation with mocked Google services; live monthly table verification is pending the deployment. Previously verified live expenses and receipt uploads remain documented below.
 
