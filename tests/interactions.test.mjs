@@ -698,6 +698,24 @@ test("finance defaults to today's cycle and inserts a new expense immediately ev
     "All",
   );
   assert.equal(latest.financeExpenses.length, 1);
+  const delayedSave = renderer.root.findByType(ExpenseForm).props.onSave;
+  await change(
+    renderer.root.findByProps({ "aria-label": "Salary cycle" }),
+    "future",
+  );
+  await act(async () =>
+    delayedSave({
+      date: today,
+      item: "Delayed receipt record",
+      amount: 6,
+      category: "Food",
+    }),
+  );
+  assert.equal(
+    renderer.root.findByProps({ "aria-label": "Salary cycle" }).props.value,
+    "current",
+  );
+  assert.equal(latest.financeExpenses.length, 2);
   await assert.rejects(
     async () =>
       await act(async () =>
@@ -710,7 +728,7 @@ test("finance defaults to today's cycle and inserts a new expense immediately ev
       ),
     /within the selected/,
   );
-  assert.equal(latest.financeExpenses.length, 1);
+  assert.equal(latest.financeExpenses.length, 2);
 });
 
 test("the first expense creates the current salary cycle instead of an unfiltered ledger view", async () => {

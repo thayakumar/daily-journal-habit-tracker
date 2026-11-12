@@ -189,6 +189,7 @@ export default function Finance({
                     financeExpenses: [...(next.financeExpenses ?? []), record],
                   };
                 });
+                setChosenId(cycle.id);
                 setLastSaved({ id: record.id, name: record.item });
               }}
             />
