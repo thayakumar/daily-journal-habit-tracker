@@ -37,6 +37,7 @@ export interface SheetData {
     recurringChecks?: boolean;
     vocabulary?: boolean;
     finance?: boolean;
+    financePlanning?: boolean;
   };
   workspace?: Workspace;
   workspaceRevision?: string;
@@ -46,9 +47,7 @@ function getScriptUrl(): string {
   return import.meta.env.VITE_GOOGLE_SCRIPT_URL || "";
 }
 
-async function postToScript(
-  payload: Record<string, unknown>,
-): Promise<{
+async function postToScript(payload: Record<string, unknown>): Promise<{
   workspaceRevision?: string;
   receiptUrl?: string;
   receiptName?: string;

@@ -563,3 +563,71 @@ test("finance stays local on an older backend and uploads after its feature flag
   assert.equal(api.financeStorageReady, true);
   assert.equal(b.get().workspace.financeExpenses[0].id, "local-expense");
 });
+
+test("monthly plans stay local on the current backend and merge after planning support activates", async () => {
+  const { createBackend } = await import("./apps-script-mock.mjs");
+  const b = createBackend(createWorkspace());
+  let upgraded = false;
+  let api;
+  globalThis.__TEST_SCRIPT_URL__ = "https://sheet.test/exec";
+  globalThis.fetch = async (_url, options) => ({
+    ok: true,
+    json: async () => {
+      if (options?.method === "POST") {
+        const p = JSON.parse(options.body);
+        if (!upgraded && p.action === "saveWorkspace")
+          delete p.data.financePlanning;
+        return b.post(p);
+      }
+      const d = b.get();
+      if (!upgraded) {
+        delete d.features.financePlanning;
+        delete d.workspace.financePlanning;
+      }
+      return d;
+    },
+  });
+  function Harness() {
+    api = useWorkspace();
+    return null;
+  }
+  await render(React.createElement(Harness));
+  await act(async () =>
+    api.update((s) => ({
+      ...s,
+      financePlanning: { defaultStartDay: 26, cycles: [], rows: [] },
+    })),
+  );
+  await act(async () => sleep(1300));
+  assert.match(api.status, /Monthly plans saved on this device/);
+  await act(async () => renderer.unmount());
+  renderer = null;
+  await render(React.createElement(Harness));
+  assert.equal(api.data.financePlanning.defaultStartDay, 26);
+  await act(async () =>
+    api.update((s) => ({
+      ...s,
+      financePlanning: {
+        ...s.financePlanning,
+        cycles: [
+          {
+            id: "aug",
+            month: "2026-08",
+            start: "2026-07-26",
+            end: "2026-08-25",
+          },
+        ],
+      },
+    })),
+  );
+  await act(async () => sleep(1300));
+  assert.equal(b.get().workspace.financePlanning.cycles.length, 0);
+  await act(async () => renderer.unmount());
+  renderer = null;
+  upgraded = true;
+  await render(React.createElement(Harness));
+  await act(async () => sleep(1300));
+  assert.equal(api.planningStorageReady, true);
+  assert.equal(b.get().workspace.financePlanning.defaultStartDay, 26);
+  assert.equal(b.get().workspace.financePlanning.cycles[0].id, "aug");
+});

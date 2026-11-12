@@ -3,6 +3,12 @@
 var TABLE_SCHEMA_VERSION = 2;
 var FINANCE_RECEIPTS_FOLDER_ID = "1_fo4Fn8Oq-ttn1vhZAAZFUH49jIyJrXd";
 var PLANNER_TABLES = {
+  FinanceCycleSettings: ["defaultStartDay"],
+  FinanceCycles: ["id", "month", "start", "end"],
+  FinanceIncome: ["id", "cycleId", "name", "amount"],
+  FinanceCommitments: ["id", "cycleId", "name", "amount"],
+  FinanceBudgets: ["id", "cycleId", "name", "amount", "categories_json"],
+  FinanceBalances: ["id", "cycleId", "name", "amount", "liquid"],
   FinanceExpenses: [
     "id",
     "date",
@@ -293,6 +299,33 @@ function plannerToTables(w) {
   tables.RecurringChecks = (w.recurringChecks || []).map(function (r) {
     return [r.id, r.habitId, r.date, r.previousLastDone];
   });
+  var planning = w.financePlanning || {
+    defaultStartDay: 27,
+    cycles: [],
+    rows: [],
+  };
+  validateFinancePlanning(planning);
+  tables.FinanceCycleSettings = [[planning.defaultStartDay]];
+  tables.FinanceCycles = planning.cycles.map(function (c) {
+    return [c.id, c.month, c.start, c.end];
+  });
+  [
+    ["income", "FinanceIncome"],
+    ["commitment", "FinanceCommitments"],
+    ["budget", "FinanceBudgets"],
+    ["balance", "FinanceBalances"],
+  ].forEach(function (pair) {
+    tables[pair[1]] = planning.rows
+      .filter(function (r) {
+        return r.kind === pair[0];
+      })
+      .map(function (r) {
+        var row = [r.id, r.cycleId, r.name, r.amount];
+        if (r.kind === "budget") row.push(JSON.stringify(r.categories));
+        if (r.kind === "balance") row.push(r.liquid);
+        return row;
+      });
+  });
   tables.FinanceExpenses = (w.financeExpenses || []).map(function (r) {
     if (!Number.isFinite(r.amount) || r.amount < 0)
       throw new Error("Invalid expense amount");
@@ -330,10 +363,13 @@ function writePlanner(ss, w) {
     w.workoutSets === undefined ||
     w.recurringChecks === undefined ||
     w.vocabulary === undefined ||
-    w.financeExpenses === undefined
+    w.financeExpenses === undefined ||
+    w.financePlanning === undefined
   ) {
     var existingLogs = readPlanner(ss, settingsOf(ss));
     w = JSON.parse(JSON.stringify(w));
+    if (w.financePlanning === undefined)
+      w.financePlanning = existingLogs.financePlanning;
     if (w.financeExpenses === undefined)
       w.financeExpenses = existingLogs.financeExpenses;
     if (w.vocabulary === undefined) w.vocabulary = existingLogs.vocabulary;
@@ -566,6 +602,46 @@ function readPlanner(ss, settings) {
       createdAt: stringValue(r[7]),
     };
   });
+  var settingsRow = readTable(
+    ss,
+    "FinanceCycleSettings",
+    PLANNER_TABLES.FinanceCycleSettings,
+  )[0];
+  w.financePlanning = {
+    defaultStartDay: settingsRow ? Number(settingsRow[0]) : 27,
+    cycles: [],
+    rows: [],
+  };
+  w.financePlanning.cycles = readTable(
+    ss,
+    "FinanceCycles",
+    PLANNER_TABLES.FinanceCycles,
+  ).map(function (r) {
+    return {
+      id: stringValue(r[0]),
+      month: dateValue(r[1]).slice(0, 7),
+      start: dateValue(r[2]),
+      end: dateValue(r[3]),
+    };
+  });
+  [
+    ["income", "FinanceIncome"],
+    ["commitment", "FinanceCommitments"],
+    ["budget", "FinanceBudgets"],
+    ["balance", "FinanceBalances"],
+  ].forEach(function (pair) {
+    readTable(ss, pair[1], PLANNER_TABLES[pair[1]]).forEach(function (r) {
+      w.financePlanning.rows.push({
+        id: stringValue(r[0]),
+        cycleId: stringValue(r[1]),
+        kind: pair[0],
+        name: stringValue(r[2]),
+        amount: Number(r[3]) || 0,
+        categories: pair[0] === "budget" ? parseJson(r[4], []) : [],
+        liquid: pair[0] === "balance" ? boolValue(r[4]) : false,
+      });
+    });
+  });
   return w;
 }
 function plannerRevision(ss) {
@@ -655,6 +731,7 @@ function getAll(ss) {
       recurringChecks: true,
       vocabulary: true,
       finance: true,
+      financePlanning: true,
     },
     workspace: readPlanner(ss, settings),
     workspaceRevision: plannerRevision(ss),
@@ -835,4 +912,78 @@ function doPost(e) {
 // Run once in the Apps Script editor to authorize access to your existing receipts folder.
 function authorizeFinanceReceipts() {
   return DriveApp.getFolderById(FINANCE_RECEIPTS_FOLDER_ID).getName();
+}
+
+function validateFinancePlanning(p) {
+  if (
+    !p ||
+    !Number.isInteger(p.defaultStartDay) ||
+    p.defaultStartDay < 1 ||
+    p.defaultStartDay > 31 ||
+    !Array.isArray(p.cycles) ||
+    !Array.isArray(p.rows)
+  )
+    throw new Error("Invalid monthly planning data");
+  var validDate = function (v) {
+    return (
+      typeof v === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(v) &&
+      !isNaN(Date.parse(v)) &&
+      new Date(v + "T12:00:00Z").toISOString().slice(0, 10) === v
+    );
+  };
+  var ids = {},
+    months = {};
+  p.cycles.forEach(function (c) {
+    if (
+      !c ||
+      typeof c.id !== "string" ||
+      !c.id ||
+      ids[c.id] ||
+      months[c.month] ||
+      !/^\d{4}-\d{2}$/.test(c.month) ||
+      !validDate(c.month + "-01") ||
+      !validDate(c.start) ||
+      !validDate(c.end) ||
+      c.start > c.end
+    )
+      throw new Error("Invalid or duplicate salary cycle");
+    ids[c.id] = true;
+    months[c.month] = true;
+  });
+  p.cycles.forEach(function (c, i) {
+    p.cycles.slice(i + 1).forEach(function (other) {
+      if (c.start <= other.end && c.end >= other.start)
+        throw new Error("Salary cycles overlap");
+    });
+  });
+  var rowIds = {},
+    budgetCategories = {};
+  p.rows.forEach(function (r) {
+    if (
+      !r ||
+      typeof r.id !== "string" ||
+      !r.id ||
+      rowIds[r.id] ||
+      !ids[r.cycleId] ||
+      ["income", "commitment", "budget", "balance"].indexOf(r.kind) < 0 ||
+      typeof r.name !== "string" ||
+      !Number.isFinite(r.amount) ||
+      r.amount < 0 ||
+      !Array.isArray(r.categories) ||
+      r.categories.some(function (c) {
+        return typeof c !== "string";
+      }) ||
+      typeof r.liquid !== "boolean"
+    )
+      throw new Error("Invalid monthly plan row");
+    rowIds[r.id] = true;
+    if (r.kind === "budget")
+      r.categories.forEach(function (category) {
+        var key = r.cycleId + "|" + category;
+        if (budgetCategories[key])
+          throw new Error("Category belongs to more than one budget");
+        budgetCategories[key] = true;
+      });
+  });
 }

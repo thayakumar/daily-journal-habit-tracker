@@ -4,11 +4,11 @@ A personal workspace built around the original daily food, wellness and habit gr
 
 ## Pages
 
-Overview navigation buttons · Habits (daily/recurring) · Personal lists · Fitness daily workout log · Finance expenses and receipts · Meals · Brain dump · Ideas · Vocabulary · Settings & backup.
+Overview navigation buttons · Habits (daily/recurring) · Personal lists · Fitness daily workout log · Finance expenses, receipts and monthly budgets · Meals · Brain dump · Ideas · Vocabulary · Settings & backup.
 
 Overview contains only large page-navigation buttons. Habit/routine management is collapsed by default, with top-level add buttons opening dialogs. Meals shows all seven days in an editable table, with local horizontal scrolling on phones.
 
-See [Finance storage and activation](docs/FINANCE.md).
+Finance includes configurable salary cycles, date-filtered monthly summaries, income, commitments, spending budgets, account snapshots and category charts. See [Finance storage and activation](docs/FINANCE.md).
 
 Work, Prayer & goals, Content planner, Calendar and Daily journal pages have been removed. Historical records remain recoverable in the backup-compatible data format.
 

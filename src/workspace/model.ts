@@ -1,3 +1,7 @@
+import {
+  isFinancePlanning,
+  type FinancePlanning,
+} from "../finance/planning.ts";
 import type { Habit, Row } from "../lib/sheets-api";
 
 export const WORKSPACE_KEY = "personal-workspace.v1";
@@ -153,6 +157,7 @@ export interface FinanceExpense {
   createdAt: string;
 }
 export interface Workspace {
+  financePlanning?: FinancePlanning;
   financeExpenses?: FinanceExpense[];
   vocabulary?: VocabularyEntry[];
   workoutSets?: WorkoutSet[];
@@ -183,6 +188,7 @@ export interface Workspace {
 }
 export function createWorkspace(): Workspace {
   return {
+    financePlanning: { defaultStartDay: 27, cycles: [], rows: [] },
     financeExpenses: [],
     vocabulary: [],
     workoutSets: [],
@@ -262,6 +268,8 @@ export function isWorkspace(value: unknown): value is Workspace {
   const p = value.prayer,
     f = value.fitness;
   return (
+    (value.financePlanning === undefined ||
+      isFinancePlanning(value.financePlanning)) &&
     (value.financeExpenses === undefined ||
       records(
         value.financeExpenses,

@@ -1,3 +1,9 @@
+import {
+  activeMonth,
+  cycleDates,
+  shiftMonth,
+  monthName,
+} from "../src/finance/planning.ts";
 import { chromium } from "playwright";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -53,6 +59,56 @@ try {
   for (const width of [320, 375, 390, 768, 1440]) {
     const w = createWorkspace();
     w.updatedAt = 1;
+    const cycleMonth = activeMonth(today, 27);
+    w.financePlanning = {
+      defaultStartDay: 27,
+      cycles: [
+        { id: "qa-cycle", month: cycleMonth, ...cycleDates(cycleMonth, 27) },
+        {
+          id: "qa-next",
+          month: shiftMonth(cycleMonth, 1),
+          ...cycleDates(shiftMonth(cycleMonth, 1), 27),
+        },
+      ],
+      rows: [
+        {
+          id: "salary",
+          cycleId: "qa-cycle",
+          kind: "income",
+          name: "Salary",
+          amount: 4000,
+          categories: [],
+          liquid: false,
+        },
+        {
+          id: "rent",
+          cycleId: "qa-cycle",
+          kind: "commitment",
+          name: "Rent",
+          amount: 1000,
+          categories: [],
+          liquid: false,
+        },
+        {
+          id: "food-budget",
+          cycleId: "qa-cycle",
+          kind: "budget",
+          name: "Food budget",
+          amount: 300,
+          categories: ["Food"],
+          liquid: false,
+        },
+        {
+          id: "cash",
+          cycleId: "qa-cycle",
+          kind: "balance",
+          name: "Cash account",
+          amount: 2000,
+          categories: [],
+          liquid: true,
+        },
+      ],
+    };
     w.financeExpenses = [
       {
         id: "qa-finance",
@@ -124,7 +180,8 @@ try {
         request.method() === "POST"
           ? backend.post(JSON.parse(request.postData()))
           : backend.get();
-      if (value.success === false) console.error("Mock API error", value.code, value.error);
+      if (value.success === false)
+        console.error("Mock API error", value.code, value.error);
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -224,6 +281,55 @@ try {
         horizontalOverflow: false,
         clippedInputs: false,
       });
+      if (id === "finance") {
+        await page
+          .getByRole("tab", { name: "Monthly Budget", exact: true })
+          .click();
+        await page
+          .getByRole("heading", { name: "Your salary cycles", exact: true })
+          .waitFor();
+        await page
+          .getByLabel("Salary cycle", { exact: true })
+          .selectOption("qa-cycle");
+        await page
+          .getByRole("table", { name: "Cycle expenses", exact: true })
+          .waitFor();
+        await page.waitForFunction(
+          () => document.documentElement.scrollWidth <= innerWidth + 1,
+          {},
+          { timeout: 2000 },
+        );
+        assert.equal(
+          await page
+            .getByRole("table", { name: "Cycle expenses", exact: true })
+            .locator("tbody tr")
+            .count(),
+          1,
+        );
+        await page
+          .getByRole("button", { name: "Edit cycle dates", exact: true })
+          .click();
+        const dialog = page.getByRole("dialog");
+        await dialog.waitFor();
+        assert.ok(
+          await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+        );
+        await page.keyboard.press("Escape");
+        await dialog.waitFor({ state: "hidden" });
+        if (width === 390)
+          await page.screenshot({
+            path: "work/monthly-budget-390.png",
+            fullPage: true,
+          });
+        results.push({
+          width,
+          page: "finance-monthly",
+          horizontalOverflow: false,
+        });
+        await page
+          .getByRole("tab", { name: "Expense Tracker", exact: true })
+          .click();
+      }
       if (width === 390 && ["habits", "fitness", "meals"].includes(id))
         await page.screenshot({
           path: `work/responsive-${id}-390.png`,
@@ -403,13 +509,11 @@ try {
       await navigate("finance");
       await page.getByLabel("Expense description").fill("=QA coffee");
       await page.getByLabel("Expense amount").fill("8.75");
-      await page
-        .getByLabel("Expense receipt")
-        .setInputFiles({
-          name: "receipt.pdf",
-          mimeType: "application/pdf",
-          buffer: Buffer.from("QA receipt"),
-        });
+      await page.getByLabel("Expense receipt").setInputFiles({
+        name: "receipt.pdf",
+        mimeType: "application/pdf",
+        buffer: Buffer.from("QA receipt"),
+      });
       await page
         .getByRole("button", { name: "Save expense", exact: true })
         .click();
@@ -419,8 +523,17 @@ try {
           { exact: true },
         )
         .waitFor();
-      for (let n = 0; n < 50 && backend.get().workspace.financeExpenses.length !== 2; n++) await page.waitForTimeout(100);
-      if (backend.get().workspace.financeExpenses.length !== 2) console.error("Finance save status", await page.locator("header").innerText());
+      for (
+        let n = 0;
+        n < 50 && backend.get().workspace.financeExpenses.length !== 2;
+        n++
+      )
+        await page.waitForTimeout(100);
+      if (backend.get().workspace.financeExpenses.length !== 2)
+        console.error(
+          "Finance save status",
+          await page.locator("header").innerText(),
+        );
       const savedExpense = backend.get().workspace.financeExpenses.at(-1);
       assert.equal(backend.get().workspace.financeExpenses.length, 2);
       assert.equal(savedExpense.item, "=QA coffee");
@@ -446,13 +559,11 @@ try {
       await page.getByLabel("Expense description").fill("Keep on failure");
       await page.getByLabel("Expense amount").fill("5");
       failReceipt = true;
-      await page
-        .getByLabel("Expense receipt")
-        .setInputFiles({
-          name: "retry.pdf",
-          mimeType: "application/pdf",
-          buffer: Buffer.from("QA failed upload"),
-        });
+      await page.getByLabel("Expense receipt").setInputFiles({
+        name: "retry.pdf",
+        mimeType: "application/pdf",
+        buffer: Buffer.from("QA failed upload"),
+      });
       await page
         .getByRole("button", { name: "Save expense", exact: true })
         .click();
@@ -469,6 +580,127 @@ try {
       await page.reload();
       await page.getByText("=QA coffee", { exact: true }).waitFor();
       await page.screenshot({ path: "work/finance-390.png", fullPage: true });
+      await page
+        .getByRole("tab", { name: "Monthly Budget", exact: true })
+        .click();
+      await page
+        .getByLabel("Salary cycle", { exact: true })
+        .selectOption("qa-cycle");
+      await page
+        .getByRole("button", { name: "Add income", exact: true })
+        .click();
+      await page.getByLabel("Plan row name").fill("Tuition QA");
+      await page.getByLabel("Plan row amount").fill("200");
+      await page
+        .getByRole("button", { name: "Save income", exact: true })
+        .click();
+      await page
+        .getByRole("rowheader", { name: "Tuition QA", exact: true })
+        .waitFor();
+      await page
+        .getByLabel("Salary cycle", { exact: true })
+        .selectOption("qa-next");
+      await page
+        .getByText("No expenses in these dates.", { exact: true })
+        .waitFor();
+      assert.equal(
+        await page
+          .getByRole("rowheader", { name: "Tuition QA", exact: true })
+          .count(),
+        0,
+      );
+      await page
+        .getByRole("button", { name: "New cycle", exact: true })
+        .click();
+      await page
+        .getByRole("button", { name: "Create cycle", exact: true })
+        .click();
+      await page
+        .getByRole("alert")
+        .filter({ hasText: "already exists" })
+        .waitFor();
+      await page
+        .getByLabel("Cycle month", { exact: true })
+        .fill(shiftMonth(cycleMonth, 2));
+      await page
+        .getByLabel("Starting setup", { exact: true })
+        .selectOption("qa-cycle");
+      await page
+        .getByRole("button", { name: "Create cycle", exact: true })
+        .click();
+      await page.getByRole("dialog").waitFor({ state: "hidden" });
+      await page
+        .getByRole("rowheader", { name: "Tuition QA", exact: true })
+        .waitFor();
+      assert.ok(
+        (
+          await page
+            .getByRole("table", { name: "Account balances", exact: true })
+            .innerText()
+        ).includes("RM"),
+      );
+      const copiedId = await page
+        .getByLabel("Salary cycle", { exact: true })
+        .inputValue();
+      await page
+        .getByRole("button", { name: "Edit cycle dates", exact: true })
+        .click();
+      await page
+        .getByLabel("Cycle start", { exact: true })
+        .fill(
+          cycleDates(shiftMonth(cycleMonth, 2), 27).start.replace(/27$/, "28"),
+        );
+      await page
+        .getByRole("button", { name: "Save cycle dates", exact: true })
+        .click();
+      await page.getByRole("dialog").waitFor({ state: "hidden" });
+      await page
+        .getByLabel("Default salary day", { exact: true })
+        .selectOption("26");
+      for (
+        let n = 0;
+        n < 60 && backend.get().workspace.financePlanning.cycles.length !== 3;
+        n++
+      )
+        await page.waitForTimeout(100);
+      await page.waitForTimeout(1500);
+      const planningSaved = backend.get().workspace.financePlanning;
+      assert.equal(planningSaved.defaultStartDay, 26);
+      assert.equal(
+        planningSaved.rows.find(
+          (r) => r.cycleId === copiedId && r.kind === "balance",
+        ).amount,
+        0,
+      );
+      assert.equal(
+        planningSaved.rows.find(
+          (r) => r.cycleId === "qa-cycle" && r.id === "salary",
+        ).amount,
+        4000,
+      );
+      await page.reload();
+      await page
+        .getByRole("tab", { name: "Monthly Budget", exact: true })
+        .click();
+      await page
+        .getByLabel("Salary cycle", { exact: true })
+        .selectOption(copiedId);
+      await page
+        .getByRole("rowheader", { name: "Tuition QA", exact: true })
+        .waitFor();
+      assert.equal(
+        await page
+          .getByLabel("Default salary day", { exact: true })
+          .inputValue(),
+        "26",
+      );
+      results.push({
+        width,
+        configurableCycles: true,
+        monthIsolation: true,
+        copySetup: true,
+        planningReloadPersistence: true,
+      });
       await navigate("fitness");
       await page
         .getByLabel("Exercise name", { exact: true })

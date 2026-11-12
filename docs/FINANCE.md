@@ -27,3 +27,26 @@ The original Finance Tracker spreadsheet and its DATA tab are left untouched. Ex
 ## Verification
 
 The automated backend suite runs the actual Code.gs code against mocked SpreadsheetApp/DriveApp. It checks expense round trips, literal formula-like descriptions, preservation by older clients, folder identity and rejection of invalid uploads. The hook suite checks pending local records across a backend upgrade. Chromium exercises the form, receipt upload, history filters, reload persistence and failed-upload recovery with mocked APIs. These checks do not prove a live Apps Script deployment has been updated or authorized for Drive.
+
+## Monthly Budget and configurable salary cycles
+
+Finance now has Expense Tracker and Monthly Budget tabs. Both use the same FinanceExpenses ledger. A shared cycle selector filters expenses by the selected inclusive start/end dates; no expense is copied to a second ledger.
+
+The default salary day is configurable from 1–31 (initially 27). A cycle is named for the month it funds: August normally spans 27 July through 26 August. Each cycle’s exact start/end dates are editable independently, including an early salary on the 26th. Changing the default only affects new cycles; it never rewrites historical cycles. Short months clamp a selected day to the month’s last valid day. Duplicate month labels and overlapping cycle dates are rejected.
+
+Monthly Budget includes editable income, fixed commitments, category-mapped spending budgets and account balance snapshots. It calculates expected savings, actual surplus, remaining budgets and a doughnut chart from all expense categories. Unmapped category spending stays included in total expenses and is called out in the budget section. A category cannot be assigned to multiple budgets within the same cycle. Account totals distinguish liquid accounts from total assets before debt; they do not claim to be net worth.
+
+New cycles can copy an earlier setup. Income, commitment and budget amounts copy; account names copy with zero balances. Recorded expenses always come from the new cycle’s dates. Three editable RM300 budget groups are supplied when starting a fresh setup, matching the reference workbook’s grocery/general/buffer structure. Finance amounts are displayed in MYR (RM).
+
+New normalized Sheets tables:
+
+| Table | Columns |
+| --- | --- |
+| FinanceCycleSettings | defaultStartDay |
+| FinanceCycles | id, month, start, end |
+| FinanceIncome | id, cycleId, name, amount |
+| FinanceCommitments | id, cycleId, name, amount |
+| FinanceBudgets | id, cycleId, name, amount, categories_json |
+| FinanceBalances | id, cycleId, name, amount, liquid |
+
+Replace Code.gs and deploy a new version of the same Web app to activate `features.financePlanning`. No new URL or additional Drive authorization is needed if receipt uploads already work. Until then, monthly plans remain on the device and merge by ID when the capability becomes available. Older clients that omit monthly planning cannot erase its tables. The original BUDGET TRACKER workbook remains unchanged; historical monthly data has not been imported automatically.

@@ -1,3 +1,4 @@
+import { emptyPlanning, isFinancePlanning } from "../finance/planning";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchAllData,
@@ -14,6 +15,7 @@ import {
 } from "./model";
 
 const CLOUD_KEY = "personalWorkspaceV1";
+const PLAN_PENDING_KEY = "personal-workspace.finance-planning-pending.v1";
 const FINANCE_PENDING_KEY = "personal-workspace.finance-pending.v1";
 const VOCAB_PENDING_KEY = "personal-workspace.vocabulary-pending.v1";
 const LOG_PENDING_KEY = "personal-workspace.logs-pending.v1";
@@ -48,6 +50,8 @@ export function useWorkspace() {
   const [tableStorage, setTableStorage] = useState(false);
   const [logStorageReady, setLogStorageReady] = useState(false);
   const logSupport = useRef(false);
+  const planningSupport = useRef(false);
+  const [planningStorageReady, setPlanningStorageReady] = useState(false);
   const financeSupport = useRef(false);
   const [financeStorageReady, setFinanceStorageReady] = useState(false);
   const vocabularySupport = useRef(false);
@@ -71,6 +75,8 @@ export function useWorkspace() {
       remote.features?.workoutSets === true &&
       remote.features?.recurringChecks === true;
     setLogStorageReady(logSupport.current);
+    planningSupport.current = remote.features?.financePlanning === true;
+    setPlanningStorageReady(planningSupport.current);
     financeSupport.current = remote.features?.finance === true;
     setFinanceStorageReady(financeSupport.current);
     vocabularySupport.current = remote.features?.vocabulary === true;
@@ -78,6 +84,12 @@ export function useWorkspace() {
     let parsed = remoteWorkspace(remote);
     const cloudDate = parsed?.updatedAt ?? 0;
     const pendingLogs = localStorage.getItem(LOG_PENDING_KEY) === "true";
+    const pendingPlan = localStorage.getItem(PLAN_PENDING_KEY) === "true";
+    if (parsed && !planningSupport.current && !force)
+      parsed = {
+        ...parsed,
+        financePlanning: latest.current.financePlanning ?? emptyPlanning(),
+      };
     const pendingFinance = localStorage.getItem(FINANCE_PENDING_KEY) === "true";
     if (parsed && !financeSupport.current && !force)
       parsed = {
@@ -99,7 +111,8 @@ export function useWorkspace() {
       parsed &&
       ((logSupport.current && pendingLogs) ||
         (vocabularySupport.current && pendingVocabulary) ||
-        (financeSupport.current && pendingFinance)) &&
+        (financeSupport.current && pendingFinance) ||
+        (planningSupport.current && pendingPlan)) &&
       !force
     ) {
       const merge = <T extends { id: string }>(
@@ -123,6 +136,21 @@ export function useWorkspace() {
                 latest.current.recurringChecks ?? [],
               )
             : parsed.recurringChecks,
+        financePlanning:
+          planningSupport.current && pendingPlan
+            ? {
+                defaultStartDay:
+                  latest.current.financePlanning?.defaultStartDay ?? 27,
+                cycles: merge(
+                  parsed.financePlanning?.cycles ?? [],
+                  latest.current.financePlanning?.cycles ?? [],
+                ),
+                rows: merge(
+                  parsed.financePlanning?.rows ?? [],
+                  latest.current.financePlanning?.rows ?? [],
+                ),
+              }
+            : parsed.financePlanning,
         financeExpenses:
           financeSupport.current && pendingFinance
             ? merge(
@@ -140,6 +168,10 @@ export function useWorkspace() {
           cloudDate + 1,
         ),
       };
+      if (parsed.financePlanning && !isFinancePlanning(parsed.financePlanning))
+        throw new Error(
+          "Monthly plans conflict with the Sheet. Export a backup before loading the latest tables.",
+        );
       cloudTimestamp.current = cloudDate;
       setData(parsed);
       setReady(true);
@@ -199,6 +231,14 @@ export function useWorkspace() {
     if (!data.updatedAt) return;
     try {
       localStorage.setItem(WORKSPACE_KEY, JSON.stringify(data));
+      if (
+        !planningSupport.current &&
+        data.financePlanning &&
+        (data.financePlanning.defaultStartDay !== 27 ||
+          data.financePlanning.cycles.length ||
+          data.financePlanning.rows.length)
+      )
+        localStorage.setItem(PLAN_PENDING_KEY, "true");
       if (!financeSupport.current && (data.financeExpenses?.length ?? 0) > 0)
         localStorage.setItem(FINANCE_PENDING_KEY, "true");
       if (!vocabularySupport.current && (data.vocabulary?.length ?? 0) > 0)
@@ -249,6 +289,7 @@ export function useWorkspace() {
         }
         cloudTimestamp.current = next.updatedAt;
         acknowledge(next.updatedAt, cloudRevision.current);
+        if (planningSupport.current) localStorage.removeItem(PLAN_PENDING_KEY);
         if (financeSupport.current)
           localStorage.removeItem(FINANCE_PENDING_KEY);
         if (logSupport.current) localStorage.removeItem(LOG_PENDING_KEY);
@@ -257,21 +298,24 @@ export function useWorkspace() {
         next = latest.current;
       }
       setStatus(
-        !financeSupport.current &&
-          (latest.current.financeExpenses?.length ?? 0) > 0
-          ? "Finance saved on this device · connection update needed"
-          : !vocabularySupport.current &&
-              (latest.current.vocabulary?.length ?? 0) > 0
-            ? "Vocabulary saved on this device · connection update needed"
-            : tableMode.current
-              ? logSupport.current ||
-                !(
-                  (latest.current.workoutSets?.length ?? 0) +
-                  (latest.current.recurringChecks?.length ?? 0)
-                )
-                ? "Saved to per-page Sheet tables"
-                : "Workout and routine history saved locally · deploy the updated Apps Script"
-              : "Saved to legacy JSON · update Apps Script for per-page tables",
+        !planningSupport.current &&
+          localStorage.getItem(PLAN_PENDING_KEY) === "true"
+          ? "Monthly plans saved on this device · connection update needed"
+          : !financeSupport.current &&
+              (latest.current.financeExpenses?.length ?? 0) > 0
+            ? "Finance saved on this device · connection update needed"
+            : !vocabularySupport.current &&
+                (latest.current.vocabulary?.length ?? 0) > 0
+              ? "Vocabulary saved on this device · connection update needed"
+              : tableMode.current
+                ? logSupport.current ||
+                  !(
+                    (latest.current.workoutSets?.length ?? 0) +
+                    (latest.current.recurringChecks?.length ?? 0)
+                  )
+                  ? "Saved to per-page Sheet tables"
+                  : "Workout and routine history saved locally · deploy the updated Apps Script"
+                : "Saved to legacy JSON · update Apps Script for per-page tables",
       );
     } catch (error) {
       setStatus(
@@ -300,5 +344,6 @@ export function useWorkspace() {
     logStorageReady,
     vocabularyStorageReady,
     financeStorageReady,
+    planningStorageReady,
   };
 }
