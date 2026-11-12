@@ -7,6 +7,7 @@ export function createBackend(
 ) {
   const sheets = new Map();
   let lockHeld = false;
+  const receipts = [];
   class Range {
     constructor(sheet, row, col, height = 1, width = 1) {
       Object.assign(this, { sheet, row, col, height, width });
@@ -106,6 +107,19 @@ export function createBackend(
     Array,
     Error,
     RegExp,
+    DriveApp: {
+      getFolderById: (folderId) => ({
+        createFile: (blob) => {
+          const receipt = {
+            folderId,
+            ...blob,
+            url: `https://drive.google.com/file/d/receipt-${receipts.length + 1}/view`,
+          };
+          receipts.push(receipt);
+          return { getName: () => receipt.name, getUrl: () => receipt.url };
+        },
+      }),
+    },
     SpreadsheetApp: { getActiveSpreadsheet: () => ss, flush() {} },
     ContentService: {
       MimeType: { JSON: "application/json" },
@@ -128,6 +142,8 @@ export function createBackend(
       }),
     },
     Utilities: {
+      base64Decode: (value) => Array.from(Buffer.from(value, "base64")),
+      newBlob: (bytes, mimeType, name) => ({ bytes, mimeType, name }),
       DigestAlgorithm: { SHA_256: "sha256" },
       computeDigest: (_algorithm, value) =>
         crypto.createHash("sha256").update(value).digest(),
@@ -186,6 +202,7 @@ export function createBackend(
     ss,
     sheets,
     context,
+    receipts,
     get,
     post,
     fetch: async (_url, options) => ({

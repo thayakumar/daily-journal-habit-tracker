@@ -14,6 +14,7 @@ import {
 } from "./model";
 
 const CLOUD_KEY = "personalWorkspaceV1";
+const FINANCE_PENDING_KEY = "personal-workspace.finance-pending.v1";
 const VOCAB_PENDING_KEY = "personal-workspace.vocabulary-pending.v1";
 const LOG_PENDING_KEY = "personal-workspace.logs-pending.v1";
 const ACK_KEY = "personal-workspace.cloud-ack.v2";
@@ -47,6 +48,8 @@ export function useWorkspace() {
   const [tableStorage, setTableStorage] = useState(false);
   const [logStorageReady, setLogStorageReady] = useState(false);
   const logSupport = useRef(false);
+  const financeSupport = useRef(false);
+  const [financeStorageReady, setFinanceStorageReady] = useState(false);
   const vocabularySupport = useRef(false);
   const [vocabularyStorageReady, setVocabularyStorageReady] = useState(false);
   const latest = useRef(data);
@@ -68,11 +71,19 @@ export function useWorkspace() {
       remote.features?.workoutSets === true &&
       remote.features?.recurringChecks === true;
     setLogStorageReady(logSupport.current);
+    financeSupport.current = remote.features?.finance === true;
+    setFinanceStorageReady(financeSupport.current);
     vocabularySupport.current = remote.features?.vocabulary === true;
     setVocabularyStorageReady(vocabularySupport.current);
     let parsed = remoteWorkspace(remote);
     const cloudDate = parsed?.updatedAt ?? 0;
     const pendingLogs = localStorage.getItem(LOG_PENDING_KEY) === "true";
+    const pendingFinance = localStorage.getItem(FINANCE_PENDING_KEY) === "true";
+    if (parsed && !financeSupport.current && !force)
+      parsed = {
+        ...parsed,
+        financeExpenses: latest.current.financeExpenses ?? [],
+      };
     const pendingVocabulary =
       localStorage.getItem(VOCAB_PENDING_KEY) === "true";
     if (parsed && !vocabularySupport.current && !force)
@@ -87,7 +98,8 @@ export function useWorkspace() {
     if (
       parsed &&
       ((logSupport.current && pendingLogs) ||
-        (vocabularySupport.current && pendingVocabulary)) &&
+        (vocabularySupport.current && pendingVocabulary) ||
+        (financeSupport.current && pendingFinance)) &&
       !force
     ) {
       const merge = <T extends { id: string }>(
@@ -111,6 +123,13 @@ export function useWorkspace() {
                 latest.current.recurringChecks ?? [],
               )
             : parsed.recurringChecks,
+        financeExpenses:
+          financeSupport.current && pendingFinance
+            ? merge(
+                parsed.financeExpenses ?? [],
+                latest.current.financeExpenses ?? [],
+              )
+            : parsed.financeExpenses,
         vocabulary:
           vocabularySupport.current && pendingVocabulary
             ? merge(parsed.vocabulary ?? [], latest.current.vocabulary ?? [])
@@ -180,6 +199,8 @@ export function useWorkspace() {
     if (!data.updatedAt) return;
     try {
       localStorage.setItem(WORKSPACE_KEY, JSON.stringify(data));
+      if (!financeSupport.current && (data.financeExpenses?.length ?? 0) > 0)
+        localStorage.setItem(FINANCE_PENDING_KEY, "true");
       if (!vocabularySupport.current && (data.vocabulary?.length ?? 0) > 0)
         localStorage.setItem(VOCAB_PENDING_KEY, "true");
       if (
@@ -228,24 +249,29 @@ export function useWorkspace() {
         }
         cloudTimestamp.current = next.updatedAt;
         acknowledge(next.updatedAt, cloudRevision.current);
+        if (financeSupport.current)
+          localStorage.removeItem(FINANCE_PENDING_KEY);
         if (logSupport.current) localStorage.removeItem(LOG_PENDING_KEY);
         if (vocabularySupport.current)
           localStorage.removeItem(VOCAB_PENDING_KEY);
         next = latest.current;
       }
       setStatus(
-        !vocabularySupport.current &&
-          (latest.current.vocabulary?.length ?? 0) > 0
-          ? "Vocabulary saved on this device · connection update needed"
-          : tableMode.current
-            ? logSupport.current ||
-              !(
-                (latest.current.workoutSets?.length ?? 0) +
-                (latest.current.recurringChecks?.length ?? 0)
-              )
-              ? "Saved to per-page Sheet tables"
-              : "Workout and routine history saved locally · deploy the updated Apps Script"
-            : "Saved to legacy JSON · update Apps Script for per-page tables",
+        !financeSupport.current &&
+          (latest.current.financeExpenses?.length ?? 0) > 0
+          ? "Finance saved on this device · connection update needed"
+          : !vocabularySupport.current &&
+              (latest.current.vocabulary?.length ?? 0) > 0
+            ? "Vocabulary saved on this device · connection update needed"
+            : tableMode.current
+              ? logSupport.current ||
+                !(
+                  (latest.current.workoutSets?.length ?? 0) +
+                  (latest.current.recurringChecks?.length ?? 0)
+                )
+                ? "Saved to per-page Sheet tables"
+                : "Workout and routine history saved locally · deploy the updated Apps Script"
+              : "Saved to legacy JSON · update Apps Script for per-page tables",
       );
     } catch (error) {
       setStatus(
@@ -273,5 +299,6 @@ export function useWorkspace() {
     tableStorage,
     logStorageReady,
     vocabularyStorageReady,
+    financeStorageReady,
   };
 }

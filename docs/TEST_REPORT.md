@@ -1,3 +1,15 @@
+# Navigation, habit dialogs, meal table and finance verification
+
+36 automated tests pass. New tests execute the actual Apps Script finance table and receipt-upload actions against mocked SpreadsheetApp and DriveApp, verifying round trips, preservation by older clients, the exact original receipts folder and invalid-file rejection. Hook tests verify local expense retention and upload after the backend capability is enabled.
+
+Real Chromium checks pass across all ten pages at 320, 375, 390, 768 and 1440 pixels (50 layout checks), with no page-wide horizontal overflow or browser errors. Overview has navigation buttons only. Habit management starts collapsed; add dialogs fit the viewport, close with Escape and return focus. All 28 meal cells are present in one weekly table, with intentional scrolling inside the table on phones.
+
+The mobile finance flow verifies receipt upload to the existing folder, expense persistence in FinanceExpenses, literal formula-like descriptions, category/search filters, reload persistence and retention of form values after a failed upload. Tests await the cloud save confirmation rather than assuming a fixed delay. Finance screenshots and the weekly meals table were inspected. Google APIs are mocked; no test expense or receipt was added to the real account.
+
+The finance backend requires a new Code.gs deployment and Drive authorization; live finance persistence is pending that step. See [Finance activation](FINANCE.md). Build passes. Existing earlier live verification below applies to the previously deployed features.
+
+---
+
 # Vocabulary verification update
 
 33 automated tests pass, including vocabulary table persistence, old-client protection, backup validation and delayed cloud capability activation without losing local words. Real Chromium testing covered all nine pages at five widths (45 layout checks) with no page-wide horizontal overflow or clipped form inputs. The phone flow verified popup focus, Escape, saving, editing, duplicate-word validation, search, sorting, deletion and reload persistence. Screenshots were inspected.

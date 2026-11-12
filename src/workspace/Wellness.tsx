@@ -3,7 +3,6 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { addDays, uid, weekDates, type MealDay, type Workspace } from "./model";
 import {
   Card,
-  Field,
   inputClass,
   primaryClass,
   secondaryClass,
@@ -53,54 +52,76 @@ export function Meals({
         <p className="mb-4 text-xs text-slate-400">
           {dates[0]} — {dates[6]} · saves as you type
         </p>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {dates.map((d) => (
-            <details
-              key={d}
-              className={`min-w-0 rounded-xl border p-4 ${d === today ? "border-rose-200 bg-rose-50/20" : "border-slate-200"}`}
-              open={d === today || undefined}
-            >
-              <summary className="cursor-pointer text-sm font-semibold text-slate-700">
-                {new Date(`${d}T12:00`).toLocaleDateString("en", {
-                  weekday: "long",
-                  month: "short",
-                  day: "numeric",
-                })}
-                {d === today ? " · Today" : ""}
-              </summary>
-              <div className="mt-4 space-y-3">
-                {(["breakfast", "lunch", "dinner", "snack"] as const).map(
-                  (meal) => (
-                    <Field
-                      key={meal}
-                      label={meal.charAt(0).toUpperCase() + meal.slice(1)}
+        <p className="mb-3 text-xs text-slate-500">
+          All days are shown below. Swipe horizontally on smaller screens.
+        </p>
+        <div data-horizontal-scroll className="max-w-full overflow-x-auto">
+          <table
+            aria-label="Weekly meals"
+            className="w-full min-w-[850px] border-collapse text-sm"
+          >
+            <thead>
+              <tr>
+                {["Day", "Breakfast", "Lunch", "Dinner", "Snack"].map(
+                  (label) => (
+                    <th
+                      key={label}
+                      className="p-3 text-left font-semibold text-slate-600"
                     >
-                      <textarea
-                        rows={2}
-                        aria-label={`${meal} for ${d}`}
-                        className={inputClass}
-                        placeholder="What sounds good?"
-                        value={data.meals[d]?.[meal] ?? ""}
-                        onChange={(e) =>
-                          update((s) => ({
-                            ...s,
-                            meals: {
-                              ...s.meals,
-                              [d]: {
-                                ...EMPTY_MEAL,
-                                ...s.meals[d],
-                                [meal]: e.target.value,
-                              },
-                            },
-                          }))
-                        }
-                      />
-                    </Field>
+                      {label}
+                    </th>
                   ),
                 )}
-              </div>
-            </details>
-          ))}
+              </tr>
+            </thead>
+            <tbody>
+              {dates.map((d) => (
+                <tr
+                  key={d}
+                  className={
+                    d === today ? "bg-rose-50/50" : "border-t border-slate-100"
+                  }
+                >
+                  <th scope="row" className="w-28 p-3 text-left text-slate-600">
+                    {new Date(`${d}T12:00`).toLocaleDateString("en", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                    {d === today && (
+                      <span className="block text-xs text-rose-500">Today</span>
+                    )}
+                  </th>
+                  {(["breakfast", "lunch", "dinner", "snack"] as const).map(
+                    (meal) => (
+                      <td key={meal} className="p-2">
+                        <textarea
+                          rows={2}
+                          aria-label={`${meal} for ${d}`}
+                          className={inputClass}
+                          placeholder="What sounds good?"
+                          value={data.meals[d]?.[meal] ?? ""}
+                          onChange={(e) =>
+                            update((s) => ({
+                              ...s,
+                              meals: {
+                                ...s.meals,
+                                [d]: {
+                                  ...EMPTY_MEAL,
+                                  ...s.meals[d],
+                                  [meal]: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                        />
+                      </td>
+                    ),
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </Card>
       <Card

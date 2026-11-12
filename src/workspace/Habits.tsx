@@ -1,3 +1,4 @@
+import { Dialog } from "./Dialog";
 import { useState } from "react";
 import { Bell, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { COLOR_OPTIONS, type JournalBridge } from "../App";
@@ -100,7 +101,9 @@ export function TodayHabits({
         );
       })}
       {!journal?.habits.length && !recurring.length && (
-        <Empty>Nothing due today. Add a habit below to get started.</Empty>
+        <Empty>
+          Nothing due today. Use the add buttons above to get started.
+        </Empty>
       )}
     </div>
   );
@@ -123,6 +126,7 @@ export function Habits({
     [dailyName, setDailyName] = useState(""),
     [color, setColor] = useState(0);
   const [draftNames, setDraftNames] = useState<Record<string, string>>({});
+  const [adding, setAdding] = useState<"daily" | "routine" | null>(null);
   const dates = weekDates(week);
   async function enableNotifications() {
     if (!("Notification" in window)) {
@@ -142,6 +146,154 @@ export function Habits({
   }
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap gap-3">
+        <button
+          className={primaryClass}
+          onClick={() => {
+            setDailyName("");
+            setColor(0);
+            setAdding("daily");
+          }}
+        >
+          <Plus className="h-4 w-4" />
+          Add daily habit
+        </button>
+        <button
+          className={secondaryClass}
+          onClick={() => {
+            setName("");
+            setIntervalDays(7);
+            setLastDone(today);
+            setAdding("routine");
+          }}
+        >
+          <Plus className="h-4 w-4" />
+          Add recurring routine
+        </button>
+      </div>
+      {adding && (
+        <Dialog
+          title={
+            adding === "daily" ? "Add daily habit" : "Add recurring routine"
+          }
+          onClose={() => setAdding(null)}
+        >
+          {adding === "daily" ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!dailyName.trim() || !journal) return;
+                journal.addHabit(dailyName, color);
+                setDailyName("");
+                setAdding(null);
+              }}
+              className="mb-5 flex flex-wrap items-end gap-3"
+            >
+              <div className="min-w-40 flex-1">
+                <Field label="New daily habit">
+                  <input
+                    aria-label="New daily habit"
+                    required
+                    maxLength={200}
+                    className={inputClass}
+                    placeholder="Read, water, vitamins…"
+                    value={dailyName}
+                    onChange={(e) => setDailyName(e.target.value)}
+                  />
+                </Field>
+              </div>
+              <Field label="Colour">
+                <select
+                  aria-label="New habit colour"
+                  className={inputClass}
+                  value={color}
+                  onChange={(e) => setColor(Number(e.target.value))}
+                >
+                  {COLOR_OPTIONS.map((c, i) => (
+                    <option key={c.name} value={i}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <button
+                disabled={!journal || !dailyName.trim()}
+                className={primaryClass}
+              >
+                <Plus className="h-4 w-4" />
+                Add habit
+              </button>
+            </form>
+          ) : (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (
+                  !name.trim() ||
+                  !Number.isInteger(interval) ||
+                  interval < 1 ||
+                  interval > 3650 ||
+                  !lastDone ||
+                  lastDone > today
+                )
+                  return;
+                update((s) => ({
+                  ...s,
+                  recurring: [
+                    ...s.recurring,
+                    {
+                      id: uid(),
+                      name: name.trim(),
+                      interval,
+                      lastDone,
+                      reminder: "",
+                    },
+                  ],
+                }));
+                setName("");
+                setAdding(null);
+              }}
+              className="mb-5 grid items-end gap-3 sm:grid-cols-[1fr_110px_160px_auto]"
+            >
+              <Field label="Habit">
+                <input
+                  required
+                  placeholder="Change bedsheets"
+                  className={inputClass}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </Field>
+              <Field label="Every N days">
+                <input
+                  required
+                  type="number"
+                  min="1"
+                  max="3650"
+                  className={inputClass}
+                  value={interval}
+                  onChange={(e) => setIntervalDays(Number(e.target.value))}
+                />
+              </Field>
+              <Field label="Last completed">
+                <input
+                  required
+                  type="date"
+                  max={today}
+                  className={inputClass}
+                  value={lastDone}
+                  onChange={(e) => setLastDone(e.target.value)}
+                />
+              </Field>
+              <button className={primaryClass}>
+                <Plus className="h-4 w-4" />
+                Add routine
+              </button>
+            </form>
+          )}
+        </Dialog>
+      )}
+
       <Card
         title="Today’s habits"
         subtitle="Daily habits and recurring routines due today, together. Overdue routines stay here until completed."
@@ -153,153 +305,114 @@ export function Habits({
           today={today}
         />
       </Card>
-      <Card
-        title="Customize daily habits"
-        subtitle="Add, rename, recolour or remove habits here. Existing checkmarks stay attached to the same habit."
-        action={
-          <span role="status" className="text-xs text-slate-500">
-            {journal?.saveStatus ?? "Loading habits…"}
-          </span>
-        }
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!dailyName.trim() || !journal) return;
-            journal.addHabit(dailyName, color);
-            setDailyName("");
-          }}
-          className="mb-5 flex flex-wrap items-end gap-3"
+      <details className="rounded-2xl border border-slate-200 bg-white">
+        <summary className="cursor-pointer p-5 text-sm font-semibold text-slate-700">
+          Customize daily habits
+        </summary>
+        <Card
+          title="Customize daily habits"
+          subtitle="Add, rename, recolour or remove habits here. Existing checkmarks stay attached to the same habit."
+          action={
+            <span role="status" className="text-xs text-slate-500">
+              {journal?.saveStatus ?? "Loading habits…"}
+            </span>
+          }
         >
-          <div className="min-w-40 flex-1">
-            <Field label="New daily habit">
-              <input
-                aria-label="New daily habit"
-                required
-                maxLength={200}
-                className={inputClass}
-                placeholder="Read, water, vitamins…"
-                value={dailyName}
-                onChange={(e) => setDailyName(e.target.value)}
-              />
-            </Field>
-          </div>
-          <Field label="Colour">
-            <select
-              aria-label="New habit colour"
-              className={inputClass}
-              value={color}
-              onChange={(e) => setColor(Number(e.target.value))}
-            >
-              {COLOR_OPTIONS.map((c, i) => (
-                <option key={c.name} value={i}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <button
-            disabled={!journal || !dailyName.trim()}
-            className={primaryClass}
-          >
-            <Plus className="h-4 w-4" />
-            Add habit
-          </button>
-        </form>
-        <div className="space-y-3">
-          {journal?.habits.map((h) => {
-            const c = Math.max(
-              0,
-              COLOR_OPTIONS.findIndex((t) => t.color === h.color),
-            );
-            return (
-              <div
-                key={h.id}
-                className="grid min-w-0 grid-cols-[1fr_auto] items-end gap-3 rounded-xl border border-slate-100 p-3 sm:grid-cols-[1fr_120px_130px_auto]"
-              >
-                <Field label="Name">
-                  <input
-                    aria-label={`Name for ${h.id}`}
-                    className={inputClass}
-                    value={draftNames[h.id] ?? h.name}
-                    maxLength={200}
-                    onChange={(e) =>
-                      setDraftNames((previous) => ({
-                        ...previous,
-                        [h.id]: e.target.value,
-                      }))
-                    }
-                    onBlur={(e) => {
-                      if (e.target.value.trim())
-                        journal.editHabit(h.id, e.target.value.trim(), c);
-                      setDraftNames((previous) => {
-                        const next = { ...previous };
-                        delete next[h.id];
-                        return next;
-                      });
+          <div className="space-y-3">
+            {journal?.habits.map((h) => {
+              const c = Math.max(
+                0,
+                COLOR_OPTIONS.findIndex((t) => t.color === h.color),
+              );
+              return (
+                <div
+                  key={h.id}
+                  className="grid min-w-0 grid-cols-[1fr_auto] items-end gap-3 rounded-xl border border-slate-100 p-3 sm:grid-cols-[1fr_120px_130px_auto]"
+                >
+                  <Field label="Name">
+                    <input
+                      aria-label={`Name for ${h.id}`}
+                      className={inputClass}
+                      value={draftNames[h.id] ?? h.name}
+                      maxLength={200}
+                      onChange={(e) =>
+                        setDraftNames((previous) => ({
+                          ...previous,
+                          [h.id]: e.target.value,
+                        }))
+                      }
+                      onBlur={(e) => {
+                        if (e.target.value.trim())
+                          journal.editHabit(h.id, e.target.value.trim(), c);
+                        setDraftNames((previous) => {
+                          const next = { ...previous };
+                          delete next[h.id];
+                          return next;
+                        });
+                      }}
+                    />
+                  </Field>
+                  <Field label="Colour">
+                    <select
+                      aria-label={`Colour for ${h.name}`}
+                      className={inputClass}
+                      value={c}
+                      onChange={(e) =>
+                        journal.editHabit(h.id, h.name, Number(e.target.value))
+                      }
+                    >
+                      {COLOR_OPTIONS.map((t, i) => (
+                        <option key={t.name} value={i}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Reminder">
+                    <input
+                      aria-label={`Reminder for ${h.name}`}
+                      type="time"
+                      className={inputClass}
+                      value={data.reminders[h.id] || ""}
+                      onChange={(e) =>
+                        update((s) => ({
+                          ...s,
+                          reminders: { ...s.reminders, [h.id]: e.target.value },
+                        }))
+                      }
+                    />
+                  </Field>
+                  <Delete
+                    label={`Remove ${h.name}`}
+                    onClick={() => {
+                      if (
+                        confirm(
+                          `Remove ${h.name} from active habits? Its historical checkmarks remain in your backup.`,
+                        )
+                      )
+                        journal.removeHabit(h.id, h.name);
                     }}
                   />
-                </Field>
-                <Field label="Colour">
-                  <select
-                    aria-label={`Colour for ${h.name}`}
-                    className={inputClass}
-                    value={c}
-                    onChange={(e) =>
-                      journal.editHabit(h.id, h.name, Number(e.target.value))
-                    }
-                  >
-                    {COLOR_OPTIONS.map((t, i) => (
-                      <option key={t.name} value={i}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Reminder">
-                  <input
-                    aria-label={`Reminder for ${h.name}`}
-                    type="time"
-                    className={inputClass}
-                    value={data.reminders[h.id] || ""}
-                    onChange={(e) =>
-                      update((s) => ({
-                        ...s,
-                        reminders: { ...s.reminders, [h.id]: e.target.value },
-                      }))
-                    }
-                  />
-                </Field>
-                <Delete
-                  label={`Remove ${h.name}`}
-                  onClick={() => {
-                    if (
-                      confirm(
-                        `Remove ${h.name} from active habits? Its historical checkmarks remain in your backup.`,
-                      )
-                    )
-                      journal.removeHabit(h.id, h.name);
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <button className={secondaryClass} onClick={enableNotifications}>
-            <Bell className="h-4 w-4" />
-            Allow reminders
-          </button>
-          {journal && (
-            <button
-              className={secondaryClass}
-              onClick={() => void journal.sync()}
-            >
-              Sync habits
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button className={secondaryClass} onClick={enableNotifications}>
+              <Bell className="h-4 w-4" />
+              Allow reminders
             </button>
-          )}
-        </div>
-      </Card>
+            {journal && (
+              <button
+                className={secondaryClass}
+                onClick={() => void journal.sync()}
+              >
+                Sync habits
+              </button>
+            )}
+          </div>
+        </Card>
+      </details>
       <Card
         title="Weekly habit history"
         subtitle="Check any past day to update it. On a small screen, swipe the week horizontally."
@@ -377,105 +490,54 @@ export function Habits({
           </table>
         </div>
       </Card>
-      <Card
-        title="Recurring routines"
-        subtitle="Set how often it repeats. When the interval is reached, it automatically joins today’s habits."
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!name.trim()) return;
-            update((s) => ({
-              ...s,
-              recurring: [
-                ...s.recurring,
-                {
-                  id: uid(),
-                  name: name.trim(),
-                  interval,
-                  lastDone,
-                  reminder: "",
-                },
-              ],
-            }));
-            setName("");
-          }}
-          className="mb-5 grid items-end gap-3 sm:grid-cols-[1fr_110px_160px_auto]"
+      <details className="rounded-2xl border border-slate-200 bg-white">
+        <summary className="cursor-pointer p-5 text-sm font-semibold text-slate-700">
+          Recurring routines
+        </summary>
+        <Card
+          title="Recurring routines"
+          subtitle="Set how often it repeats. When the interval is reached, it automatically joins today’s habits."
         >
-          <Field label="Habit">
-            <input
-              required
-              placeholder="Change bedsheets"
-              className={inputClass}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </Field>
-          <Field label="Every N days">
-            <input
-              required
-              type="number"
-              min="1"
-              max="3650"
-              className={inputClass}
-              value={interval}
-              onChange={(e) => setIntervalDays(Number(e.target.value))}
-            />
-          </Field>
-          <Field label="Last completed">
-            <input
-              required
-              type="date"
-              max={today}
-              className={inputClass}
-              value={lastDone}
-              onChange={(e) => setLastDone(e.target.value)}
-            />
-          </Field>
-          <button className={primaryClass}>
-            <Plus className="h-4 w-4" />
-            Add routine
-          </button>
-        </form>
-        <div className="grid gap-3 md:grid-cols-2">
-          {data.recurring.map((h) => {
-            const due = recurrenceDue(h, today);
-            return (
-              <div
-                key={h.id}
-                className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-slate-200 p-4"
-              >
-                <div className="min-w-0">
-                  <h3 className="break-words text-sm font-medium text-slate-700">
-                    {h.name}
-                  </h3>
-                  <p className="mt-1 text-xs text-slate-400">
-                    Every {h.interval} days · last done {h.lastDone}
-                  </p>
-                  <p
-                    className={`mt-2 text-xs font-semibold ${due <= 0 ? "text-amber-700" : "text-emerald-600"}`}
-                  >
-                    {due < 0
-                      ? `${-due} days overdue`
-                      : due === 0
-                        ? "Due today"
-                        : `Due in ${due} days`}
-                  </p>
+          <div className="grid gap-3 md:grid-cols-2">
+            {data.recurring.map((h) => {
+              const due = recurrenceDue(h, today);
+              return (
+                <div
+                  key={h.id}
+                  className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-slate-200 p-4"
+                >
+                  <div className="min-w-0">
+                    <h3 className="break-words text-sm font-medium text-slate-700">
+                      {h.name}
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-400">
+                      Every {h.interval} days · last done {h.lastDone}
+                    </p>
+                    <p
+                      className={`mt-2 text-xs font-semibold ${due <= 0 ? "text-amber-700" : "text-emerald-600"}`}
+                    >
+                      {due < 0
+                        ? `${-due} days overdue`
+                        : due === 0
+                          ? "Due today"
+                          : `Due in ${due} days`}
+                    </p>
+                  </div>
+                  <Delete
+                    label={`Delete ${h.name}`}
+                    onClick={() =>
+                      update((s) => ({
+                        ...s,
+                        recurring: s.recurring.filter((r) => r.id !== h.id),
+                      }))
+                    }
+                  />
                 </div>
-                <Delete
-                  label={`Delete ${h.name}`}
-                  onClick={() =>
-                    update((s) => ({
-                      ...s,
-                      recurring: s.recurring.filter((r) => r.id !== h.id),
-                    }))
-                  }
-                />
-              </div>
-            );
-          })}
-        </div>
-      </Card>
+              );
+            })}
+          </div>
+        </Card>
+      </details>
     </div>
   );
 }

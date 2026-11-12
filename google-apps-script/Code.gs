@@ -1,7 +1,18 @@
 // Deploy this file as a new version of the existing bound Web app.
 // Existing Entries/Habits/Settings stay compatible. New tables are the source of truth.
 var TABLE_SCHEMA_VERSION = 2;
+var FINANCE_RECEIPTS_FOLDER_ID = "1_fo4Fn8Oq-ttn1vhZAAZFUH49jIyJrXd";
 var PLANNER_TABLES = {
+  FinanceExpenses: [
+    "id",
+    "date",
+    "item",
+    "amount",
+    "category",
+    "receiptName",
+    "receiptUrl",
+    "createdAt",
+  ],
   Vocabulary: ["id", "word", "definition", "example", "createdAt", "updatedAt"],
   WorkoutSets: [
     "id",
@@ -282,6 +293,20 @@ function plannerToTables(w) {
   tables.RecurringChecks = (w.recurringChecks || []).map(function (r) {
     return [r.id, r.habitId, r.date, r.previousLastDone];
   });
+  tables.FinanceExpenses = (w.financeExpenses || []).map(function (r) {
+    if (!Number.isFinite(r.amount) || r.amount < 0)
+      throw new Error("Invalid expense amount");
+    return [
+      r.id,
+      r.date,
+      r.item,
+      r.amount,
+      r.category,
+      r.receiptName,
+      r.receiptUrl,
+      r.createdAt,
+    ];
+  });
   tables.Vocabulary = (w.vocabulary || []).map(function (r) {
     return [r.id, r.word, r.definition, r.example, r.createdAt, r.updatedAt];
   });
@@ -304,10 +329,13 @@ function writePlanner(ss, w) {
   if (
     w.workoutSets === undefined ||
     w.recurringChecks === undefined ||
-    w.vocabulary === undefined
+    w.vocabulary === undefined ||
+    w.financeExpenses === undefined
   ) {
     var existingLogs = readPlanner(ss, settingsOf(ss));
     w = JSON.parse(JSON.stringify(w));
+    if (w.financeExpenses === undefined)
+      w.financeExpenses = existingLogs.financeExpenses;
     if (w.vocabulary === undefined) w.vocabulary = existingLogs.vocabulary;
     if (w.workoutSets === undefined) w.workoutSets = existingLogs.workoutSets;
     if (w.recurringChecks === undefined)
@@ -341,6 +369,7 @@ function readPlanner(ss, settings) {
   var legacy = parseJson(settings.personalWorkspaceV1 || "{}", {});
   var extras = parseJson(settings.workspaceLegacyExtras || "{}", {});
   var w = {
+    financeExpenses: [],
     vocabulary: [],
     workoutSets: [],
     recurringChecks: [],
@@ -521,6 +550,22 @@ function readPlanner(ss, settings) {
       };
     },
   );
+  w.financeExpenses = readTable(
+    ss,
+    "FinanceExpenses",
+    PLANNER_TABLES.FinanceExpenses,
+  ).map(function (r) {
+    return {
+      id: stringValue(r[0]),
+      date: dateValue(r[1]),
+      item: stringValue(r[2]),
+      amount: Number(r[3]) || 0,
+      category: stringValue(r[4]),
+      receiptName: stringValue(r[5]),
+      receiptUrl: stringValue(r[6]),
+      createdAt: stringValue(r[7]),
+    };
+  });
   return w;
 }
 function plannerRevision(ss) {
@@ -605,7 +650,12 @@ function getAll(ss) {
     habits: habits,
     settings: settings,
     storageSchemaVersion: TABLE_SCHEMA_VERSION,
-    features: { workoutSets: true, recurringChecks: true, vocabulary: true },
+    features: {
+      workoutSets: true,
+      recurringChecks: true,
+      vocabulary: true,
+      finance: true,
+    },
     workspace: readPlanner(ss, settings),
     workspaceRevision: plannerRevision(ss),
   };
@@ -635,6 +685,36 @@ function doPost(e) {
     var payload = JSON.parse(e.postData.contents);
     var action = payload.action;
     ensureMigration(ss);
+    if (action === "uploadFinanceReceipt") {
+      if (
+        typeof payload.fileBase64 !== "string" ||
+        !payload.fileBase64 ||
+        payload.fileBase64.length > 13981016 ||
+        !/^[A-Za-z0-9+/]+={0,2}$/.test(payload.fileBase64)
+      )
+        throw new Error("Invalid receipt file (maximum 10 MB)");
+      if (
+        ["image/jpeg", "image/png", "image/webp", "application/pdf"].indexOf(
+          payload.fileMimeType,
+        ) < 0
+      )
+        throw new Error("Unsupported receipt format");
+      var filename = stringValue(payload.fileName)
+        .replace(/[\\/]/g, "_")
+        .slice(0, 200);
+      if (!filename) throw new Error("Receipt filename is required");
+      var bytes = Utilities.base64Decode(payload.fileBase64);
+      if (bytes.length > 10485760) throw new Error("Receipt exceeds 10 MB");
+      var folder = DriveApp.getFolderById(FINANCE_RECEIPTS_FOLDER_ID);
+      var file = folder.createFile(
+        Utilities.newBlob(bytes, payload.fileMimeType, filename),
+      );
+      return {
+        success: true,
+        receiptName: file.getName(),
+        receiptUrl: file.getUrl(),
+      };
+    }
     if (action === "saveWorkspace") {
       if (payload.baseRevision !== plannerRevision(ss))
         return {
@@ -750,4 +830,9 @@ function doPost(e) {
     }
     return { success: true };
   });
+}
+
+// Run once in the Apps Script editor to authorize access to your existing receipts folder.
+function authorizeFinanceReceipts() {
+  return DriveApp.getFolderById(FINANCE_RECEIPTS_FOLDER_ID).getName();
 }
