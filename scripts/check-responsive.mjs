@@ -46,6 +46,7 @@ try {
     meals: "Meals",
     dump: "Brain dump",
     ideas: "Ideas",
+    vocabulary: "Vocabulary",
     settings: "Settings & backup",
   };
   for (const width of [320, 375, 390, 768, 1440]) {
@@ -87,6 +88,7 @@ try {
       serviceWorkers: "block",
     });
     const page = await context.newPage();
+    page.on("dialog", (dialog) => dialog.accept());
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.route("https://sheet.test/**", async (route) => {
@@ -151,9 +153,118 @@ try {
           fullPage: true,
         });
     }
+    await navigate("vocabulary");
+    await page.getByRole("button", { name: "Add word", exact: true }).click();
+    await page.getByRole("dialog").waitFor();
+    assert.equal(
+      await page.evaluate(() =>
+        document.activeElement.getAttribute("aria-label"),
+      ),
+      "Vocabulary word",
+    );
+    const popupRect = await page.getByRole("dialog").boundingBox();
+    assert.ok(popupRect.x >= 0 && popupRect.x + popupRect.width <= width + 1);
+    if (width === 390)
+      await page.screenshot({ path: "work/vocabulary-popup-390.png" });
+    await page.keyboard.press("Escape");
+    await page.getByRole("dialog").waitFor({ state: "hidden" });
     for (const id of ["journal", "calendar"])
       assert.equal(await page.locator(`nav a[href="#${id}"]`).count(), 0);
     if (width === 390) {
+      await navigate("vocabulary");
+      await page.getByRole("button", { name: "Add word", exact: true }).click();
+      await page
+        .getByLabel("Vocabulary word", { exact: true })
+        .fill("Serendipity");
+      await page
+        .getByLabel("Vocabulary definition", { exact: true })
+        .fill("Finding something good by chance.");
+      await page
+        .getByLabel("Vocabulary example usage", { exact: true })
+        .fill("Meeting her there was pure serendipity.");
+      await page
+        .getByRole("button", { name: "Save word", exact: true })
+        .click();
+      await page
+        .getByRole("rowheader", { name: "Serendipity", exact: true })
+        .waitFor();
+      await page
+        .getByRole("button", { name: "Edit Serendipity", exact: true })
+        .click();
+      await page
+        .getByLabel("Vocabulary example usage", { exact: true })
+        .fill("The discovery was pure serendipity.");
+      await page
+        .getByRole("button", { name: "Save changes", exact: true })
+        .click();
+      await page.getByRole("button", { name: "Add word", exact: true }).click();
+      await page
+        .getByLabel("Vocabulary word", { exact: true })
+        .fill("serendipity");
+      await page
+        .getByLabel("Vocabulary definition", { exact: true })
+        .fill("Duplicate");
+      await page
+        .getByLabel("Vocabulary example usage", { exact: true })
+        .fill("Duplicate example");
+      await page
+        .getByRole("button", { name: "Save word", exact: true })
+        .click();
+      await page.getByRole("alert").waitFor();
+      await page.keyboard.press("Escape");
+      await page
+        .getByLabel("Search vocabulary", { exact: true })
+        .fill("discovery");
+      assert.equal(
+        await page
+          .getByRole("rowheader", { name: "Serendipity", exact: true })
+          .count(),
+        1,
+      );
+      await page
+        .getByLabel("Search vocabulary", { exact: true })
+        .fill("zzzzzz");
+      await page
+        .getByText("No words match your search.", { exact: true })
+        .waitFor();
+      await page.getByLabel("Search vocabulary", { exact: true }).fill("");
+      await page.getByRole("button", { name: "Add word", exact: true }).click();
+      await page
+        .getByLabel("Vocabulary word", { exact: true })
+        .fill("Alacrity");
+      await page
+        .getByLabel("Vocabulary definition", { exact: true })
+        .fill("Cheerful readiness.");
+      await page
+        .getByLabel("Vocabulary example usage", { exact: true })
+        .fill("She accepted with alacrity.");
+      await page
+        .getByRole("button", { name: "Save word", exact: true })
+        .click();
+      await page
+        .getByLabel("Sort vocabulary", { exact: true })
+        .selectOption("az");
+      assert.equal(
+        await page.getByRole("rowheader").first().textContent(),
+        "Alacrity",
+      );
+      await page
+        .getByRole("button", { name: "Delete Alacrity", exact: true })
+        .click();
+      await page.waitForTimeout(1600);
+      assert.equal(backend.get().workspace.vocabulary.length, 1);
+      await page.reload();
+      await page
+        .getByRole("rowheader", { name: "Serendipity", exact: true })
+        .waitFor();
+      await page.screenshot({
+        path: "work/vocabulary-list-390.png",
+        fullPage: true,
+      });
+      assert.equal(
+        backend.get().workspace.vocabulary[0].example,
+        "The discovery was pure serendipity.",
+      );
       await navigate("habits");
       await page
         .getByRole("button", {
@@ -300,7 +411,7 @@ try {
   console.log(
     JSON.stringify({
       viewports: [320, 375, 390, 768, 1440],
-      pageLayoutChecks: 40,
+      pageLayoutChecks: results.filter((r) => r.page).length,
       functionalMobileChecks: "passed",
       browserErrors: 0,
     }),

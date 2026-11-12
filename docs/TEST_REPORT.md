@@ -1,3 +1,11 @@
+# Vocabulary verification update
+
+33 automated tests pass, including vocabulary table persistence, old-client protection, backup validation and delayed cloud capability activation without losing local words. Real Chromium testing covered all nine pages at five widths (45 layout checks) with no page-wide horizontal overflow or clipped form inputs. The phone flow verified popup focus, Escape, saving, editing, duplicate-word validation, search, sorting, deletion and reload persistence. Screenshots were inspected.
+
+A dedicated Vocabulary native table has been created with verified headers, text column types and a frozen header. The new word-table capability still requires deployment of the latest Code.gs. Until then, Vocabulary clearly indicates device-only saving. Previous live verification for workouts and routine history remains unchanged.
+
+---
+
 # Latest mobile, habit and workout verification
 
 30 automated model/React/backend tests pass. Tests cover dated multi-set exercises, independent weights/reps, recurring due dates and undo, customization, persistence and upgrade from an older backend without losing local logs.

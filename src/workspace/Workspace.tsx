@@ -27,6 +27,7 @@ import { isConfigured } from "../lib/sheets-api";
 import { Habits, TodayHabits } from "./Habits";
 import { Meals } from "./Wellness";
 import { Fitness } from "./Fitness";
+import { Vocabulary } from "./Vocabulary";
 import { BrainDump, Ideas } from "./Creativity";
 import { useWorkspace } from "./useWorkspace";
 import {
@@ -100,6 +101,12 @@ const NAV = [
     description: "Keep the things that spark something.",
   },
   {
+    id: "vocabulary",
+    label: "Vocabulary",
+    icon: BookOpen,
+    description: "New words, clearer meanings, better expression.",
+  },
+  {
     id: "settings",
     label: "Settings & backup",
     icon: Settings,
@@ -128,6 +135,7 @@ export default function WorkspaceApp() {
     reloadCloud,
     tableStorage,
     logStorageReady,
+    vocabularyStorageReady,
   } = useWorkspace();
   const [tab, setTab] = useState<Tab>(currentTab);
   const [menu, setMenu] = useState(false);
@@ -383,6 +391,13 @@ export default function WorkspaceApp() {
           )}
           {tab === "dump" && <BrainDump data={data} update={update} />}
           {tab === "ideas" && <Ideas data={data} update={update} />}
+          {tab === "vocabulary" && (
+            <Vocabulary
+              data={data}
+              update={update}
+              storageReady={vocabularyStorageReady}
+            />
+          )}
           {tab === "settings" && (
             <SettingsPanel
               data={data}

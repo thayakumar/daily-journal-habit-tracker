@@ -450,3 +450,56 @@ test("initial habit and planner reads share one cloud request", async () => {
   await render(React.createElement(WorkspaceApp));
   assert.equal(reads, 1);
 });
+
+test("vocabulary stays local on an older backend and uploads after its feature flag activates", async () => {
+  const { createBackend } = await import("./apps-script-mock.mjs");
+  const b = createBackend(createWorkspace());
+  let upgraded = false;
+  let api;
+  globalThis.__TEST_SCRIPT_URL__ = "https://sheet.test/exec";
+  globalThis.fetch = async (_url, options) => ({
+    ok: true,
+    json: async () => {
+      if (options?.method === "POST") {
+        const p = JSON.parse(options.body);
+        if (!upgraded && p.action === "saveWorkspace") delete p.data.vocabulary;
+        return b.post(p);
+      }
+      const d = b.get();
+      if (!upgraded) {
+        delete d.features.vocabulary;
+        delete d.workspace.vocabulary;
+      }
+      return d;
+    },
+  });
+  function Harness() {
+    api = useWorkspace();
+    return null;
+  }
+  await render(React.createElement(Harness));
+  const entry = {
+    id: "local-word",
+    word: "Serendipity",
+    definition: "Good luck by chance.",
+    example: "A happy serendipity.",
+    createdAt: "2026-11-12T01:00:00Z",
+    updatedAt: "2026-11-12T01:00:00Z",
+  };
+  await act(async () => api.update((s) => ({ ...s, vocabulary: [entry] })));
+  await act(async () => sleep(1300));
+  assert.equal(api.data.vocabulary.length, 1);
+  assert.match(api.status, /Vocabulary saved on this device/);
+  assert.equal(b.get().workspace.vocabulary.length, 0);
+  await act(async () => renderer.unmount());
+  renderer = null;
+  await render(React.createElement(Harness));
+  assert.equal(api.data.vocabulary[0].word, "Serendipity");
+  await act(async () => renderer.unmount());
+  renderer = null;
+  upgraded = true;
+  await render(React.createElement(Harness));
+  await act(async () => sleep(1300));
+  assert.equal(api.vocabularyStorageReady, true);
+  assert.equal(b.get().workspace.vocabulary[0].id, "local-word");
+});

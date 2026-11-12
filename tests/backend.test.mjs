@@ -251,3 +251,37 @@ test("dated workout sets and recurring completions persist in independent row ta
   assert.equal(b.sheets.get("WorkoutSets").grid[2][6], 12.5);
   assert.equal(b.sheets.get("RecurringChecks").grid[1][2], "2026-11-12");
 });
+
+test("vocabulary entries round-trip through their own table and survive older clients", () => {
+  const w = populated();
+  w.vocabulary = [
+    {
+      id: "v1",
+      word: "Serendipity",
+      definition: "Finding something good by chance.",
+      example: "It was pure serendipity.",
+      createdAt: "2026-11-12T01:00:00Z",
+      updatedAt: "2026-11-12T01:00:00Z",
+    },
+  ];
+  const b = createBackend(w),
+    remote = b.get();
+  assert.equal(remote.features.vocabulary, true);
+  assert.deepEqual(remote.workspace.vocabulary, w.vocabulary);
+  assert.equal(b.sheets.get("Vocabulary").grid[1][1], "Serendipity");
+  const old = structuredClone(remote.workspace);
+  delete old.vocabulary;
+  old.updatedAt++;
+  assert.equal(
+    b.post({
+      action: "saveWorkspace",
+      data: old,
+      baseRevision: remote.workspaceRevision,
+    }).success,
+    true,
+  );
+  assert.equal(
+    b.get().workspace.vocabulary[0].definition,
+    w.vocabulary[0].definition,
+  );
+});

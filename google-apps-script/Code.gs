@@ -2,6 +2,7 @@
 // Existing Entries/Habits/Settings stay compatible. New tables are the source of truth.
 var TABLE_SCHEMA_VERSION = 2;
 var PLANNER_TABLES = {
+  Vocabulary: ["id", "word", "definition", "example", "createdAt", "updatedAt"],
   WorkoutSets: [
     "id",
     "exerciseId",
@@ -281,6 +282,9 @@ function plannerToTables(w) {
   tables.RecurringChecks = (w.recurringChecks || []).map(function (r) {
     return [r.id, r.habitId, r.date, r.previousLastDone];
   });
+  tables.Vocabulary = (w.vocabulary || []).map(function (r) {
+    return [r.id, r.word, r.definition, r.example, r.createdAt, r.updatedAt];
+  });
   // Validate all tables before writing any of them.
   Object.keys(PLANNER_TABLES).forEach(function (name) {
     tables[name].forEach(function (row) {
@@ -297,9 +301,14 @@ function plannerToTables(w) {
 }
 function writePlanner(ss, w) {
   // Older clients/backups must not erase newer detailed logs they do not know about.
-  if (w.workoutSets === undefined || w.recurringChecks === undefined) {
+  if (
+    w.workoutSets === undefined ||
+    w.recurringChecks === undefined ||
+    w.vocabulary === undefined
+  ) {
     var existingLogs = readPlanner(ss, settingsOf(ss));
     w = JSON.parse(JSON.stringify(w));
+    if (w.vocabulary === undefined) w.vocabulary = existingLogs.vocabulary;
     if (w.workoutSets === undefined) w.workoutSets = existingLogs.workoutSets;
     if (w.recurringChecks === undefined)
       w.recurringChecks = existingLogs.recurringChecks;
@@ -332,6 +341,7 @@ function readPlanner(ss, settings) {
   var legacy = parseJson(settings.personalWorkspaceV1 || "{}", {});
   var extras = parseJson(settings.workspaceLegacyExtras || "{}", {});
   var w = {
+    vocabulary: [],
     workoutSets: [],
     recurringChecks: [],
     version: 1,
@@ -499,6 +509,18 @@ function readPlanner(ss, settings) {
       previousLastDone: dateValue(r[3]),
     };
   });
+  w.vocabulary = readTable(ss, "Vocabulary", PLANNER_TABLES.Vocabulary).map(
+    function (r) {
+      return {
+        id: stringValue(r[0]),
+        word: stringValue(r[1]),
+        definition: stringValue(r[2]),
+        example: stringValue(r[3]),
+        createdAt: stringValue(r[4]),
+        updatedAt: stringValue(r[5]),
+      };
+    },
+  );
   return w;
 }
 function plannerRevision(ss) {
@@ -583,7 +605,7 @@ function getAll(ss) {
     habits: habits,
     settings: settings,
     storageSchemaVersion: TABLE_SCHEMA_VERSION,
-    features: { workoutSets: true, recurringChecks: true },
+    features: { workoutSets: true, recurringChecks: true, vocabulary: true },
     workspace: readPlanner(ss, settings),
     workspaceRevision: plannerRevision(ss),
   };

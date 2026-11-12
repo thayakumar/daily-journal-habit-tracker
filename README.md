@@ -4,7 +4,7 @@ A personal workspace built around the original daily food, wellness and habit gr
 
 ## Pages
 
-Overview · Habits (daily/recurring) · Personal lists · Fitness daily workout log · Meals · Brain dump · Ideas · Settings & backup.
+Overview · Habits (daily/recurring) · Personal lists · Fitness daily workout log · Meals · Brain dump · Ideas · Vocabulary · Settings & backup.
 
 Work, Prayer & goals, Content planner, Calendar and Daily journal pages have been removed. Historical records remain recoverable in the backup-compatible data format.
 
@@ -60,3 +60,5 @@ For a new installation, create Entries, Habits and Settings with the original he
 Pull requests run tests and a production build. Pushes to main run the same checks and publish dist/ through the existing GitHub Pages workflow. Apps Script deployment is separate from frontend deployment.
 
 See [mobile verification and daily workout storage](docs/MOBILE_AND_WORKOUTS.md) for the latest UI and backend activation details. Run `npm run test:responsive` for real Chromium viewport checks.
+
+[Vocabulary](docs/VOCABULARY.md) provides a word/definition/example popup, searchable list, edit/delete controls and a dedicated Sheet table. Its table sync requires the latest Apps Script version; local records are retained until that update is active.
