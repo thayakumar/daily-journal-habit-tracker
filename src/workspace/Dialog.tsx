@@ -4,10 +4,12 @@ export function Dialog({
   title,
   onClose,
   children,
+  wide = false,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const id = useId();
@@ -40,7 +42,7 @@ export function Dialog({
             onClose();
         }
       }}
-      className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-2xl border-0 bg-white p-5 shadow-xl backdrop:bg-slate-900/40 sm:p-7"
+      className={`fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] ${wide ? "max-w-5xl" : "max-w-xl"} overflow-y-auto rounded-2xl border-0 bg-white p-5 shadow-xl backdrop:bg-slate-900/40 sm:p-7`}
     >
       <div className="mb-5 flex items-center justify-between gap-3">
         <h2 id={id} className="text-xl font-semibold text-slate-800">

@@ -161,8 +161,19 @@ try {
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     let failReceipt = false;
+    let holdExpenseSave = false;
+    const saveReleases = [];
     await page.route("https://sheet.test/**", async (route) => {
       const request = route.request();
+      if (
+        holdExpenseSave &&
+        request.method() === "POST" &&
+        request.postDataJSON().action === "saveWorkspace" &&
+        request
+          .postDataJSON()
+          .data.financeExpenses?.some((e) => e.item === "=QA coffee")
+      )
+        await new Promise((resolve) => saveReleases.push(resolve));
       if (
         failReceipt &&
         request.method() === "POST" &&
@@ -189,6 +200,14 @@ try {
         body: JSON.stringify(value),
       });
     });
+    await page.route(
+      "https://drive.google.com/file/d/receipt-1/preview",
+      (route) =>
+        route.fulfill({
+          contentType: "text/html",
+          body: "<h1>Receipt preview fixture</h1>",
+        }),
+    );
     await page.goto(base);
     await page
       .getByRole("navigation", { name: "Open a page", exact: true })
@@ -216,8 +235,20 @@ try {
           9,
         );
       }
-      if (id === "finance")
+      if (id === "finance") {
         await page.getByText("QA lunch", { exact: true }).waitFor();
+        assert.equal(
+          await page.getByLabel("Salary cycle", { exact: true }).inputValue(),
+          "qa-cycle",
+        );
+        assert.equal(
+          await page
+            .getByLabel("Salary cycle", { exact: true })
+            .getByRole("option", { name: /All expenses/ })
+            .count(),
+          0,
+        );
+      }
       if (id === "meals") {
         assert.equal(
           await page
@@ -285,9 +316,15 @@ try {
         await page
           .getByRole("tab", { name: "Monthly Budget", exact: true })
           .click();
-        await page
-          .getByRole("heading", { name: "Your salary cycles", exact: true })
-          .waitFor();
+        const settings = page
+          .locator("details")
+          .filter({
+            has: page
+              .locator("summary")
+              .filter({ hasText: "Salary cycle settings" }),
+          });
+        assert.equal(await settings.getAttribute("open"), null);
+        await settings.locator("summary").click();
         await page
           .getByLabel("Salary cycle", { exact: true })
           .selectOption("qa-cycle");
@@ -335,6 +372,7 @@ try {
         );
         await page.keyboard.press("Escape");
         await dialog.waitFor({ state: "hidden" });
+        await settings.locator("summary").click();
         if (width === 390)
           await page.screenshot({
             path: "work/monthly-budget-390.png",
@@ -526,6 +564,15 @@ try {
         /bg-rose-500/,
       );
       await navigate("finance");
+      assert.equal(
+        await page.getByLabel("Salary cycle", { exact: true }).inputValue(),
+        "qa-cycle",
+      );
+      await page.getByLabel("Search expenses").fill("This filter should reset");
+      await page
+        .getByLabel("Filter expense category")
+        .selectOption("Groceries");
+      holdExpenseSave = true;
       await page.getByLabel("Expense description").fill("=QA coffee");
       await page.getByLabel("Expense amount").fill("8.75");
       await page.getByLabel("Expense receipt").setInputFiles({
@@ -542,6 +589,27 @@ try {
           { exact: true },
         )
         .waitFor();
+      await page.getByText("=QA coffee", { exact: true }).waitFor();
+      assert.equal(await page.getByLabel("Search expenses").inputValue(), "");
+      assert.equal(
+        await page.getByLabel("Filter expense category").inputValue(),
+        "All",
+      );
+      assert.equal(
+        backend.get().workspace.financeExpenses.length,
+        1,
+        "History must update before the cloud save finishes",
+      );
+      holdExpenseSave = false;
+      saveReleases.splice(0).forEach((release) => release());
+      assert.equal(
+        await page
+          .locator("#expense-table tbody tr")
+          .first()
+          .getByText("=QA coffee", { exact: true })
+          .count(),
+        1,
+      );
       for (
         let n = 0;
         n < 50 && backend.get().workspace.financeExpenses.length !== 2;
@@ -565,6 +633,42 @@ try {
         backend.receipts[0].folderId,
         "1_fo4Fn8Oq-ttn1vhZAAZFUH49jIyJrXd",
       );
+      await page
+        .getByRole("button", {
+          name: "View receipt for =QA coffee",
+          exact: true,
+        })
+        .click();
+      await page
+        .getByRole("dialog", { name: "Receipt preview", exact: true })
+        .waitFor();
+      assert.equal(
+        await page
+          .locator('iframe[title="Receipt for =QA coffee"]')
+          .getAttribute("src"),
+        "https://drive.google.com/file/d/receipt-1/preview",
+      );
+      await page
+        .frameLocator('iframe[title="Receipt for =QA coffee"]')
+        .getByRole("heading", { name: "Receipt preview fixture", exact: true })
+        .waitFor();
+      assert.equal(
+        context.pages().length,
+        1,
+        "Receipt preview must not open a new tab",
+      );
+      const previewRect = await page
+        .getByRole("dialog", { name: "Receipt preview", exact: true })
+        .boundingBox();
+      assert.ok(
+        previewRect.x >= 0 && previewRect.x + previewRect.width <= width + 1,
+      );
+      await page.screenshot({
+        path: "work/receipt-popup-390.png",
+        fullPage: true,
+      });
+      await page.keyboard.press("Escape");
+      await page.getByRole("dialog").waitFor({ state: "hidden" });
       await page.getByLabel("Search expenses").fill("=QA coffee");
       assert.equal(await page.locator("#expense-table tbody tr").count(), 1);
       await page.getByLabel("Search expenses").fill("");
@@ -628,6 +732,10 @@ try {
           .count(),
         0,
       );
+      await page
+        .locator("summary")
+        .filter({ hasText: "Salary cycle settings" })
+        .click();
       await page
         .getByRole("button", { name: "New cycle", exact: true })
         .click();

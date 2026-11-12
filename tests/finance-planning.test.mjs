@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   activeMonth,
+  currentFinanceCycle,
   cycleDates,
   cycleError,
   emptyPlanning,
@@ -171,4 +172,23 @@ test("planning persists in dedicated tables and old clients preserve it; bad cyc
   assert.equal(response.success, false);
   assert.match(response.error, /overlap/);
   assert.deepEqual(b.get().workspace.financePlanning, w.financePlanning);
+});
+
+test("the active salary cycle uses today's date, respects saved custom dates and avoids duplicate month labels", () => {
+  const p = emptyPlanning();
+  assert.deepEqual(currentFinanceCycle(p, "2026-11-12"), {
+    id: "auto-2026-11-2026-10-27",
+    month: "2026-11",
+    start: "2026-10-27",
+    end: "2026-11-26",
+  });
+  p.cycles = [
+    { id: "custom", month: "2026-11", start: "2026-10-26", end: "2026-11-28" },
+    { id: "future", month: "2026-12", start: "2026-11-29", end: "2026-12-26" },
+  ];
+  assert.equal(currentFinanceCycle(p, "2026-11-27").id, "custom");
+  p.cycles = [
+    { id: "prior", month: "2026-11", start: "2026-10-26", end: "2026-11-25" },
+  ];
+  assert.equal(currentFinanceCycle(p, "2026-11-26"), null);
 });

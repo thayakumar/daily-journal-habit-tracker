@@ -135,6 +135,7 @@ function useToday() {
 export default function WorkspaceApp() {
   const {
     data,
+    initialLoading,
     update,
     status,
     retrySync,
@@ -338,6 +339,7 @@ export default function WorkspaceApp() {
             <Suspense fallback={<p role="status">Loading finance…</p>}>
               <Finance
                 data={data}
+                initialLoading={initialLoading}
                 update={update}
                 receiptReady={financeStorageReady}
                 planningReady={planningStorageReady}

@@ -45,6 +45,7 @@ function readAck(): { timestamp: number; revision: string } {
 }
 export function useWorkspace() {
   const [data, setData] = useState(readWorkspace);
+  const [initialLoading, setInitialLoading] = useState(isConfigured());
   const [status, setStatus] = useState("Saved on this device");
   const [ready, setReady] = useState(!isConfigured());
   const [tableStorage, setTableStorage] = useState(false);
@@ -222,6 +223,9 @@ export function useWorkspace() {
           setStatus(
             `Device saved · ${error instanceof Error ? error.message : "cloud unavailable"}`,
           );
+      })
+      .finally(() => {
+        if (!cancelled) setInitialLoading(false);
       });
     return () => {
       cancelled = true;
@@ -336,6 +340,7 @@ export function useWorkspace() {
   }
   return {
     data,
+    initialLoading,
     update,
     status,
     retrySync: sync,

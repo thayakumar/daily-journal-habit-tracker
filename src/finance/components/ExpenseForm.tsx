@@ -1,3 +1,4 @@
+import type { FinanceCycle } from "../planning";
 import React, { useState, useRef } from "react";
 import { Category, type Expense } from "../types";
 import { uploadFinanceReceipt } from "../../lib/sheets-api";
@@ -20,6 +21,7 @@ import {
 
 interface ExpenseFormProps {
   receiptReady: boolean;
+  cycle: FinanceCycle;
   onSave: (expense: Omit<Expense, "id">) => void;
 }
 
@@ -64,10 +66,14 @@ const CATEGORY_META = [
 
 export const ExpenseForm: React.FC<ExpenseFormProps> = ({
   receiptReady,
+  cycle,
   onSave,
 }) => {
   const [date, setDate] = useState<string>(() =>
-    new Intl.DateTimeFormat("en-CA").format(new Date()),
+    (() => {
+      const today = new Intl.DateTimeFormat("en-CA").format(new Date());
+      return today >= cycle.start && today <= cycle.end ? today : "";
+    })(),
   );
   const [item, setItem] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
@@ -122,6 +128,12 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
       return;
     }
 
+    if (date < cycle.start || date > cycle.end) {
+      setSubmitError(
+        "Choose a date within the selected salary cycle, or switch cycles first.",
+      );
+      return;
+    }
     const numericAmount = parseFloat(amount);
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
       setSubmitError("Please input a valid positive expense amount.");
@@ -235,6 +247,8 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
             <input
               type="date"
               aria-label="Expense date"
+              min={cycle.start}
+              max={cycle.end}
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}

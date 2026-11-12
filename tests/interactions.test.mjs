@@ -4,6 +4,8 @@ import React from "react";
 import { act, create } from "react-test-renderer";
 import {
   WorkspaceApp,
+  Finance,
+  ExpenseForm,
   Journal,
   BrainDump,
   ListPanel,
@@ -630,4 +632,133 @@ test("monthly plans stay local on the current backend and merge after planning s
   assert.equal(api.planningStorageReady, true);
   assert.equal(b.get().workspace.financePlanning.defaultStartDay, 26);
   assert.equal(b.get().workspace.financePlanning.cycles[0].id, "aug");
+});
+
+test("finance defaults to today's cycle and inserts a new expense immediately even with active history filters", async () => {
+  const today = localDate();
+  const { cycleDates, activeMonth, shiftMonth } = await import(
+    "../src/finance/planning.ts"
+  );
+  const month = activeMonth(today, 27);
+  const state = createWorkspace();
+  state.financePlanning = {
+    defaultStartDay: 27,
+    cycles: [
+      { id: "current", month, ...cycleDates(month, 27) },
+      {
+        id: "future",
+        month: shiftMonth(month, 1),
+        ...cycleDates(shiftMonth(month, 1), 27),
+      },
+    ],
+    rows: [],
+  };
+  let latest;
+  function Harness() {
+    const [data, setData] = React.useState(state);
+    latest = data;
+    return React.createElement(Finance, {
+      data,
+      update: (fn) => setData(fn),
+      receiptReady: true,
+      planningReady: true,
+      onSync() {},
+    });
+  }
+  await render(React.createElement(Harness));
+  assert.equal(
+    renderer.root.findByProps({ "aria-label": "Salary cycle" }).props.value,
+    "current",
+  );
+  assert.ok(!text(renderer).includes("All expenses"));
+  await change(
+    renderer.root.findByProps({ "aria-label": "Search expenses" }),
+    "hidden search",
+  );
+  await change(
+    renderer.root.findByProps({ "aria-label": "Filter expense category" }),
+    "Groceries",
+  );
+  await act(async () =>
+    renderer.root.findByType(ExpenseForm).props.onSave({
+      date: today,
+      item: "Instant coffee",
+      amount: 5,
+      category: "Food",
+    }),
+  );
+  assert.ok(text(renderer).includes("Instant coffee"));
+  assert.equal(
+    renderer.root.findByProps({ "aria-label": "Search expenses" }).props.value,
+    "",
+  );
+  assert.equal(
+    renderer.root.findByProps({ "aria-label": "Filter expense category" }).props
+      .value,
+    "All",
+  );
+  assert.equal(latest.financeExpenses.length, 1);
+  const delayedSave = renderer.root.findByType(ExpenseForm).props.onSave;
+  await change(
+    renderer.root.findByProps({ "aria-label": "Salary cycle" }),
+    "future",
+  );
+  await act(async () =>
+    delayedSave({
+      date: today,
+      item: "Delayed receipt record",
+      amount: 6,
+      category: "Food",
+    }),
+  );
+  assert.equal(
+    renderer.root.findByProps({ "aria-label": "Salary cycle" }).props.value,
+    "current",
+  );
+  assert.equal(latest.financeExpenses.length, 2);
+  await assert.rejects(
+    async () =>
+      await act(async () =>
+        renderer.root.findByType(ExpenseForm).props.onSave({
+          date: "2000-01-01",
+          item: "Wrong cycle",
+          amount: 5,
+          category: "Food",
+        }),
+      ),
+    /within the selected/,
+  );
+  assert.equal(latest.financeExpenses.length, 2);
+});
+
+test("the first expense creates the current salary cycle instead of an unfiltered ledger view", async () => {
+  const today = localDate();
+  let latest;
+  function Harness() {
+    const [data, setData] = React.useState(createWorkspace());
+    latest = data;
+    return React.createElement(Finance, {
+      data,
+      update: (fn) => setData(fn),
+      receiptReady: true,
+      planningReady: true,
+      onSync() {},
+    });
+  }
+  await render(React.createElement(Harness));
+  assert.match(
+    renderer.root.findByProps({ "aria-label": "Salary cycle" }).props.value,
+    /^auto-/,
+  );
+  await act(async () =>
+    renderer.root.findByType(ExpenseForm).props.onSave({
+      date: today,
+      item: "First record",
+      amount: 2,
+      category: "Food",
+    }),
+  );
+  assert.equal(latest.financePlanning.cycles.length, 1);
+  assert.equal(latest.financePlanning.rows.length, 3);
+  assert.ok(text(renderer).includes("First record"));
 });

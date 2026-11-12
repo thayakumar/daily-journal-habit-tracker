@@ -52,3 +52,14 @@ New normalized Sheets tables:
 | FinanceBalances | id, cycleId, name, amount, liquid |
 
 Replace Code.gs and deploy a new version of the same Web app to activate `features.financePlanning`. No new URL or additional Drive authorization is needed if receipt uploads already work. Until then, monthly plans remain on the device and merge by ID when the capability becomes available. Older clients that omit monthly planning cannot erase its tables. The original BUDGET TRACKER workbook remains unchanged; historical monthly data has not been imported automatically.
+
+
+## Current-cycle selection, immediate history and receipt previews
+
+Finance opens on the saved cycle whose dates contain today, including custom early-payday dates. There is no all-cycle option. If no current cycle exists, Finance previews one using the configured salary day and saves that setup (with starter budgets) when the first expense is recorded or Monthly Budget is opened. A gap conflicting with an existing month label requires editing that cycle’s dates rather than creating a duplicate month.
+
+The selected cycle’s dates are shown next to the picker. Expense dates must fall within that cycle; selecting an older cycle requires choosing a date in its period. Newly saved expenses are inserted into local history immediately, highlighted and placed first; search/category filters reset so they cannot hide the saved row. Sheet synchronization remains asynchronous. Fresh devices wait for their first cloud check before displaying the entry form.
+
+Receipt View buttons open a wide native modal containing Google Drive’s preview viewer. The existing Drive folder and sharing permissions remain unchanged. Private previews depend on the viewer’s Google access; a manual original-file link is available if browser/Drive restrictions prevent embedding. Only validated HTTPS Drive URLs are embedded. No additional Apps Script action or deployment is required.
+
+Salary cycle settings are collapsed by default, and monthly summary cards use larger headings, larger amounts and distinct colour treatments.
