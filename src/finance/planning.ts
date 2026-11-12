@@ -206,3 +206,48 @@ export function isFinancePlanning(value: unknown): value is FinancePlanning {
         )),
   );
 }
+
+// A missing current cycle is previewed without writing on page load.
+export function currentFinanceCycle(
+  plan: FinancePlanning,
+  today: string,
+): FinanceCycle | null {
+  const saved = plan.cycles.find((c) => c.start <= today && c.end >= today);
+  if (saved) return saved;
+  const month = activeMonth(today, plan.defaultStartDay);
+  const range = cycleDates(month, plan.defaultStartDay);
+  const shiftDay = (date: string, n: number) => {
+    const d = new Date(`${date}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+  for (const c of plan.cycles) {
+    if (c.end < today && c.end >= range.start) range.start = shiftDay(c.end, 1);
+    if (c.start > today && c.start <= range.end)
+      range.end = shiftDay(c.start, -1);
+  }
+  const cycle = { id: `auto-${month}-${range.start}`, month, ...range };
+  return cycleError(cycle, plan.cycles) ? null : cycle;
+}
+export function starterBudgets(cycleId: string): FinancePlanRow[] {
+  return [
+    { name: "Groceries", categories: ["Groceries"] },
+    {
+      name: "General expenses",
+      categories: [
+        "Grab/Transport/Fuel/Parking",
+        "Lifestyle",
+        "Entertainment",
+        "Food",
+      ],
+    },
+    { name: "Unexpected / buffer", categories: ["Unknown"] },
+  ].map((r, i) => ({
+    ...r,
+    id: `${cycleId}-budget-${i}`,
+    cycleId,
+    kind: "budget",
+    amount: 300,
+    liquid: false,
+  }));
+}

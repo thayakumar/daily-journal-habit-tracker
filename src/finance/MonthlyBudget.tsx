@@ -111,82 +111,90 @@ export function MonthlyBudget({
   }
   return (
     <div className="min-w-0 space-y-5 [contain:paint]">
-      <Card
-        title="Your salary cycles"
-        subtitle="Name a cycle by the month it funds. Its start and end dates decide which expenses appear."
-        action={
-          <button className={primaryClass} onClick={() => openCycle()}>
-            <Plus className="h-4 w-4" />
-            New cycle
-          </button>
-        }
-      >
-        {!storageReady && (
-          <p
-            role="status"
-            className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800"
-          >
-            Monthly plans save on this device. Your connection needs an update
-            to sync them to Sheets.
-          </p>
-        )}
-        <div className="flex flex-wrap items-end gap-4">
-          <div className="w-full sm:w-48">
-            <Field label="Default salary day">
-              <select
-                aria-label="Default salary day"
-                className={inputClass}
-                value={plan.defaultStartDay}
-                onChange={(e) => {
-                  const day = Number(e.target.value);
-                  update((s) => ({
-                    ...s,
-                    financePlanning: {
-                      ...(s.financePlanning ?? emptyPlanning()),
-                      defaultStartDay: day,
-                    },
-                  }));
-                }}
-              >
-                {Array.from({ length: 31 }, (_, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    {i + 1}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-          <p className="max-w-lg text-xs leading-relaxed text-slate-500">
-            Used for new cycles only. You can adjust each cycle’s exact dates.
-            Short months use the last available day.
-          </p>
-        </div>
-        {cycle && (
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-rose-50 p-4">
-            <div>
-              <p className="font-semibold text-slate-800">
-                {monthName(cycle.month)}
-              </p>
-              <p className="mt-1 text-sm text-slate-600">
-                {cycle.start} → {cycle.end} · both dates included
-              </p>
-            </div>
-            <button className={secondaryClass} onClick={() => openCycle(true)}>
-              <Pencil className="h-4 w-4" />
-              Edit cycle dates
+      <details className="rounded-2xl border border-slate-200 bg-white">
+        <summary className="cursor-pointer p-5 text-lg font-semibold text-slate-700">
+          Salary cycle settings
+        </summary>
+        <Card
+          title="Your salary cycles"
+          subtitle="Name a cycle by the month it funds. Its start and end dates decide which expenses appear."
+          action={
+            <button className={primaryClass} onClick={() => openCycle()}>
+              <Plus className="h-4 w-4" />
+              New cycle
             </button>
+          }
+        >
+          {!storageReady && (
+            <p
+              role="status"
+              className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800"
+            >
+              Monthly plans save on this device. Your connection needs an update
+              to sync them to Sheets.
+            </p>
+          )}
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="w-full sm:w-48">
+              <Field label="Default salary day">
+                <select
+                  aria-label="Default salary day"
+                  className={inputClass}
+                  value={plan.defaultStartDay}
+                  onChange={(e) => {
+                    const day = Number(e.target.value);
+                    update((s) => ({
+                      ...s,
+                      financePlanning: {
+                        ...(s.financePlanning ?? emptyPlanning()),
+                        defaultStartDay: day,
+                      },
+                    }));
+                  }}
+                >
+                  {Array.from({ length: 31 }, (_, i) => (
+                    <option key={i + 1} value={i + 1}>
+                      {i + 1}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <p className="max-w-lg text-xs leading-relaxed text-slate-500">
+              Used for new cycles only. You can adjust each cycle’s exact dates.
+              Short months use the last available day.
+            </p>
           </div>
-        )}
-        {!cycle && (
-          <div className="mt-5">
-            <Empty>
-              {plan.cycles.length
-                ? "Select a cycle above to see its monthly picture."
-                : "Create your first salary cycle to start your monthly plan."}
-            </Empty>
-          </div>
-        )}
-      </Card>
+          {cycle && (
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-rose-50 p-4">
+              <div>
+                <p className="font-semibold text-slate-800">
+                  {monthName(cycle.month)}
+                </p>
+                <p className="mt-1 text-sm text-slate-600">
+                  {cycle.start} → {cycle.end} · both dates included
+                </p>
+              </div>
+              <button
+                className={secondaryClass}
+                onClick={() => openCycle(true)}
+              >
+                <Pencil className="h-4 w-4" />
+                Edit cycle dates
+              </button>
+            </div>
+          )}
+          {!cycle && (
+            <div className="mt-5">
+              <Empty>
+                {plan.cycles.length
+                  ? "Select a cycle above to see its monthly picture."
+                  : "Create your first salary cycle to start your monthly plan."}
+              </Empty>
+            </div>
+          )}
+        </Card>
+      </details>
       {cycle && summary && (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -217,18 +225,22 @@ export function MonthlyBudget({
                 summary.remaining,
                 "Planned budgets − recorded expenses",
               ],
-            ].map(([label, value, hint]) => (
+            ].map(([label, value, hint], index) => (
               <div
                 key={String(label)}
-                className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                className={`min-w-0 rounded-2xl border p-6 shadow-sm ${["border-emerald-200 bg-emerald-50/70", "border-amber-200 bg-amber-50/70", "border-rose-200 bg-rose-50/70", "border-sky-200 bg-sky-50/70", "border-violet-200 bg-violet-50/70", "border-teal-200 bg-teal-50/70"][index]}`}
               >
-                <p className="text-sm text-slate-500">{label}</p>
                 <p
-                  className={`mt-2 break-words text-2xl font-semibold ${Number(value) < 0 ? "text-rose-600" : "text-slate-900"}`}
+                  className={`text-lg font-bold sm:text-xl ${["text-emerald-800", "text-amber-800", "text-rose-800", "text-sky-800", "text-violet-800", "text-teal-800"][index]}`}
+                >
+                  {label}
+                </p>
+                <p
+                  className={`mt-3 break-words text-3xl font-bold ${Number(value) < 0 ? "text-rose-600" : "text-slate-900"}`}
                 >
                   {money(Number(value))}
                 </p>
-                <p className="mt-2 text-xs leading-relaxed text-slate-400">
+                <p className="mt-3 text-sm leading-relaxed text-slate-500">
                   {hint}
                 </p>
               </div>

@@ -1,3 +1,5 @@
+import { Dialog } from "../../workspace/Dialog";
+import { receiptPreviewUrl } from "../receipts";
 import { money } from "../planning";
 import React, { useState } from "react";
 import { type Expense, Category } from "../types";
@@ -20,6 +22,7 @@ import {
 interface ExpenseHistoryProps {
   expenses: Expense[];
   onSync: () => void;
+  lastSaved?: { id: string; name: string } | null;
 }
 
 const CATEGORY_ICONS: Record<string, React.FC<{ className?: string }>> = {
@@ -34,12 +37,25 @@ const CATEGORY_ICONS: Record<string, React.FC<{ className?: string }>> = {
 export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
   expenses,
   onSync,
+  lastSaved,
 }) => {
+  const [receipt, setReceipt] = useState<Expense | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(true);
+  const previewUrl = receipt?.receiptUrl
+    ? receiptPreviewUrl(receipt.receiptUrl)
+    : null;
   const [filterCategory, setFilterCategory] = useState<string>("All");
   const [searchTerm, setSearchTerm] = useState<string>("");
 
   const filteredExpenses = [...expenses]
-    .sort((a, b) => b.date.localeCompare(a.date))
+    .sort((a, b) =>
+      lastSaved && a.id === lastSaved.id
+        ? -1
+        : lastSaved && b.id === lastSaved.id
+          ? 1
+          : b.date.localeCompare(a.date) ||
+            (b.createdAt ?? "").localeCompare(a.createdAt ?? ""),
+    )
     .filter((exp) => {
       const matchesCategory =
         filterCategory === "All" || exp.category === filterCategory;
@@ -62,7 +78,10 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
     : 0;
 
   return (
-    <div id="expense-history-root" className="min-w-0 space-y-6">
+    <div
+      id="expense-history-root"
+      className="min-w-0 space-y-6 [contain:paint]"
+    >
       {/* Metrics Banner */}
       <div id="metrics-grid" className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Metric 1 */}
@@ -131,8 +150,16 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
               Expense History Log
             </h3>
             <p className="text-slate-400 text-xs mt-0.5">
-              Saved with your planner’s finance records
+              Selected salary cycle · updates as soon as you save
             </p>
+            {lastSaved && (
+              <p
+                role="status"
+                className="mt-2 break-words text-sm font-medium text-emerald-700"
+              >
+                Added {lastSaved.name}. Your history is up to date.
+              </p>
+            )}
           </div>
           <button
             id="btn-refresh-logs"
@@ -225,7 +252,11 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                   return (
                     <tr
                       key={exp.id}
-                      className="hover:bg-slate-50/50 transition-colors"
+                      className={
+                        exp.id === lastSaved?.id
+                          ? "bg-emerald-50"
+                          : "hover:bg-slate-50/50 transition-colors"
+                      }
                     >
                       {/* Date */}
                       <td className="px-4 py-3.5 whitespace-nowrap text-[11px] font-mono text-slate-500">
@@ -251,16 +282,18 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                       {/* Receipt link */}
                       <td className="px-4 py-3.5 whitespace-nowrap text-center">
                         {exp.receiptUrl ? (
-                          <a
-                            href={exp.receiptUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] bg-slate-50 border border-slate-200 text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 font-bold rounded cursor-pointer transition-colors"
+                          <button
+                            type="button"
+                            aria-label={`View receipt for ${exp.item}`}
+                            onClick={() => {
+                              setPreviewLoading(true);
+                              setReceipt(exp);
+                            }}
+                            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100"
                           >
-                            <FileText className="h-3 w-3" />
-                            <span>View</span>
-                            <ExternalLink className="h-2.5 w-2.5" />
-                          </a>
+                            <FileText className="h-4 w-4" />
+                            View
+                          </button>
                         ) : (
                           <span className="text-[10px] text-slate-300 font-mono">
                             -
@@ -275,6 +308,48 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
           </div>
         )}
       </div>
+      {receipt && (
+        <Dialog wide title="Receipt preview" onClose={() => setReceipt(null)}>
+          <p className="mb-3 break-words text-sm text-slate-600">
+            {receipt.receiptName || receipt.item}
+          </p>
+          {previewUrl ? (
+            <>
+              {previewLoading && (
+                <p role="status" className="mb-3 text-sm text-slate-500">
+                  Loading receipt…
+                </p>
+              )}
+              <iframe
+                title={`Receipt for ${receipt.item}`}
+                src={previewUrl}
+                onLoad={() => setPreviewLoading(false)}
+                className="h-[60dvh] min-h-64 w-full rounded-xl border border-slate-200"
+                allow="fullscreen"
+              />
+              <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                The preview uses your existing Google Drive access. If Google
+                blocks it, you can{" "}
+                <a
+                  className="font-medium text-rose-600 underline"
+                  href={previewUrl.replace(/\/preview$/, "/view")}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  open the original receipt{" "}
+                  <ExternalLink className="inline h-3 w-3" />
+                </a>
+                .
+              </p>
+            </>
+          ) : (
+            <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
+              This receipt link cannot be previewed. Use a receipt uploaded to
+              your Google Drive folder.
+            </p>
+          )}
+        </Dialog>
+      )}
     </div>
   );
 };

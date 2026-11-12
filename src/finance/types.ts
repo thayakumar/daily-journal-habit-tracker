@@ -6,6 +6,7 @@ export interface Expense {
   receiptName?: string;
   receiptUrl?: string;
   id?: string;
+  createdAt?: string;
 }
 
 export const Category = {

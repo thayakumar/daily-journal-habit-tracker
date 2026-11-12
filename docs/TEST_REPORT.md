@@ -1,3 +1,11 @@
+# Finance history, current-cycle selection and receipt preview verification
+
+46 automated tests pass. Regression tests cover immediate history insertion with active filters, current-cycle selection ahead of future cycles, first-expense cycle creation, date guardrails and safe Drive preview URL conversion. Existing planning, API and storage tests still pass.
+
+All 55 Chromium layout checks pass at five widths. The phone flow holds the finance cloud save open and verifies the new row is already visible, the history filters have reset, and the row appears first. It then verifies confirmed persistence, an embedded receipt dialog without opening another tab, Escape dismissal, date-based cycle isolation, collapsed cycle settings and monthly planning flows. Receipt rendering is exercised with a mocked Drive viewer; actual private previews remain subject to the user’s Google Drive access. Screenshots were inspected. Production build passes. No backend contract or Apps Script deployment change is required.
+
+---
+
 # Live monthly planning verification — 12 November 2026
 
 The deployed backend advertises financePlanning support. A labelled temporary cycle with a custom 26th start date, income, commitment, category budget, account balance and expense was saved through the live planner API. Independent native Sheets reads confirmed all six planning tables and their numeric values. The published mobile UI loaded the records, retained the custom dates across a refresh, calculated the expected totals and included Entertainment in the category chart. The phone viewport remained fixed with local table scrolling.
