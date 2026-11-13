@@ -6,6 +6,7 @@ export function createBackend(
   journal = { entries: [], habits: [] },
 ) {
   const sheets = new Map();
+  const metrics = { reads: 0, bodyReads: {} };
   let lockHeld = false;
   const receipts = [];
   class Range {
@@ -13,6 +14,10 @@ export function createBackend(
       Object.assign(this, { sheet, row, col, height, width });
     }
     getValues() {
+      metrics.reads++;
+      if (this.row === 2)
+        metrics.bodyReads[this.sheet.name] =
+          (metrics.bodyReads[this.sheet.name] ?? 0) + 1;
       return Array.from({ length: this.height }, (_, r) =>
         Array.from(
           { length: this.width },
@@ -38,6 +43,9 @@ export function createBackend(
     }
     setValue(value) {
       return this.setValues([[value]]);
+    }
+    setNumberFormat() {
+      return this;
     }
     setFontWeight() {
       return this;
@@ -148,7 +156,8 @@ export function createBackend(
       computeDigest: (_algorithm, value) =>
         crypto.createHash("sha256").update(value).digest(),
       base64EncodeWebSafe: (bytes) => Buffer.from(bytes).toString("base64url"),
-      formatDate: (date) => date.toISOString().slice(0, 10),
+      formatDate: (date, timezone = "UTC") =>
+        new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(date),
     },
   });
   vm.runInContext(
@@ -201,6 +210,7 @@ export function createBackend(
   return {
     ss,
     sheets,
+    metrics,
     context,
     receipts,
     get,

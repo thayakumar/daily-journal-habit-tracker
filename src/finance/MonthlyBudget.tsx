@@ -1,3 +1,8 @@
+import {
+  emptyPortfolio,
+  syncPortfolioBalances,
+  syncPortfolioCommitments,
+} from "./portfolio-model";
 import { useState } from "react";
 import { Pencil, Plus } from "lucide-react";
 import { Dialog } from "../workspace/Dialog";
@@ -47,12 +52,14 @@ export function MonthlyBudget({
   selectedId,
   onSelect,
   storageReady,
+  onOpenPortfolio,
 }: {
   data: Workspace;
   update: Update;
   selectedId: string;
   onSelect: (id: string) => void;
   storageReady: boolean;
+  onOpenPortfolio?: () => void;
 }) {
   const plan = data.financePlanning ?? emptyPlanning();
   const cycle = plan.cycles.find((c) => c.id === selectedId);
@@ -365,10 +372,19 @@ export function MonthlyBudget({
                   action={
                     <button
                       className={secondaryClass}
-                      onClick={() => openRow(kind)}
+                      onClick={() =>
+                        kind === "balance" &&
+                        data.financePortfolio?.accounts.length &&
+                        onOpenPortfolio
+                          ? onOpenPortfolio()
+                          : openRow(kind)
+                      }
                     >
                       <Plus className="h-4 w-4" />
-                      Add {kind}
+                      {kind === "balance" &&
+                      data.financePortfolio?.accounts.length
+                        ? "Opening / closing balances"
+                        : `Add ${kind}`}
                     </button>
                   }
                 >
@@ -453,13 +469,25 @@ export function MonthlyBudget({
                                       <button
                                         aria-label={`Edit ${row.name}`}
                                         className="flex h-11 w-11 shrink-0 items-center justify-center text-slate-400 hover:text-rose-600"
-                                        onClick={() => openRow(kind, row)}
+                                        onClick={() =>
+                                          row.id.startsWith("portfolio:") &&
+                                          kind === "balance" &&
+                                          onOpenPortfolio
+                                            ? onOpenPortfolio()
+                                            : openRow(kind, row)
+                                        }
                                       >
                                         <Pencil className="h-4 w-4" />
                                       </button>
                                       <Delete
                                         label={`Delete ${row.name}`}
-                                        onClick={() => removeRow(row)}
+                                        onClick={() =>
+                                          row.id.startsWith("portfolio:") &&
+                                          kind === "balance" &&
+                                          onOpenPortfolio
+                                            ? onOpenPortfolio()
+                                            : removeRow(row)
+                                        }
                                       />
                                     </div>
                                   </td>
@@ -571,7 +599,9 @@ export function MonthlyBudget({
                 const source = p.rows.filter((r) => r.cycleId === copyFrom);
                 const copied = source.map((r) => ({
                   ...r,
-                  id: uid(),
+                  id: r.id.startsWith("portfolio:")
+                    ? `${r.id.split(":").slice(0, 3).join(":")}:${saved.id}`
+                    : uid(),
                   cycleId: saved.id,
                   amount: r.kind === "balance" ? 0 : r.amount,
                 }));
@@ -600,19 +630,31 @@ export function MonthlyBudget({
                         liquid: false,
                       }))
                     : [];
-                return {
-                  ...s,
-                  financePlanning: {
-                    ...p,
-                    cycles: editingCycle
-                      ? p.cycles.map((c) => (c.id === saved.id ? saved : c))
-                      : [...p.cycles, saved],
-                    rows: [
-                      ...p.rows,
-                      ...(editingCycle ? [] : copyFrom ? copied : defaults),
-                    ],
-                  },
+                let nextPlan = {
+                  ...p,
+                  cycles: editingCycle
+                    ? p.cycles.map((c) => (c.id === saved.id ? saved : c))
+                    : [...p.cycles, saved],
+                  rows: [
+                    ...p.rows,
+                    ...(editingCycle ? [] : copyFrom ? copied : defaults),
+                  ],
                 };
+                const portfolio = s.financePortfolio ?? emptyPortfolio();
+                if (portfolio.accounts.length)
+                  nextPlan = syncPortfolioBalances(
+                    nextPlan,
+                    portfolio,
+                    saved.id,
+                  );
+                if (portfolio.loans.length || portfolio.subscriptions.length)
+                  nextPlan = syncPortfolioCommitments(
+                    nextPlan,
+                    portfolio,
+                    saved,
+                    localDate(),
+                  );
+                return { ...s, financePlanning: nextPlan };
               });
               onSelect(saved.id);
               setCycleDialog(null);

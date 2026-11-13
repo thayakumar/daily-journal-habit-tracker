@@ -1,3 +1,4 @@
+import { Portfolio } from "./Portfolio";
 import { useState } from "react";
 import { MonthlyBudget } from "./MonthlyBudget";
 import {
@@ -22,6 +23,7 @@ export default function Finance({
   onSync,
   planningReady,
   initialLoading = false,
+  portfolioReady = false,
 }: {
   data: Workspace;
   update: Update;
@@ -29,8 +31,12 @@ export default function Finance({
   onSync: () => void;
   planningReady: boolean;
   initialLoading?: boolean;
+  portfolioReady?: boolean;
 }) {
-  const [view, setView] = useState<"expenses" | "monthly">("expenses");
+  const [view, setView] = useState<"expenses" | "monthly" | "portfolio">(
+    "expenses",
+  );
+  const [portfolioSection, setPortfolioSection] = useState("overview");
   const [chosenId, setChosenId] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<{
     id: string;
@@ -91,7 +97,7 @@ export default function Finance({
           aria-label="Finance modules"
           className="mb-5 flex flex-wrap gap-2"
         >
-          {(["expenses", "monthly"] as const).map((tab) => (
+          {(["expenses", "monthly", "portfolio"] as const).map((tab) => (
             <button
               key={tab}
               role="tab"
@@ -100,16 +106,21 @@ export default function Finance({
               id={`tab-${tab}`}
               className={`min-h-11 rounded-xl px-4 py-2.5 text-sm font-medium ${view === tab ? "bg-rose-600 text-white" : "bg-slate-50 text-slate-500"}`}
               onClick={() => {
+                if (tab === "portfolio") setPortfolioSection("overview");
                 setView(tab);
                 if (
-                  tab === "monthly" &&
+                  (tab === "monthly" || tab === "portfolio") &&
                   cycle &&
                   !plan.cycles.some((c) => c.id === cycle.id)
                 )
                   update(withCycle);
               }}
             >
-              {tab === "expenses" ? "Expense Tracker" : "Monthly Budget"}
+              {tab === "expenses"
+                ? "Expense Tracker"
+                : tab === "monthly"
+                  ? "Monthly Budget"
+                  : "Portfolio"}
             </button>
           ))}
         </div>
@@ -148,7 +159,22 @@ export default function Finance({
           )}
         </div>
       </Card>
-      {view === "monthly" ? (
+      {view === "portfolio" ? (
+        <div
+          role="tabpanel"
+          id="finance-portfolio"
+          aria-labelledby="tab-portfolio"
+        >
+          <Portfolio
+            data={data}
+            update={update}
+            cycle={cycle}
+            key={portfolioSection}
+            initialSection={portfolioSection}
+            storageReady={portfolioReady}
+          />
+        </div>
+      ) : view === "monthly" ? (
         <div role="tabpanel" id="finance-monthly" aria-labelledby="tab-monthly">
           <MonthlyBudget
             data={data}
@@ -156,6 +182,10 @@ export default function Finance({
             selectedId={selectedId}
             onSelect={chooseCycle}
             storageReady={planningReady}
+            onOpenPortfolio={() => {
+              setPortfolioSection("accounts");
+              setView("portfolio");
+            }}
           />
         </div>
       ) : (

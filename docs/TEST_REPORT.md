@@ -1,3 +1,13 @@
+# Portfolio verification — 13 November 2026
+
+62 automated tests pass, including asset/debt totals, flow-adjusted investment results, fee reconciliation, debt-principal effects, allocation limits and cent rounding, goal contributions resuming after a simulated loan, flat/reducing loan payoff, renewal dates, historical commitments, all eight table round trips, masked references, old-client preservation, upgrade retention and request-local cache correctness.
+
+Existing Chromium checks pass across all ten pages and Monthly Budget at five widths (55 layout checks). Portfolio adds 30 checks across Overview, Accounts, Loans, Subscriptions, Goals and Simulator at 320, 375, 390, 768 and 1440 pixels. The phone flow exercises long labels, account registration, gold quantity/price valuation, snapshot phase/date rejection, transfers, loans, subscriptions and commitment linking, goal allocation limits, simulations without writes, cross-module balance links and reload persistence. Browser errors: zero. Screenshots were inspected. Production build passes; lint reports warnings, including existing code and nested event-handler Date calls.
+
+New Portfolio data is tested with the actual Code.gs in mocked Google services. Live Portfolio table verification remains pending the updated Apps Script deployment. No real Portfolio test records have been written in this verification pass. Existing live finance verification is retained below.
+
+---
+
 # Finance history, current-cycle selection and receipt preview verification
 
 46 automated tests pass. Regression tests cover immediate history insertion with active filters, current-cycle selection ahead of future cycles, first-expense cycle creation, date guardrails and safe Drive preview URL conversion. Existing planning, API and storage tests still pass.
