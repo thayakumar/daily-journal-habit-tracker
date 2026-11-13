@@ -63,3 +63,8 @@ The selected cycle’s dates are shown next to the picker. Expense dates must fa
 Receipt View buttons open a wide native modal containing Google Drive’s preview viewer. The existing Drive folder and sharing permissions remain unchanged. Private previews depend on the viewer’s Google access; a manual original-file link is available if browser/Drive restrictions prevent embedding. Only validated HTTPS Drive URLs are embedded. No additional Apps Script action or deployment is required.
 
 Salary cycle settings are collapsed by default, and monthly summary cards use larger headings, larger amounts and distinct colour treatments.
+
+
+## Portfolio
+
+Finance now includes a Portfolio module for account valuations, gold/investments, loans, subscriptions, goals, monthly reconciliation and cash/loan simulations. It reuses salary cycles and monthly records. See [Portfolio documentation and activation](PORTFOLIO.md). Its eight new tables require the updated Code.gs deployment; earlier expense, receipt and planning connections remain unchanged.

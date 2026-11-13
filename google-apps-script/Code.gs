@@ -1,7 +1,126 @@
 // Deploy this file as a new version of the existing bound Web app.
 // Existing Entries/Habits/Settings stay compatible. New tables are the source of truth.
 var TABLE_SCHEMA_VERSION = 2;
+var REQUEST_CACHE = null;
 var FINANCE_RECEIPTS_FOLDER_ID = "1_fo4Fn8Oq-ttn1vhZAAZFUH49jIyJrXd";
+var PORTFOLIO_SCHEMAS = [
+  {
+    key: "accounts",
+    table: "PortfolioAccounts",
+    headers: [
+      "id",
+      "name",
+      "kind",
+      "liquid",
+      "maskedRef",
+      "vaultUrl",
+      "costBasis",
+      "planName",
+      "trackingFrom",
+    ],
+    numbers: ["costBasis"],
+    booleans: ["liquid"],
+  },
+  {
+    key: "snapshots",
+    table: "PortfolioSnapshots",
+    headers: [
+      "id",
+      "accountId",
+      "cycleId",
+      "phase",
+      "date",
+      "value",
+      "units",
+      "price",
+      "updatedAt",
+    ],
+    numbers: ["value", "units", "price"],
+    booleans: [],
+  },
+  {
+    key: "flows",
+    table: "PortfolioFlows",
+    headers: [
+      "id",
+      "cycleId",
+      "date",
+      "kind",
+      "fromId",
+      "toId",
+      "amount",
+      "budgetIncluded",
+    ],
+    numbers: ["amount"],
+    booleans: ["budgetIncluded"],
+  },
+  {
+    key: "loans",
+    table: "PortfolioLoans",
+    headers: [
+      "id",
+      "name",
+      "principal",
+      "balance",
+      "apr",
+      "payment",
+      "rateType",
+      "asOf",
+      "nextDue",
+      "planName",
+      "startDate",
+    ],
+    numbers: ["principal", "balance", "apr", "payment"],
+    booleans: [],
+  },
+  {
+    key: "debtSnapshots",
+    table: "PortfolioDebtSnapshots",
+    headers: [
+      "id",
+      "loanId",
+      "cycleId",
+      "phase",
+      "date",
+      "balance",
+      "updatedAt",
+    ],
+    numbers: ["balance"],
+    booleans: [],
+  },
+  {
+    key: "subscriptions",
+    table: "PortfolioSubscriptions",
+    headers: [
+      "id",
+      "name",
+      "amount",
+      "frequency",
+      "nextDue",
+      "active",
+      "accountId",
+      "manageUrl",
+      "planName",
+      "startDate",
+    ],
+    numbers: ["amount"],
+    booleans: ["active"],
+  },
+  {
+    key: "goals",
+    table: "PortfolioGoals",
+    headers: ["id", "name", "target", "deadline", "monthlyContribution"],
+    numbers: ["target", "monthlyContribution"],
+    booleans: [],
+  },
+  {
+    key: "allocations",
+    table: "PortfolioAllocations",
+    headers: ["id", "goalId", "accountId", "amount"],
+    numbers: ["amount"],
+    booleans: [],
+  },
+];
 var PLANNER_TABLES = {
   FinanceCycleSettings: ["defaultStartDay"],
   FinanceCycles: ["id", "month", "start", "end"],
@@ -49,6 +168,9 @@ var PLANNER_TABLES = {
   BrainDump: ["id", "text", "created", "contentId"],
   Ideas: ["id", "title", "url", "note"],
 };
+PORTFOLIO_SCHEMAS.forEach(function (schema) {
+  PLANNER_TABLES[schema.table] = schema.headers;
+});
 var HABIT_CHECK_HEADERS = ["date", "habitId", "completed"];
 var ENTRY_HEADERS = [
   "id",
@@ -106,7 +228,11 @@ function parseJson(value, fallback) {
   }
 }
 function ensureSheet(ss, title, headers) {
-  var sheet = ss.getSheetByName(title);
+  var key = headers.join("|");
+  if (REQUEST_CACHE && REQUEST_CACHE.headers[title] === key)
+    return REQUEST_CACHE.sheets[title];
+  var sheet =
+    (REQUEST_CACHE && REQUEST_CACHE.sheets[title]) || ss.getSheetByName(title);
   if (!sheet) sheet = ss.insertSheet(title);
   if (sheet.getLastRow() === 0) {
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -121,25 +247,50 @@ function ensureSheet(ss, title, headers) {
     throw new Error(
       "Unexpected headers in " + title + ". No data was replaced.",
     );
+  if (REQUEST_CACHE) {
+    REQUEST_CACHE.headers[title] = key;
+    REQUEST_CACHE.sheets[title] = sheet;
+  }
   return sheet;
 }
 function readTable(ss, title, headers) {
-  var sheet = ss.getSheetByName(title);
-  if (!sheet || sheet.getLastRow() < 2) return [];
-  var actual = sheet.getRange(1, 1, 1, headers.length).getValues()[0];
-  if (actual.join("|") !== headers.join("|"))
-    throw new Error("Unexpected headers in " + title);
-  return sheet
-    .getRange(2, 1, sheet.getLastRow() - 1, headers.length)
-    .getValues()
-    .filter(function (row) {
-      return row[0] !== "";
-    })
-    .map(function (row) {
-      return row.map(plainValue);
-    });
+  var key = headers.join("|");
+  if (
+    REQUEST_CACHE &&
+    REQUEST_CACHE.tables[title] &&
+    REQUEST_CACHE.tables[title].key === key
+  )
+    return REQUEST_CACHE.tables[title].rows;
+  var sheet =
+      (REQUEST_CACHE && REQUEST_CACHE.sheets[title]) ||
+      ss.getSheetByName(title),
+    rows = [];
+  if (sheet && sheet.getLastRow() >= 2) {
+    if (!REQUEST_CACHE || REQUEST_CACHE.headers[title] !== key) {
+      var actual = sheet.getRange(1, 1, 1, headers.length).getValues()[0];
+      if (actual.join("|") !== key)
+        throw new Error("Unexpected headers in " + title);
+      if (REQUEST_CACHE) {
+        REQUEST_CACHE.headers[title] = key;
+        REQUEST_CACHE.sheets[title] = sheet;
+      }
+    }
+    rows = sheet
+      .getRange(2, 1, sheet.getLastRow() - 1, headers.length)
+      .getValues()
+      .filter(function (row) {
+        return row[0] !== "";
+      })
+      .map(function (row) {
+        return row.map(plainValue);
+      });
+  }
+  if (REQUEST_CACHE) REQUEST_CACHE.tables[title] = { key: key, rows: rows };
+  return rows;
 }
+
 function writeTable(ss, title, headers, rows) {
+  if (REQUEST_CACHE) delete REQUEST_CACHE.tables[title];
   var sheet = ensureSheet(ss, title, headers);
   if (
     rows.some(function (row) {
@@ -176,6 +327,7 @@ function writeTable(ss, title, headers, rows) {
   }
 }
 function settingsOf(ss) {
+  if (REQUEST_CACHE && REQUEST_CACHE.settings) return REQUEST_CACHE.settings;
   var sheet = ensureSheet(ss, "Settings", ["key", "value"]);
   var settings = {};
   if (sheet.getLastRow() > 1)
@@ -185,9 +337,11 @@ function settingsOf(ss) {
       .forEach(function (row) {
         if (row[0]) settings[row[0]] = stringValue(row[1]);
       });
+  if (REQUEST_CACHE) REQUEST_CACHE.settings = settings;
   return settings;
 }
 function putSetting(ss, key, value) {
+  if (REQUEST_CACHE) REQUEST_CACHE.settings = null;
   var sheet = ensureSheet(ss, "Settings", ["key", "value"]);
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++)
@@ -343,6 +497,18 @@ function plannerToTables(w) {
   tables.Vocabulary = (w.vocabulary || []).map(function (r) {
     return [r.id, r.word, r.definition, r.example, r.createdAt, r.updatedAt];
   });
+  var portfolio =
+    w.financePortfolio === undefined
+      ? emptyPortfolioData()
+      : w.financePortfolio;
+  validatePortfolioData(portfolio, planning.cycles);
+  PORTFOLIO_SCHEMAS.forEach(function (schema) {
+    tables[schema.table] = portfolio[schema.key].map(function (row) {
+      return schema.headers.map(function (key) {
+        return row[key];
+      });
+    });
+  });
   // Validate all tables before writing any of them.
   Object.keys(PLANNER_TABLES).forEach(function (name) {
     tables[name].forEach(function (row) {
@@ -364,10 +530,13 @@ function writePlanner(ss, w) {
     w.recurringChecks === undefined ||
     w.vocabulary === undefined ||
     w.financeExpenses === undefined ||
-    w.financePlanning === undefined
+    w.financePlanning === undefined ||
+    w.financePortfolio === undefined
   ) {
     var existingLogs = readPlanner(ss, settingsOf(ss));
     w = JSON.parse(JSON.stringify(w));
+    if (w.financePortfolio === undefined)
+      w.financePortfolio = existingLogs.financePortfolio;
     if (w.financePlanning === undefined)
       w.financePlanning = existingLogs.financePlanning;
     if (w.financeExpenses === undefined)
@@ -382,6 +551,10 @@ function writePlanner(ss, w) {
     ensureSheet(ss, name, PLANNER_TABLES[name]);
   });
   Object.keys(PLANNER_TABLES).forEach(function (name) {
+    if (name === "PortfolioAccounts" && tables[name].length)
+      ss.getSheetByName(name)
+        .getRange(2, 5, tables[name].length, 1)
+        .setNumberFormat("@");
     writeTable(ss, name, PLANNER_TABLES[name], tables[name]);
   });
   putSetting(ss, "workspaceName", w.name);
@@ -642,6 +815,39 @@ function readPlanner(ss, settings) {
       });
     });
   });
+  w.financePortfolio = emptyPortfolioData();
+  PORTFOLIO_SCHEMAS.forEach(function (schema) {
+    w.financePortfolio[schema.key] = readTable(
+      ss,
+      schema.table,
+      schema.headers,
+    ).map(function (row) {
+      var record = {};
+      schema.headers.forEach(function (key, i) {
+        var v = row[i];
+        record[key] =
+          schema.numbers.indexOf(key) >= 0
+            ? Number(v) || 0
+            : schema.booleans.indexOf(key) >= 0
+              ? boolValue(v)
+              : [
+                    "date",
+                    "asOf",
+                    "nextDue",
+                    "deadline",
+                    "trackingFrom",
+                    "startDate",
+                  ].indexOf(key) >= 0
+                ? dateValue(v)
+                : key === "updatedAt" && v instanceof Date
+                  ? v.toISOString()
+                  : stringValue(v);
+      });
+      if (schema.key === "accounts" && record.maskedRef)
+        record.maskedRef = record.maskedRef.padStart(4, "0");
+      return record;
+    });
+  });
   return w;
 }
 function plannerRevision(ss) {
@@ -732,6 +938,7 @@ function getAll(ss) {
       vocabulary: true,
       finance: true,
       financePlanning: true,
+      financePortfolio: true,
     },
     workspace: readPlanner(ss, settings),
     workspaceRevision: plannerRevision(ss),
@@ -741,6 +948,7 @@ function withLock(operation) {
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
+    REQUEST_CACHE = { tables: {}, headers: {}, sheets: {}, settings: null };
     return jsonResult(operation(SpreadsheetApp.getActiveSpreadsheet()));
   } catch (error) {
     return jsonResult({
@@ -748,6 +956,7 @@ function withLock(operation) {
       error: stringValue(error.message || error),
     });
   } finally {
+    REQUEST_CACHE = null;
     lock.releaseLock();
   }
 }
@@ -985,5 +1194,211 @@ function validateFinancePlanning(p) {
           throw new Error("Category belongs to more than one budget");
         budgetCategories[key] = true;
       });
+  });
+}
+
+function emptyPortfolioData() {
+  var p = {};
+  PORTFOLIO_SCHEMAS.forEach(function (schema) {
+    p[schema.key] = [];
+  });
+  return p;
+}
+function validatePortfolioData(p, cycles) {
+  if (
+    !p ||
+    typeof p !== "object" ||
+    Object.keys(p).some(function (key) {
+      return !PORTFOLIO_SCHEMAS.some(function (s) {
+        return s.key === key;
+      });
+    })
+  )
+    throw new Error("Invalid portfolio data");
+  var validDate = function (v) {
+    return (
+      typeof v === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(v) &&
+      !isNaN(Date.parse(v)) &&
+      new Date(v + "T12:00:00Z").toISOString().slice(0, 10) === v
+    );
+  };
+  var safeUrl = function (v) {
+    if (!v) return true;
+    try {
+      return (
+        /^https:\/\/[^\s/@]+(?:[/?#][^\s]*)?$/.test(v) &&
+        !/[?&#](password|passcode|pin|otp|secret|token|access_token)=/i.test(
+          decodeURIComponent(v),
+        )
+      );
+    } catch (_) {
+      return false;
+    }
+  };
+  PORTFOLIO_SCHEMAS.forEach(function (schema) {
+    if (!Array.isArray(p[schema.key]))
+      throw new Error("Missing portfolio collection: " + schema.key);
+    var ids = {};
+    p[schema.key].forEach(function (r) {
+      if (
+        !r ||
+        typeof r.id !== "string" ||
+        !r.id ||
+        ids[r.id] ||
+        Object.keys(r).some(function (key) {
+          return schema.headers.indexOf(key) < 0;
+        }) ||
+        schema.headers.some(function (key) {
+          return !(key in r);
+        })
+      )
+        throw new Error("Invalid portfolio record in " + schema.key);
+      ids[r.id] = true;
+      schema.headers.forEach(function (key) {
+        var v = r[key];
+        if (
+          schema.numbers.indexOf(key) >= 0
+            ? !Number.isFinite(v) || v < 0
+            : schema.booleans.indexOf(key) >= 0
+              ? typeof v !== "boolean"
+              : typeof v !== "string"
+        )
+          throw new Error("Invalid portfolio field: " + key);
+      });
+      if ("name" in r && !r.name.trim())
+        throw new Error("Portfolio names are required");
+      [
+        "date",
+        "asOf",
+        "nextDue",
+        "deadline",
+        "trackingFrom",
+        "startDate",
+      ].forEach(function (key) {
+        if (key in r && !validDate(r[key]))
+          throw new Error("Invalid portfolio date");
+      });
+      if ("updatedAt" in r && isNaN(Date.parse(r.updatedAt)))
+        throw new Error("Invalid portfolio timestamp");
+    });
+  });
+  var account = function (id) {
+    return p.accounts.some(function (a) {
+      return a.id === id;
+    });
+  };
+  var loan = function (id) {
+    return p.loans.some(function (a) {
+      return a.id === id;
+    });
+  };
+  p.accounts.forEach(function (a) {
+    if (
+      ["bank", "cash", "wallet", "gold", "investment", "other"].indexOf(
+        a.kind,
+      ) < 0 ||
+      !/^(\d{4})?$/.test(a.maskedRef) ||
+      !safeUrl(a.vaultUrl)
+    )
+      throw new Error(
+        "Use a masked bank reference and a password-manager link only",
+      );
+  });
+  p.loans.forEach(function (l) {
+    if (
+      ["flat", "reducing"].indexOf(l.rateType) < 0 ||
+      l.apr > 1000 ||
+      (l.rateType === "flat" && l.principal < l.balance)
+    )
+      throw new Error("Invalid loan terms");
+  });
+  var today = Utilities.formatDate(
+    new Date(),
+    SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone(),
+    "yyyy-MM-dd",
+  );
+  if (
+    p.loans.some(function (l) {
+      return l.asOf > today || l.startDate > l.asOf;
+    })
+  )
+    throw new Error("Future loan balances are not actual balances");
+  var phases = {};
+  [p.snapshots, p.debtSnapshots].forEach(function (rows, index) {
+    rows.forEach(function (r) {
+      var c = cycles.find(function (c) {
+        return c.id === r.cycleId;
+      });
+      var key =
+        index +
+        "|" +
+        (index ? r.loanId : r.accountId) +
+        "|" +
+        r.cycleId +
+        "|" +
+        r.phase +
+        (r.phase === "current" ? "|" + r.date : "");
+      if (
+        phases[key] ||
+        !c ||
+        ["opening", "current", "closing"].indexOf(r.phase) < 0 ||
+        (index ? !loan(r.loanId) : !account(r.accountId)) ||
+        r.date < c.start ||
+        r.date > c.end ||
+        r.date > today ||
+        (r.phase === "opening" && r.date !== c.start) ||
+        (r.phase === "closing" && r.date !== c.end)
+      )
+        throw new Error("Invalid, duplicate or future portfolio balance");
+      phases[key] = true;
+    });
+  });
+  p.flows.forEach(function (f) {
+    var c = cycles.find(function (c) {
+      return c.id === f.cycleId;
+    });
+    if (
+      !c ||
+      f.date < c.start ||
+      f.date > c.end ||
+      f.date > today ||
+      f.amount <= 0 ||
+      !(
+        (f.kind === "transfer" &&
+          account(f.fromId) &&
+          account(f.toId) &&
+          f.fromId !== f.toId) ||
+        (f.kind === "contribution" && !f.fromId && account(f.toId)) ||
+        (["withdrawal", "fee"].indexOf(f.kind) >= 0 &&
+          account(f.fromId) &&
+          !f.toId)
+      )
+    )
+      throw new Error("Invalid money movement");
+  });
+  p.subscriptions.forEach(function (s) {
+    if (
+      ["weekly", "monthly", "quarterly", "yearly"].indexOf(s.frequency) < 0 ||
+      (s.accountId && !account(s.accountId)) ||
+      !safeUrl(s.manageUrl)
+    )
+      throw new Error("Invalid subscription");
+  });
+  p.goals.forEach(function (g) {
+    if (g.target <= 0) throw new Error("Goal targets must be positive");
+  });
+  var allocations = {};
+  p.allocations.forEach(function (a) {
+    var key = a.accountId + "|" + a.goalId;
+    if (
+      allocations[key] ||
+      !account(a.accountId) ||
+      !p.goals.some(function (g) {
+        return g.id === a.goalId;
+      })
+    )
+      throw new Error("Invalid or duplicate goal allocation");
+    allocations[key] = true;
   });
 }

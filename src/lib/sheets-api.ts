@@ -38,6 +38,7 @@ export interface SheetData {
     vocabulary?: boolean;
     finance?: boolean;
     financePlanning?: boolean;
+    financePortfolio?: boolean;
   };
   workspace?: Workspace;
   workspaceRevision?: string;

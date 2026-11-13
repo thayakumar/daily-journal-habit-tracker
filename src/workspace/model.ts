@@ -1,4 +1,10 @@
 import {
+  emptyPortfolio,
+  isFinancePortfolio,
+  portfolioCycleError,
+  type FinancePortfolio,
+} from "../finance/portfolio-model.ts";
+import {
   isFinancePlanning,
   type FinancePlanning,
 } from "../finance/planning.ts";
@@ -157,6 +163,7 @@ export interface FinanceExpense {
   createdAt: string;
 }
 export interface Workspace {
+  financePortfolio?: FinancePortfolio;
   financePlanning?: FinancePlanning;
   financeExpenses?: FinanceExpense[];
   vocabulary?: VocabularyEntry[];
@@ -188,6 +195,7 @@ export interface Workspace {
 }
 export function createWorkspace(): Workspace {
   return {
+    financePortfolio: emptyPortfolio(),
     financePlanning: { defaultStartDay: 27, cycles: [], rows: [] },
     financeExpenses: [],
     vocabulary: [],
@@ -270,6 +278,16 @@ export function isWorkspace(value: unknown): value is Workspace {
   return (
     (value.financePlanning === undefined ||
       isFinancePlanning(value.financePlanning)) &&
+    (value.financePortfolio === undefined ||
+      (isFinancePortfolio(value.financePortfolio) &&
+        !portfolioCycleError(
+          value.financePortfolio,
+          (
+            value.financePlanning as
+              | import("../finance/planning").FinancePlanning
+              | undefined
+          )?.cycles ?? [],
+        ))) &&
     (value.financeExpenses === undefined ||
       records(
         value.financeExpenses,

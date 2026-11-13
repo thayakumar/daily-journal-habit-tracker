@@ -762,3 +762,67 @@ test("the first expense creates the current salary cycle instead of an unfiltere
   assert.equal(latest.financePlanning.rows.length, 3);
   assert.ok(text(renderer).includes("First record"));
 });
+
+test("portfolio records remain on-device until the portfolio backend is deployed", async () => {
+  const { createBackend } = await import("./apps-script-mock.mjs");
+  const b = createBackend(createWorkspace());
+  let upgraded = false,
+    api;
+  globalThis.__TEST_SCRIPT_URL__ = "https://sheet.test/exec";
+  globalThis.fetch = async (_url, options) => ({
+    ok: true,
+    json: async () => {
+      if (options?.method === "POST") {
+        const payload = JSON.parse(options.body);
+        if (!upgraded && payload.action === "saveWorkspace")
+          delete payload.data.financePortfolio;
+        return b.post(payload);
+      }
+      const d = b.get();
+      if (!upgraded) {
+        delete d.features.financePortfolio;
+        delete d.workspace.financePortfolio;
+      }
+      return d;
+    },
+  });
+  function Harness() {
+    api = useWorkspace();
+    return null;
+  }
+  await render(React.createElement(Harness));
+  await act(async () =>
+    api.update((s) => ({
+      ...s,
+      financePortfolio: {
+        ...s.financePortfolio,
+        accounts: [
+          {
+            id: "bank",
+            name: "Bank",
+            kind: "bank",
+            liquid: true,
+            maskedRef: "0123",
+            vaultUrl: "",
+            costBasis: 0,
+            planName: "",
+            trackingFrom: "2020-01-01",
+          },
+        ],
+      },
+    })),
+  );
+  await act(async () => sleep(1300));
+  assert.match(api.status, /Portfolio saved on this device/);
+  await act(async () => renderer.unmount());
+  renderer = null;
+  await render(React.createElement(Harness));
+  assert.equal(api.data.financePortfolio.accounts[0].maskedRef, "0123");
+  await act(async () => renderer.unmount());
+  renderer = null;
+  upgraded = true;
+  await render(React.createElement(Harness));
+  await act(async () => sleep(1300));
+  assert.equal(api.portfolioStorageReady, true);
+  assert.equal(b.get().workspace.financePortfolio.accounts[0].id, "bank");
+});
