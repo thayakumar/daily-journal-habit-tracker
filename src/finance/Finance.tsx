@@ -9,6 +9,7 @@ import {
   emptyPlanning,
   starterBudgets,
   cycleError,
+  validDate,
 } from "./planning";
 import { Card, Field, inputClass } from "../workspace/ui";
 import { ExpenseForm } from "./components/ExpenseForm";
@@ -44,6 +45,7 @@ export default function Finance({
   const [lastSaved, setLastSaved] = useState<{
     id: string;
     name: string;
+    action?: "Added" | "Updated";
   } | null>(null);
   const today = localDate();
   const plan = data.financePlanning ?? emptyPlanning();
@@ -300,6 +302,58 @@ export default function Finance({
             expenses={expenses}
             onSync={onSync}
             lastSaved={lastSaved}
+            onEdit={(edited) => {
+              if (
+                !validDate(edited.date) ||
+                edited.date > today ||
+                !edited.item.trim() ||
+                !Number.isFinite(edited.amount) ||
+                edited.amount <= 0
+              )
+                throw new Error(
+                  "Check the transaction date, description and amount.",
+                );
+              if (!(data.financeExpenses ?? []).some((e) => e.id === edited.id))
+                throw new Error(
+                  "This transaction no longer exists. Sync expenses and try again.",
+                );
+              const target = currentFinanceCycle(plan, edited.date);
+              if (!target)
+                throw new Error(
+                  "Set up a salary cycle covering this date in Monthly Budget, then try again.",
+                );
+              update((s) => {
+                const p = s.financePlanning ?? emptyPlanning();
+                const existing = p.cycles.some((c) => c.id === target.id);
+                return {
+                  ...s,
+                  financePlanning: existing
+                    ? p
+                    : {
+                        ...p,
+                        cycles: [...p.cycles, target],
+                        rows: [...p.rows, ...starterBudgets(target.id)],
+                      },
+                  financeExpenses: (s.financeExpenses ?? []).map((e) =>
+                    e.id === edited.id
+                      ? {
+                          ...e,
+                          date: edited.date,
+                          item: edited.item.trim(),
+                          amount: edited.amount,
+                          category: edited.category,
+                        }
+                      : e,
+                  ),
+                };
+              });
+              setChosenId(target.id);
+              setLastSaved({
+                id: edited.id!,
+                name: edited.item,
+                action: "Updated",
+              });
+            }}
           />
         </div>
       )}
