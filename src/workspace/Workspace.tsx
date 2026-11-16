@@ -7,6 +7,8 @@ import {
   useState,
 } from "react";
 import {
+  CalendarDays,
+  Car,
   ArrowRight,
   BookOpen,
   CheckCircle2,
@@ -29,6 +31,8 @@ import {
 } from "lucide-react";
 import Journal, { type JournalBridge } from "../App";
 import { isConfigured } from "../lib/sheets-api";
+import { CalendarPanel } from "./Calendar";
+import { Vehicles } from "./Vehicles";
 import { Habits } from "./Habits";
 import { Meals } from "./Wellness";
 import { Fitness } from "./Fitness";
@@ -89,6 +93,18 @@ const NAV = [
     description: "Your expenses and receipts, together.",
   },
   {
+    id: "calendar",
+    label: "Calendar",
+    icon: CalendarDays,
+    description: "Events, holidays and time for yourself.",
+  },
+  {
+    id: "vehicles",
+    label: "Vehicles",
+    icon: Car,
+    description: "Renewals, mileage and service history.",
+  },
+  {
     id: "meals",
     label: "Meals",
     icon: Utensils,
@@ -146,6 +162,8 @@ export default function WorkspaceApp() {
     financeStorageReady,
     planningStorageReady,
     portfolioStorageReady,
+    vehicleStorageReady,
+    migrationReady,
   } = useWorkspace();
   const [tab, setTab] = useState<Tab>(currentTab);
   const [menu, setMenu] = useState(false);
@@ -336,6 +354,17 @@ export default function WorkspaceApp() {
             </div>
           )}
           {tab === "overview" && <Overview navigate={navigate} />}
+          {tab === "calendar" && (
+            <CalendarPanel data={data} update={update} today={today} />
+          )}
+          {tab === "vehicles" && (
+            <Vehicles
+              data={data}
+              update={update}
+              today={today}
+              storageReady={vehicleStorageReady}
+            />
+          )}
           {tab === "finance" && (
             <Suspense fallback={<p role="status">Loading finance…</p>}>
               <Finance
@@ -345,6 +374,7 @@ export default function WorkspaceApp() {
                 receiptReady={financeStorageReady}
                 planningReady={planningStorageReady}
                 portfolioReady={portfolioStorageReady}
+                migrationReady={migrationReady}
                 onSync={() => void retrySync()}
               />
             </Suspense>

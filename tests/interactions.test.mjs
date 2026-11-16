@@ -66,6 +66,8 @@ const buttonsWith = (value) =>
 
 test("overview navigates to habits and shares completion with weekly history", async () => {
   await render(React.createElement(WorkspaceApp));
+  assert.equal(renderer.root.findAllByProps({ href: "#calendar" }).length, 1);
+  assert.equal(renderer.root.findAllByProps({ href: "#vehicles" }).length, 1);
   assert.ok(renderer.root.findByProps({ "aria-label": "Open a page" }));
   assert.equal(renderer.root.findAllByType("textarea").length, 0);
   await click(
@@ -118,7 +120,7 @@ test("brain dump saves thoughts without content planner actions", async () => {
 test("removed pages and old deep links do not expose removed features", async () => {
   window.location.hash = "#content";
   await render(React.createElement(WorkspaceApp));
-  for (const id of ["content", "work", "prayer", "calendar", "journal"]) {
+  for (const id of ["content", "work", "prayer", "journal"]) {
     assert.equal(renderer.root.findAllByProps({ href: "#" + id }).length, 0);
   }
   assert.ok(renderer.root.findByProps({ "aria-label": "Open a page" }));
@@ -636,9 +638,8 @@ test("monthly plans stay local on the current backend and merge after planning s
 
 test("finance defaults to today's cycle and inserts a new expense immediately even with active history filters", async () => {
   const today = localDate();
-  const { cycleDates, activeMonth, shiftMonth } = await import(
-    "../src/finance/planning.ts"
-  );
+  const { cycleDates, activeMonth, shiftMonth } =
+    await import("../src/finance/planning.ts");
   const month = activeMonth(today, 27);
   const state = createWorkspace();
   state.financePlanning = {
@@ -825,4 +826,99 @@ test("portfolio records remain on-device until the portfolio backend is deployed
   await act(async () => sleep(1300));
   assert.equal(api.portfolioStorageReady, true);
   assert.equal(b.get().workspace.financePortfolio.accounts[0].id, "bank");
+});
+
+test("vehicle records and standalone Portfolio stay local on older scripts and merge after upgrade", async () => {
+  const { createBackend } = await import("./apps-script-mock.mjs");
+  let upgraded = false,
+    api;
+  const w = createWorkspace();
+  w.updatedAt = 1;
+  const b = createBackend(w);
+  globalThis.__TEST_SCRIPT_URL__ = "https://example.test/exec";
+  globalThis.fetch = async (_url, options) => ({
+    ok: true,
+    json: async () => {
+      if (options?.method === "POST") {
+        const payload = JSON.parse(options.body);
+        if (!upgraded) assert.equal(payload.data.financePortfolio, undefined);
+        return b.post(payload);
+      }
+      const remote = b.get();
+      if (!upgraded) {
+        delete remote.features.vehicles;
+        delete remote.features.portfolioTimeline;
+        delete remote.workspace.vehicles;
+        delete remote.workspace.vehicleServices;
+      }
+      return remote;
+    },
+  });
+  function Harness() {
+    api = useWorkspace();
+    return null;
+  }
+  await render(React.createElement(Harness));
+  await act(async () =>
+    api.update((s) => ({
+      ...s,
+      vehicles: [
+        {
+          id: "car",
+          name: "Car",
+          plate: "ABC",
+          insurer: "",
+          policy: "",
+          roadTaxDue: "",
+          insuranceDue: "",
+          serviceDue: "",
+          odometer: 10,
+          serviceAtKm: 100,
+          notes: "",
+        },
+      ],
+      financePortfolio: {
+        ...s.financePortfolio,
+        accounts: [
+          {
+            id: "bank",
+            name: "Bank",
+            kind: "bank",
+            liquid: true,
+            maskedRef: "0123",
+            vaultUrl: "",
+            costBasis: 0,
+            planName: "",
+            trackingFrom: "2020-01-01",
+          },
+        ],
+        snapshots: [
+          {
+            id: "snapshot",
+            accountId: "bank",
+            cycleId: "",
+            phase: "current",
+            date: "2020-01-01",
+            value: 10,
+            units: 0,
+            price: 0,
+            updatedAt: "2020-01-01T12:00Z",
+          },
+        ],
+      },
+    })),
+  );
+  await act(async () => sleep(1300));
+  assert.equal(api.portfolioStorageReady, false);
+  assert.equal(api.vehicleStorageReady, false);
+  assert.equal(b.get().workspace.financePortfolio.snapshots.length, 0);
+  await act(async () => renderer.unmount());
+  renderer = null;
+  upgraded = true;
+  await render(React.createElement(Harness));
+  await act(async () => sleep(1300));
+  assert.equal(api.vehicleStorageReady, true);
+  assert.equal(api.portfolioStorageReady, true);
+  assert.equal(b.get().workspace.vehicles[0].id, "car");
+  assert.equal(b.get().workspace.financePortfolio.snapshots[0].cycleId, "");
 });

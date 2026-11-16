@@ -1,3 +1,4 @@
+import { LegacyImport } from "./components/LegacyImport";
 import { useState } from "react";
 import {
   Plus,
@@ -111,12 +112,14 @@ export function Portfolio({
   cycle,
   storageReady,
   initialSection = "overview",
+  migrationReady = false,
 }: {
   data: Workspace;
   update: Update;
   cycle: FinanceCycle | undefined;
   storageReady: boolean;
   initialSection?: string;
+  migrationReady?: boolean;
 }) {
   const p = data.financePortfolio ?? emptyPortfolio(),
     plan = data.financePlanning ?? emptyPlanning(),
@@ -239,6 +242,18 @@ export function Portfolio({
                 min: 0,
                 step: "0.01",
               },
+              ...(Number(d.units) > 0 && Number(d.price) > 0
+                ? []
+                : [
+                    {
+                      key: "value",
+                      label: "Recorded gold value (RM)",
+                      type: "number" as const,
+                      min: 0,
+                      step: "0.01",
+                      hint: "Use the recorded total when quantity or price is unknown. Enter both quantity and price to calculate instead.",
+                    },
+                  ]),
             ]
           : [
               {
@@ -428,13 +443,6 @@ export function Portfolio({
   }
   function open(entity: Entity, existing?: object, seed: Draft = {}) {
     setError("");
-    const date = cycle
-      ? today < cycle.start
-        ? cycle.start
-        : today > cycle.end
-          ? cycle.end
-          : today
-      : today;
     const defaults: Record<Entity, Draft> = {
       accounts: {
         id: uid(),
@@ -445,14 +453,14 @@ export function Portfolio({
         vaultUrl: "",
         costBasis: 0,
         planName: "",
-        trackingFrom: cycle && cycle.start <= today ? cycle.start : today,
+        trackingFrom: today,
       },
       snapshots: {
         id: uid(),
         accountId: p.accounts[0]?.id ?? "",
-        cycleId: cycle?.id ?? "",
+        cycleId: "",
         phase: "current",
-        date,
+        date: today,
         value: 0,
         units: 0,
         price: 0,
@@ -460,8 +468,8 @@ export function Portfolio({
       },
       flows: {
         id: uid(),
-        cycleId: cycle?.id ?? "",
-        date,
+        cycleId: "",
+        date: today,
         kind: "transfer",
         fromId: p.accounts[0]?.id ?? "",
         toId: p.accounts[1]?.id ?? "",
@@ -479,14 +487,14 @@ export function Portfolio({
         asOf: today,
         nextDue: today,
         planName: "",
-        startDate: cycle && cycle.start <= today ? cycle.start : today,
+        startDate: today,
       },
       debtSnapshots: {
         id: uid(),
         loanId: p.loans[0]?.id ?? "",
-        cycleId: cycle?.id ?? "",
+        cycleId: "",
         phase: "current",
-        date,
+        date: today,
         balance: 0,
         updatedAt: new Date().toISOString(),
       },
@@ -500,7 +508,7 @@ export function Portfolio({
         accountId: "",
         manageUrl: "",
         planName: "",
-        startDate: cycle && cycle.start <= today ? cycle.start : today,
+        startDate: today,
       },
       goals: {
         id: uid(),
@@ -523,17 +531,16 @@ export function Portfolio({
     const d = { ...editor.draft, [key]: value };
     if (editor.entity === "accounts" && key === "kind")
       d.liquid = ["bank", "cash", "wallet"].includes(String(value));
+    if (key === "phase") {
+      d.cycleId = value === "current" ? "" : (cycle?.id ?? "");
+    }
     if (key === "phase" && cycle) {
       d.date =
         value === "opening"
           ? cycle.start
           : value === "closing"
             ? cycle.end
-            : today < cycle.start
-              ? cycle.start
-              : today > cycle.end
-                ? cycle.end
-                : today;
+            : today;
     }
     setEditor({ ...editor, draft: d });
     setError("");
@@ -543,18 +550,21 @@ export function Portfolio({
       throw new Error(
         "Check required fields, unique records, account references, dates and amounts. Only masked bank references and safe password-manager links are accepted.",
       );
-    const message = portfolioCycleError(next, plan.cycles, today);
+    const message = portfolioCycleError(
+      next,
+      cycle && !plan.cycles.some((c) => c.id === cycle.id)
+        ? [...plan.cycles, cycle]
+        : plan.cycles,
+      today,
+    );
     if (message) throw new Error(message);
     update((s) => ({
       ...s,
       financePortfolio: next,
-      financePlanning: cycle
-        ? syncPortfolioBalances(
-            s.financePlanning ?? emptyPlanning(),
-            next,
-            cycle.id,
-          )
-        : s.financePlanning,
+      financePlanning: (s.financePlanning?.cycles ?? []).reduce(
+        (planning, c) => syncPortfolioBalances(planning, next, c.id),
+        s.financePlanning ?? emptyPlanning(),
+      ),
     }));
   }
   function save() {
@@ -562,14 +572,20 @@ export function Portfolio({
     const { entity } = editor;
     const d = { ...editor.draft };
     for (const key of numKeys) if (key in d) d[key] = Number(d[key]);
+    if (
+      (entity === "snapshots" || entity === "debtSnapshots") &&
+      d.phase === "current"
+    )
+      d.cycleId = "";
     if (entity === "flows") {
+      d.cycleId = "";
       if (d.kind === "contribution") d.fromId = "";
       if (d.kind === "withdrawal" || d.kind === "fee") d.toId = "";
       if (d.kind === "transfer") d.budgetIncluded = false;
     }
     if (entity === "snapshots") {
       const a = p.accounts.find((a) => a.id === d.accountId);
-      if (a?.kind === "gold")
+      if (a?.kind === "gold" && Number(d.units) > 0 && Number(d.price) > 0)
         d.value = roundMoney(Number(d.units) * Number(d.price));
       d.updatedAt = new Date().toISOString();
       const old = p.snapshots.find(
@@ -842,7 +858,7 @@ export function Portfolio({
     <div className="min-w-0 space-y-5 break-words [contain:paint]">
       <Card
         title="Your financial portfolio"
-        subtitle="Accounts, debt, investments and goals. Latest figures use recorded valuations across cycles, not live bank feeds. The cycle controls balance entry and reconciliation."
+        subtitle="Accounts, debt, investments and goals. Your ongoing financial position across all dates. Record balances whenever they change; monthly reconciliation is optional. Values are manually recorded, not live bank feeds."
       >
         {!storageReady && (
           <p
@@ -1095,6 +1111,7 @@ export function Portfolio({
       )}
       {tab === "accounts" && (
         <>
+          <LegacyImport data={data} update={update} ready={migrationReady} />
           <Card
             title="Accounts and holdings"
             subtitle="MYR valuations only. Store masked references and password-manager links; no banking passwords, PINs or OTPs."
@@ -1142,7 +1159,7 @@ export function Portfolio({
                       )}
                       <div className="mt-4 flex flex-wrap gap-2">
                         <button
-                          disabled={!cycle}
+                          disabled={false}
                           className={secondaryClass}
                           onClick={() =>
                             open("snapshots", undefined, { accountId: a.id })
@@ -1168,11 +1185,11 @@ export function Portfolio({
             )}
           </Card>
           <Card
-            title="This cycle’s opening, current and closing balances"
+            title="Balance history · all dates"
             subtitle="Closing balances can be recorded after the cycle ends. Gold values use grams × value per gram."
             action={
               <button
-                disabled={!cycle || !p.accounts.length}
+                disabled={!p.accounts.length}
                 className={secondaryClass}
                 onClick={() => open("snapshots")}
               >
@@ -1213,8 +1230,8 @@ export function Portfolio({
               phase you choose. Other monthly rows stay unchanged. Record the
               correct phase before importing historical balances.
             </p>
-            {!p.snapshots.some((s) => s.cycleId === cycle?.id) ? (
-              <Empty>No account balances recorded for this cycle.</Empty>
+            {!p.snapshots.length ? (
+              <Empty>No account balances recorded yet.</Empty>
             ) : (
               <div
                 data-horizontal-scroll
@@ -1232,7 +1249,7 @@ export function Portfolio({
                   </thead>
                   <tbody>
                     {p.snapshots
-                      .filter((s) => s.cycleId === cycle?.id)
+
                       .sort((a, b) => b.date.localeCompare(a.date))
                       .map((s) => (
                         <tr className="border-t border-slate-100" key={s.id}>
@@ -1316,7 +1333,7 @@ export function Portfolio({
             subtitle="Record movements separately from spending so investment deposits are not treated as gains."
             action={
               <button
-                disabled={!cycle || !p.accounts.length}
+                disabled={!p.accounts.length}
                 className={secondaryClass}
                 onClick={() => open("flows")}
               >
@@ -1325,33 +1342,31 @@ export function Portfolio({
               </button>
             }
           >
-            {!p.flows.some((f) => f.cycleId === cycle?.id) ? (
-              <Empty>No money movements recorded in this cycle.</Empty>
+            {!p.flows.length ? (
+              <Empty>No money movements recorded yet.</Empty>
             ) : (
               <div className="space-y-3">
-                {p.flows
-                  .filter((f) => f.cycleId === cycle?.id)
-                  .map((f) => (
-                    <div
-                      key={f.id}
-                      className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 p-3"
-                    >
-                      <div className="min-w-0">
-                        <p className="break-words font-medium">
-                          {p.accounts.find((a) => a.id === f.fromId)?.name ??
-                            "Outside portfolio"}{" "}
-                          →{" "}
-                          {p.accounts.find((a) => a.id === f.toId)?.name ??
-                            "Outside portfolio"}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-400">
-                          {f.date} · {f.kind} · {money(f.amount)}
-                          {f.budgetIncluded ? " · already in budget" : ""}
-                        </p>
-                      </div>
-                      {action("flows", f)}
+                {p.flows.map((f) => (
+                  <div
+                    key={f.id}
+                    className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="break-words font-medium">
+                        {p.accounts.find((a) => a.id === f.fromId)?.name ??
+                          "Outside portfolio"}{" "}
+                        →{" "}
+                        {p.accounts.find((a) => a.id === f.toId)?.name ??
+                          "Outside portfolio"}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        {f.date} · {f.kind} · {money(f.amount)}
+                        {f.budgetIncluded ? " · already in budget" : ""}
+                      </p>
                     </div>
-                  ))}
+                    {action("flows", f)}
+                  </div>
+                ))}
               </div>
             )}
           </Card>
@@ -1429,7 +1444,7 @@ export function Portfolio({
                         </p>
                       )}
                       <button
-                        disabled={!cycle}
+                        disabled={false}
                         className={`${secondaryClass} mt-4`}
                         onClick={() =>
                           open("debtSnapshots", undefined, {
@@ -1438,7 +1453,7 @@ export function Portfolio({
                           })
                         }
                       >
-                        Record cycle loan balance
+                        Record loan balance
                       </button>
                     </div>
                   );
@@ -1447,27 +1462,25 @@ export function Portfolio({
             )}
           </Card>
           <Card
-            title="Cycle loan balances"
+            title="Loan balance history · all dates"
             subtitle="Record opening and closing principal separately to calculate actual net-worth movement."
           >
-            {!p.debtSnapshots.some((s) => s.cycleId === cycle?.id) ? (
+            {!p.debtSnapshots.length ? (
               <Empty>No loan snapshots recorded for this cycle.</Empty>
             ) : (
               <div className="space-y-3">
-                {p.debtSnapshots
-                  .filter((s) => s.cycleId === cycle?.id)
-                  .map((s) => (
-                    <div
-                      key={s.id}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 p-3"
-                    >
-                      <p className="break-words text-sm">
-                        {p.loans.find((l) => l.id === s.loanId)?.name} ·{" "}
-                        {s.phase} · {s.date} · {money(s.balance)}
-                      </p>
-                      {action("debtSnapshots", s)}
-                    </div>
-                  ))}
+                {p.debtSnapshots.map((s) => (
+                  <div
+                    key={s.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 p-3"
+                  >
+                    <p className="break-words text-sm">
+                      {p.loans.find((l) => l.id === s.loanId)?.name} · {s.phase}{" "}
+                      · {s.date} · {money(s.balance)}
+                    </p>
+                    {action("debtSnapshots", s)}
+                  </div>
+                ))}
               </div>
             )}
           </Card>

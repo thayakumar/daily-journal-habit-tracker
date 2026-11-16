@@ -1,3 +1,15 @@
+# Calendar, Vehicles, OCR and ongoing Portfolio — 16 November 2026
+
+72 automated tests pass, including Vehicle/VehicleServices round trips, old-client preservation, date validation, cycle-free Portfolio records and budget linking, device retention across a backend capability upgrade, OCR debit/credit/duplicate parsing, migration account/date mapping, source-only preview access, re-import deduplication and skipping future source dates or double-counted commitments. Production build passes. Lint completes with warnings from existing code and render-purity heuristics.
+
+Chromium: 55 existing page/Monthly Budget layout checks, 30 Portfolio layout checks and 16 new Calendar/Vehicle/Portfolio/OCR-review checks pass. The new flow saves/reloads Calendar and Vehicle records through the real Code.gs in mocked Sheets, renders derived vehicle dates on Calendar, records a balance without creating a salary cycle, imports reviewed source records and expense rows, and extracts an actual rendered transaction screenshot through the real browser OCR worker. Browser errors: zero. OCR screenshot text is not sent to the planner API. Test data is synthetic.
+
+Read-only native inspection of the nine source budget tabs was used for a private migration dry run. It identified 165 importable dated transactions after duplicate removal, 99 undated transactions and four future source dates requiring correction/exclusion. Thirty balance values require user-provided actual update dates; no dates, loan principals or investment returns were invented. The original workbook and production financial records were not changed by this pass. No source values are committed to the public repo.
+
+Live Vehicles, timeline and migration-preview verification remains pending deployment of the updated Apps Script. New records retain local storage until its capability flags activate. Existing historical reports follow.
+
+---
+
 # Portfolio verification — 13 November 2026
 
 62 automated tests pass, including asset/debt totals, flow-adjusted investment results, fee reconciliation, debt-principal effects, allocation limits and cent rounding, goal contributions resuming after a simulated loan, flat/reducing loan payoff, renewal dates, historical commitments, all eight table round trips, masked references, old-client preservation, upgrade retention and request-local cache correctness.

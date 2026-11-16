@@ -122,6 +122,28 @@ var PORTFOLIO_SCHEMAS = [
   },
 ];
 var PLANNER_TABLES = {
+  Vehicles: [
+    "id",
+    "name",
+    "plate",
+    "insurer",
+    "policy",
+    "roadTaxDue",
+    "insuranceDue",
+    "serviceDue",
+    "odometer",
+    "serviceAtKm",
+    "notes",
+  ],
+  VehicleServices: [
+    "id",
+    "vehicleId",
+    "date",
+    "odometer",
+    "cost",
+    "workshop",
+    "details",
+  ],
   FinanceCycleSettings: ["defaultStartDay"],
   FinanceCycles: ["id", "month", "start", "end"],
   FinanceIncome: ["id", "cycleId", "name", "amount"],
@@ -509,6 +531,18 @@ function plannerToTables(w) {
       });
     });
   });
+  validateVehicleData(
+    w.vehicles === undefined ? [] : w.vehicles,
+    w.vehicleServices === undefined ? [] : w.vehicleServices,
+  );
+  ["Vehicles", "VehicleServices"].forEach(function (name) {
+    var rows = name === "Vehicles" ? w.vehicles || [] : w.vehicleServices || [];
+    tables[name] = rows.map(function (row) {
+      return PLANNER_TABLES[name].map(function (key) {
+        return row[key];
+      });
+    });
+  });
   // Validate all tables before writing any of them.
   Object.keys(PLANNER_TABLES).forEach(function (name) {
     tables[name].forEach(function (row) {
@@ -526,6 +560,8 @@ function plannerToTables(w) {
 function writePlanner(ss, w) {
   // Older clients/backups must not erase newer detailed logs they do not know about.
   if (
+    w.vehicles === undefined ||
+    w.vehicleServices === undefined ||
     w.workoutSets === undefined ||
     w.recurringChecks === undefined ||
     w.vocabulary === undefined ||
@@ -535,6 +571,9 @@ function writePlanner(ss, w) {
   ) {
     var existingLogs = readPlanner(ss, settingsOf(ss));
     w = JSON.parse(JSON.stringify(w));
+    if (w.vehicles === undefined) w.vehicles = existingLogs.vehicles;
+    if (w.vehicleServices === undefined)
+      w.vehicleServices = existingLogs.vehicleServices;
     if (w.financePortfolio === undefined)
       w.financePortfolio = existingLogs.financePortfolio;
     if (w.financePlanning === undefined)
@@ -815,6 +854,26 @@ function readPlanner(ss, settings) {
       });
     });
   });
+  ["Vehicles", "VehicleServices"].forEach(function (name) {
+    w[name === "Vehicles" ? "vehicles" : "vehicleServices"] = readTable(
+      ss,
+      name,
+      PLANNER_TABLES[name],
+    ).map(function (row) {
+      var r = {};
+      PLANNER_TABLES[name].forEach(function (key, i) {
+        r[key] =
+          ["cost", "odometer", "serviceAtKm"].indexOf(key) >= 0
+            ? Number(row[i]) || 0
+            : ["roadTaxDue", "insuranceDue", "serviceDue", "date"].indexOf(
+                  key,
+                ) >= 0
+              ? dateValue(row[i])
+              : stringValue(row[i]);
+      });
+      return r;
+    });
+  });
   w.financePortfolio = emptyPortfolioData();
   PORTFOLIO_SCHEMAS.forEach(function (schema) {
     w.financePortfolio[schema.key] = readTable(
@@ -939,6 +998,9 @@ function getAll(ss) {
       finance: true,
       financePlanning: true,
       financePortfolio: true,
+      portfolioTimeline: true,
+      vehicles: true,
+      legacyBudgetImport: true,
     },
     workspace: readPlanner(ss, settings),
     workspaceRevision: plannerRevision(ss),
@@ -962,6 +1024,8 @@ function withLock(operation) {
 }
 function doGet(e) {
   return withLock(function (ss) {
+    if (e.parameter.action === "previewBudgetImport")
+      return previewBudgetImport();
     if (e.parameter.action !== "getAll") throw new Error("Unknown action");
     return getAll(ss);
   });
@@ -1341,14 +1405,13 @@ function validatePortfolioData(p, cycles) {
         (r.phase === "current" ? "|" + r.date : "");
       if (
         phases[key] ||
-        !c ||
+        (!(r.cycleId === "" && r.phase === "current") && !c) ||
         ["opening", "current", "closing"].indexOf(r.phase) < 0 ||
         (index ? !loan(r.loanId) : !account(r.accountId)) ||
-        r.date < c.start ||
-        r.date > c.end ||
+        (r.cycleId !== "" && (r.date < c.start || r.date > c.end)) ||
         r.date > today ||
-        (r.phase === "opening" && r.date !== c.start) ||
-        (r.phase === "closing" && r.date !== c.end)
+        (r.phase === "opening" && (!c || r.date !== c.start)) ||
+        (r.phase === "closing" && (!c || r.date !== c.end))
       )
         throw new Error("Invalid, duplicate or future portfolio balance");
       phases[key] = true;
@@ -1359,9 +1422,7 @@ function validatePortfolioData(p, cycles) {
       return c.id === f.cycleId;
     });
     if (
-      !c ||
-      f.date < c.start ||
-      f.date > c.end ||
+      (f.cycleId !== "" && (!c || f.date < c.start || f.date > c.end)) ||
       f.date > today ||
       f.amount <= 0 ||
       !(
@@ -1401,4 +1462,87 @@ function validatePortfolioData(p, cycles) {
       throw new Error("Invalid or duplicate goal allocation");
     allocations[key] = true;
   });
+}
+
+function validDateString(v) {
+  return (
+    typeof v === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(v) &&
+    !isNaN(Date.parse(v)) &&
+    new Date(v + "T12:00:00Z").toISOString().slice(0, 10) === v
+  );
+}
+function validateVehicleData(vehicles, services) {
+  if (!Array.isArray(vehicles) || !Array.isArray(services))
+    throw new Error("Invalid vehicle data");
+  var ids = {},
+    seen = {};
+  vehicles.forEach(function (v) {
+    if (!v || !v.id || ids[v.id] || !v.name || typeof v.name !== "string")
+      throw new Error("Invalid vehicle");
+    ids[v.id] = true;
+    ["plate", "insurer", "policy", "notes"].forEach(function (k) {
+      if (typeof v[k] !== "string") throw new Error("Invalid vehicle text");
+    });
+    ["roadTaxDue", "insuranceDue", "serviceDue"].forEach(function (k) {
+      if (typeof v[k] !== "string" || (v[k] && !validDateString(v[k])))
+        throw new Error("Invalid vehicle date");
+    });
+    ["odometer", "serviceAtKm"].forEach(function (k) {
+      if (!Number.isFinite(v[k]) || v[k] < 0)
+        throw new Error("Invalid vehicle mileage");
+    });
+  });
+  services.forEach(function (v) {
+    if (
+      !v ||
+      !v.id ||
+      seen[v.id] ||
+      !ids[v.vehicleId] ||
+      !validDateString(v.date)
+    )
+      throw new Error("Invalid vehicle service");
+    seen[v.id] = true;
+    ["workshop", "details"].forEach(function (k) {
+      if (typeof v[k] !== "string") throw new Error("Invalid service text");
+    });
+    ["odometer", "cost"].forEach(function (k) {
+      if (!Number.isFinite(v[k]) || v[k] < 0)
+        throw new Error("Invalid service amount");
+    });
+  });
+}
+
+// Read-only source for the user's one-time migration. No arbitrary spreadsheet IDs.
+function previewBudgetImport() {
+  var source = SpreadsheetApp.openById(
+    "17CyWN68zCkijc1drXUbIFbHXs76I5ayEexWB6GpdKak",
+  );
+  return {
+    tabs: source
+      .getSheets()
+      .filter(function (sheet) {
+        return /^(Feb|March|APR|May|Jun|Jul|Aug|Oct|Nov) 26$/i.test(
+          sheet.getName(),
+        );
+      })
+      .map(function (sheet) {
+        var height = Math.min(sheet.getLastRow(), 1000);
+        var values = height
+          ? sheet
+              .getRange(1, 1, height, 12)
+              .getValues()
+              .map(function (row) {
+                return row.map(function (value) {
+                  return value instanceof Date ? dateValue(value) : value;
+                });
+              })
+          : [];
+        return {
+          name: sheet.getName(),
+          sheetId: sheet.getSheetId(),
+          values: values,
+        };
+      }),
+  };
 }

@@ -232,7 +232,7 @@ try {
             .getByRole("navigation", { name: "Open a page" })
             .getByRole("button")
             .count(),
-          9,
+          11,
         );
       }
       if (id === "finance") {
@@ -408,7 +408,7 @@ try {
       await page.screenshot({ path: "work/vocabulary-popup-390.png" });
     await page.keyboard.press("Escape");
     await page.getByRole("dialog").waitFor({ state: "hidden" });
-    for (const id of ["journal", "calendar"])
+    for (const id of ["journal"])
       assert.equal(await page.locator(`nav a[href="#${id}"]`).count(), 0);
     if (width === 390) {
       await navigate("vocabulary");

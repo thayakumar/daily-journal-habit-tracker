@@ -5,12 +5,7 @@ import {
   type FinancePlanning,
 } from "./planning.ts";
 export type AccountKind =
-  | "bank"
-  | "cash"
-  | "wallet"
-  | "gold"
-  | "investment"
-  | "other";
+  "bank" | "cash" | "wallet" | "gold" | "investment" | "other";
 export type Phase = "opening" | "current" | "closing";
 export interface PortfolioAccount {
   id: string;
@@ -382,11 +377,12 @@ export function portfolioCycleError(
   for (const s of [...p.snapshots, ...p.debtSnapshots]) {
     const c = cycles.find((c) => c.id === s.cycleId);
     if (
-      !c ||
-      s.date < c.start ||
-      s.date > c.end ||
-      (s.phase === "opening" && s.date !== c.start) ||
-      (s.phase === "closing" && s.date !== c.end)
+      !(s.cycleId === "" && s.phase === "current") &&
+      (!c ||
+        s.date < c.start ||
+        s.date > c.end ||
+        (s.phase === "opening" && s.date !== c.start) ||
+        (s.phase === "closing" && s.date !== c.end))
     )
       return "Balance dates must match their salary cycle and opening/closing phase.";
     if (today && s.date > today)
@@ -394,7 +390,10 @@ export function portfolioCycleError(
   }
   for (const f of p.flows) {
     const c = cycles.find((c) => c.id === f.cycleId);
-    if (!c || f.date < c.start || f.date > c.end || (today && f.date > today))
+    if (
+      (f.cycleId !== "" && (!c || f.date < c.start || f.date > c.end)) ||
+      (today && f.date > today)
+    )
       return "Money movements need a date within the selected cycle, up to today.";
   }
   if (today && p.loans.some((l) => l.asOf > today))
@@ -658,7 +657,11 @@ export function cycleReconciliation(
     opening += start.value;
     closing += end.value;
     if (a.kind === "investment" || a.kind === "gold") {
-      const flows = p.flows.filter((f) => f.cycleId === cycle.id);
+      const flows = p.flows.filter(
+        (f) =>
+          f.cycleId === cycle.id ||
+          (!f.cycleId && f.date >= cycle.start && f.date <= cycle.end),
+      );
       const incoming = total(
         flows.filter((f) => f.toId === a.id).map((f) => f.amount),
       );
@@ -695,7 +698,10 @@ export function cycleReconciliation(
     debtReduction += start.balance - end.balance;
   }
   for (const f of p.flows.filter(
-    (f) => f.cycleId === cycle.id && !f.budgetIncluded,
+    (f) =>
+      (f.cycleId === cycle.id ||
+        (!f.cycleId && f.date >= cycle.start && f.date <= cycle.end)) &&
+      !f.budgetIncluded,
   )) {
     if (f.kind === "contribution") external += f.amount;
     if (f.kind === "withdrawal") external -= f.amount;
@@ -741,8 +747,21 @@ export function syncPortfolioBalances(
         r.id.startsWith("portfolio:balance:")
       ),
   );
+  const cycle = planning.cycles.find((c) => c.id === cycleId);
   for (const a of p.accounts) {
-    const s = latestSnapshot(p, a.id, cycleId);
+    const scoped = {
+      ...p,
+      snapshots: p.snapshots.filter(
+        (s) =>
+          s.cycleId === cycleId ||
+          (!!cycle &&
+            !s.cycleId &&
+            s.phase === "current" &&
+            s.date >= cycle.start &&
+            s.date <= cycle.end),
+      ),
+    };
+    const s = latestSnapshot(scoped, a.id);
     if (!s) continue;
     const id = `portfolio:balance:${a.id}:${cycleId}`;
     rows = rows.filter(
@@ -875,7 +894,11 @@ export function investmentPerformance(
     .map((account) => {
       const opening = latestSnapshot(p, account.id, cycle.id, "opening"),
         closing = latestSnapshot(p, account.id, cycle.id, "closing");
-      const flows = p.flows.filter((f) => f.cycleId === cycle.id);
+      const flows = p.flows.filter(
+        (f) =>
+          f.cycleId === cycle.id ||
+          (!f.cycleId && f.date >= cycle.start && f.date <= cycle.end),
+      );
       const netDeposits =
         total(flows.filter((f) => f.toId === account.id).map((f) => f.amount)) -
         total(

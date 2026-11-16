@@ -1,3 +1,4 @@
+import { StatementImport } from "./components/StatementImport";
 import { Portfolio } from "./Portfolio";
 import { useState } from "react";
 import { MonthlyBudget } from "./MonthlyBudget";
@@ -24,6 +25,7 @@ export default function Finance({
   planningReady,
   initialLoading = false,
   portfolioReady = false,
+  migrationReady = false,
 }: {
   data: Workspace;
   update: Update;
@@ -32,6 +34,7 @@ export default function Finance({
   planningReady: boolean;
   initialLoading?: boolean;
   portfolioReady?: boolean;
+  migrationReady?: boolean;
 }) {
   const [view, setView] = useState<"expenses" | "monthly" | "portfolio">(
     "expenses",
@@ -90,7 +93,7 @@ export default function Finance({
     <div className="space-y-5">
       <Card
         title="Your finances"
-        subtitle="Daily expenses and your salary-cycle plan, connected."
+        subtitle="Expenses, monthly budgets and your ongoing financial portfolio."
       >
         <div
           role="tablist"
@@ -109,7 +112,7 @@ export default function Finance({
                 if (tab === "portfolio") setPortfolioSection("overview");
                 setView(tab);
                 if (
-                  (tab === "monthly" || tab === "portfolio") &&
+                  tab === "monthly" &&
                   cycle &&
                   !plan.cycles.some((c) => c.id === cycle.id)
                 )
@@ -124,7 +127,22 @@ export default function Finance({
             </button>
           ))}
         </div>
-        <div className="max-w-md">
+        <details
+          open={view !== "portfolio"}
+          key={view === "portfolio" ? "portfolio" : "budget"}
+          className="max-w-md"
+        >
+          <summary className="mb-3 cursor-pointer text-sm font-semibold text-slate-600">
+            {view === "portfolio"
+              ? "Optional monthly reconciliation & budget links"
+              : "Salary cycle"}
+          </summary>
+          {view === "portfolio" && (
+            <p className="mb-3 text-sm text-slate-500">
+              Portfolio values and history span all dates. Select a cycle only
+              for opening/closing comparisons and links to Monthly Budget.
+            </p>
+          )}
           <Field label="Salary cycle">
             <select
               aria-label="Salary cycle"
@@ -157,7 +175,7 @@ export default function Finance({
               configure the current cycle.
             </p>
           )}
-        </div>
+        </details>
       </Card>
       {view === "portfolio" ? (
         <div
@@ -167,11 +185,28 @@ export default function Finance({
         >
           <Portfolio
             data={data}
-            update={update}
+            update={(change) =>
+              update((s) => {
+                const next = change(s);
+                const p = next.financePortfolio;
+                const needsCycle =
+                  cycle &&
+                  ([
+                    ...(p?.snapshots ?? []),
+                    ...(p?.debtSnapshots ?? []),
+                    ...(p?.flows ?? []),
+                  ].some((r) => r.cycleId === cycle.id) ||
+                    next.financePlanning?.rows.some(
+                      (r) => r.cycleId === cycle.id,
+                    ));
+                return needsCycle ? withCycle(next) : next;
+              })
+            }
             cycle={cycle}
             key={portfolioSection}
             initialSection={portfolioSection}
             storageReady={portfolioReady}
+            migrationReady={migrationReady}
           />
         </div>
       ) : view === "monthly" ? (
@@ -195,43 +230,71 @@ export default function Finance({
           aria-labelledby="tab-expenses"
           className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)]"
         >
-          {cycle ? (
-            <ExpenseForm
-              key={`${cycle.id}:${cycle.start}:${cycle.end}`}
-              cycle={cycle}
-              receiptReady={isConfigured() && receiptReady}
-              onSave={(expense) => {
-                if (expense.date < cycle.start || expense.date > cycle.end)
-                  throw new Error(
-                    "Choose a date within the selected salary cycle, or switch cycles first.",
-                  );
-                const record = {
-                  ...expense,
-                  receiptName: expense.receiptName ?? "",
-                  receiptUrl: expense.receiptUrl ?? "",
-                  id: uid(),
-                  createdAt: new Date().toISOString(),
-                };
-                update((s) => {
-                  const next = withCycle(s);
-                  return {
-                    ...next,
-                    financeExpenses: [...(next.financeExpenses ?? []), record],
+          <div className="min-w-0 space-y-5">
+            {cycle && (
+              <StatementImport
+                key={cycle.id}
+                cycle={cycle}
+                existing={data.financeExpenses ?? []}
+                onSave={(records) => {
+                  update((s) => {
+                    const next = withCycle(s);
+                    return {
+                      ...next,
+                      financeExpenses: [
+                        ...(next.financeExpenses ?? []),
+                        ...records,
+                      ],
+                    };
+                  });
+                  setLastSaved({
+                    id: records.at(-1)!.id,
+                    name: `${records.length} imported expenses`,
+                  });
+                }}
+              />
+            )}
+            {cycle ? (
+              <ExpenseForm
+                key={`${cycle.id}:${cycle.start}:${cycle.end}`}
+                cycle={cycle}
+                receiptReady={isConfigured() && receiptReady}
+                onSave={(expense) => {
+                  if (expense.date < cycle.start || expense.date > cycle.end)
+                    throw new Error(
+                      "Choose a date within the selected salary cycle, or switch cycles first.",
+                    );
+                  const record = {
+                    ...expense,
+                    receiptName: expense.receiptName ?? "",
+                    receiptUrl: expense.receiptUrl ?? "",
+                    id: uid(),
+                    createdAt: new Date().toISOString(),
                   };
-                });
-                setChosenId(cycle.id);
-                setLastSaved({ id: record.id, name: record.item });
-              }}
-            />
-          ) : (
-            <p
-              role="status"
-              className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800"
-            >
-              Set up your current salary cycle in Monthly Budget before adding
-              an expense.
-            </p>
-          )}
+                  update((s) => {
+                    const next = withCycle(s);
+                    return {
+                      ...next,
+                      financeExpenses: [
+                        ...(next.financeExpenses ?? []),
+                        record,
+                      ],
+                    };
+                  });
+                  setChosenId(cycle.id);
+                  setLastSaved({ id: record.id, name: record.item });
+                }}
+              />
+            ) : (
+              <p
+                role="status"
+                className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800"
+              >
+                Set up your current salary cycle in Monthly Budget before adding
+                an expense.
+              </p>
+            )}
+          </div>
           <ExpenseHistory
             key={`${selectedId}:${lastSaved?.id ?? "initial"}`}
             expenses={expenses}
