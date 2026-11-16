@@ -68,3 +68,7 @@ Salary cycle settings are collapsed by default, and monthly summary cards use la
 ## Portfolio
 
 Finance now includes a Portfolio module for account valuations, gold/investments, loans, subscriptions, goals, monthly reconciliation and cash/loan simulations. It reuses salary cycles and monthly records. See [Portfolio documentation and activation](PORTFOLIO.md). Its eight new tables require the updated Code.gs deployment; earlier expense, receipt and planning connections remain unchanged.
+
+## Edit existing expenses
+
+In Expense History Log, choose **Edit** on a transaction. Update its date, description, positive amount or category, then **Save changes**. History and totals update immediately and the normal planner save syncs the same row to Sheets. Receipt URL/name, import label, transaction ID and original creation timestamp are retained. Cancel closes the dialog without saving. Changing the date selects the matching saved cycle, or creates a valid default period if possible; conflicting custom periods prompt you to configure Monthly Budget first. Search/category filters reset so the edited transaction remains visible. This feature uses the existing saveWorkspace endpoint and requires no additional Apps Script deployment.

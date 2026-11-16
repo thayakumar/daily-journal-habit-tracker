@@ -1,3 +1,9 @@
+# Expense editing — 16 November 2026
+
+Expense History now supports an edit popup. Targeted Chromium checks at 320, 390, 768 and 1440 pixels cover prefilled fields, native rejection of zero amounts, immediate updates while the cloud response is held, cleared history filters, unchanged record count/ID/receipt/creation timestamp, cancel, reload and moving an expense to a different salary cycle. The actual Code.gs runs against mocked Sheets; browser errors: zero. No production transactions were modified by testing. The production build and existing automated suite pass. Backend contract is unchanged.
+
+---
+
 # Calendar, Vehicles, OCR and ongoing Portfolio — 16 November 2026
 
 72 automated tests pass, including Vehicle/VehicleServices round trips, old-client preservation, date validation, cycle-free Portfolio records and budget linking, device retention across a backend capability upgrade, OCR debit/credit/duplicate parsing, migration account/date mapping, source-only preview access, re-import deduplication and skipping future source dates or double-counted commitments. Production build passes. Lint completes with warnings from existing code and render-purity heuristics.

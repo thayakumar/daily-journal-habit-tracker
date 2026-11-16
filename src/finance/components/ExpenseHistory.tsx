@@ -1,9 +1,18 @@
+import {
+  Field,
+  inputClass,
+  primaryClass,
+  secondaryClass,
+} from "../../workspace/ui";
+import { localDate } from "../../workspace/model";
+import { validDate } from "../planning";
 import { Dialog } from "../../workspace/Dialog";
 import { receiptPreviewUrl } from "../receipts";
 import { money } from "../planning";
 import React, { useState } from "react";
 import { type Expense, Category } from "../types";
 import {
+  Pencil,
   RefreshCw,
   Search,
   ExternalLink,
@@ -22,7 +31,8 @@ import {
 interface ExpenseHistoryProps {
   expenses: Expense[];
   onSync: () => void;
-  lastSaved?: { id: string; name: string } | null;
+  lastSaved?: { id: string; name: string; action?: "Added" | "Updated" } | null;
+  onEdit?: (expense: Expense) => void;
 }
 
 const CATEGORY_ICONS: Record<string, React.FC<{ className?: string }>> = {
@@ -38,7 +48,11 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
   expenses,
   onSync,
   lastSaved,
+  onEdit,
 }) => {
+  const [editing, setEditing] = useState<Expense | null>(null);
+  const [amountText, setAmountText] = useState("");
+  const [editError, setEditError] = useState("");
   const [receipt, setReceipt] = useState<Expense | null>(null);
   const [previewLoading, setPreviewLoading] = useState(true);
   const previewUrl = receipt?.receiptUrl
@@ -157,7 +171,8 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                 role="status"
                 className="mt-2 break-words text-sm font-medium text-emerald-700"
               >
-                Added {lastSaved.name}. Your history is up to date.
+                {lastSaved.action ?? "Added"} {lastSaved.name}. Your history is
+                up to date.
               </p>
             )}
           </div>
@@ -243,6 +258,11 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                   <th scope="col" className="px-4 py-3 text-center">
                     Receipt
                   </th>
+                  {onEdit && (
+                    <th scope="col" className="px-4 py-3 text-center">
+                      Actions
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-700 bg-white">
@@ -312,6 +332,23 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                           </span>
                         )}
                       </td>
+                      {onEdit && (
+                        <td className="px-4 py-3.5 text-center">
+                          <button
+                            type="button"
+                            aria-label={`Edit transaction ${exp.item}`}
+                            className={secondaryClass}
+                            onClick={() => {
+                              setEditing({ ...exp });
+                              setAmountText(String(exp.amount));
+                              setEditError("");
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Edit
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -320,6 +357,121 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
           </div>
         )}
       </div>
+      {editing && (
+        <Dialog title="Edit transaction" onClose={() => setEditing(null)}>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const amount = Number(amountText);
+              if (
+                !validDate(editing.date) ||
+                editing.date > localDate() ||
+                !editing.item.trim() ||
+                !amountText.trim() ||
+                !Number.isFinite(amount) ||
+                amount <= 0
+              ) {
+                setEditError(
+                  "Enter a valid date up to today, description and positive amount.",
+                );
+                return;
+              }
+              try {
+                onEdit?.({
+                  ...editing,
+                  item: editing.item.trim(),
+                  amount: Math.round(amount * 100) / 100,
+                });
+                setFilterCategory("All");
+                setSearchTerm("");
+                setEditing(null);
+              } catch (error) {
+                setEditError(
+                  error instanceof Error
+                    ? error.message
+                    : "Could not update this transaction.",
+                );
+              }
+            }}
+          >
+            <Field label="Transaction date">
+              <input
+                className={inputClass}
+                required
+                type="date"
+                max={localDate()}
+                value={editing.date}
+                onChange={(e) =>
+                  setEditing({ ...editing, date: e.target.value })
+                }
+              />
+            </Field>
+            <p className="text-xs text-slate-500">
+              Changing the date moves this transaction into the matching salary
+              cycle.
+            </p>
+            <Field label="Transaction description">
+              <input
+                className={inputClass}
+                required
+                maxLength={500}
+                value={editing.item}
+                onChange={(e) =>
+                  setEditing({ ...editing, item: e.target.value })
+                }
+              />
+            </Field>
+            <Field label="Transaction amount (RM)">
+              <input
+                className={inputClass}
+                required
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={amountText}
+                onChange={(e) => setAmountText(e.target.value)}
+              />
+            </Field>
+            <Field label="Transaction category">
+              <select
+                aria-label="Transaction category"
+                className={inputClass}
+                value={editing.category}
+                onChange={(e) =>
+                  setEditing({ ...editing, category: e.target.value })
+                }
+              >
+                {[
+                  ...new Set([...Object.values(Category), editing.category]),
+                ].map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+            </Field>
+            {editing.receiptUrl && (
+              <p className="text-sm text-slate-500">
+                Your existing receipt will be kept.
+              </p>
+            )}
+            {editError && (
+              <p role="alert" className="text-sm text-rose-700">
+                {editError}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-3">
+              <button className={primaryClass}>Save changes</button>
+              <button
+                type="button"
+                className={secondaryClass}
+                onClick={() => setEditing(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </Dialog>
+      )}
       {receipt && (
         <Dialog wide title="Receipt preview" onClose={() => setReceipt(null)}>
           <p className="mb-3 break-words text-sm text-slate-600">
