@@ -15,6 +15,7 @@ import {
   type Workspace,
 } from "./model";
 
+const VEHICLE_PENDING_KEY = "personal-workspace.vehicles-pending.v1";
 const CLOUD_KEY = "personalWorkspaceV1";
 const PORTFOLIO_PENDING_KEY = "personal-workspace.portfolio-pending.v1";
 const PLAN_PENDING_KEY = "personal-workspace.finance-planning-pending.v1";
@@ -52,8 +53,12 @@ export function useWorkspace() {
   const [ready, setReady] = useState(!isConfigured());
   const [tableStorage, setTableStorage] = useState(false);
   const [logStorageReady, setLogStorageReady] = useState(false);
+  const vehicleSupport = useRef(false);
+  const [vehicleStorageReady, setVehicleStorageReady] = useState(false);
+  const [migrationReady, setMigrationReady] = useState(false);
   const logSupport = useRef(false);
   const portfolioSupport = useRef(false);
+  const timelineSupport = useRef(false);
   const [portfolioStorageReady, setPortfolioStorageReady] = useState(false);
   const planningSupport = useRef(false);
   const [planningStorageReady, setPlanningStorageReady] = useState(false);
@@ -81,19 +86,38 @@ export function useWorkspace() {
       remote.features?.recurringChecks === true;
     setLogStorageReady(logSupport.current);
     portfolioSupport.current = remote.features?.financePortfolio === true;
-    setPortfolioStorageReady(portfolioSupport.current);
+    timelineSupport.current = remote.features?.portfolioTimeline === true;
+    setPortfolioStorageReady(
+      portfolioSupport.current && timelineSupport.current,
+    );
     planningSupport.current = remote.features?.financePlanning === true;
     setPlanningStorageReady(planningSupport.current);
     financeSupport.current = remote.features?.finance === true;
     setFinanceStorageReady(financeSupport.current);
     vocabularySupport.current = remote.features?.vocabulary === true;
     setVocabularyStorageReady(vocabularySupport.current);
+    setMigrationReady(remote.features?.legacyBudgetImport === true);
+    vehicleSupport.current = remote.features?.vehicles === true;
+    setVehicleStorageReady(vehicleSupport.current);
     let parsed = remoteWorkspace(remote);
+    const pendingVehicles =
+      localStorage.getItem(VEHICLE_PENDING_KEY) === "true";
+    if (parsed && !vehicleSupport.current && !force)
+      parsed = {
+        ...parsed,
+        vehicles: latest.current.vehicles ?? [],
+        vehicleServices: latest.current.vehicleServices ?? [],
+      };
     const cloudDate = parsed?.updatedAt ?? 0;
     const pendingLogs = localStorage.getItem(LOG_PENDING_KEY) === "true";
     const pendingPortfolio =
       localStorage.getItem(PORTFOLIO_PENDING_KEY) === "true";
-    if (parsed && !portfolioSupport.current && !force)
+    if (
+      parsed &&
+      (!portfolioSupport.current ||
+        (!timelineSupport.current && pendingPortfolio)) &&
+      !force
+    )
       parsed = {
         ...parsed,
         financePortfolio: latest.current.financePortfolio ?? emptyPortfolio(),
@@ -123,11 +147,14 @@ export function useWorkspace() {
     }
     if (
       parsed &&
-      ((logSupport.current && pendingLogs) ||
+      ((vehicleSupport.current && pendingVehicles) ||
+        (logSupport.current && pendingLogs) ||
         (vocabularySupport.current && pendingVocabulary) ||
         (financeSupport.current && pendingFinance) ||
         (planningSupport.current && pendingPlan) ||
-        (portfolioSupport.current && pendingPortfolio)) &&
+        (portfolioSupport.current &&
+          timelineSupport.current &&
+          pendingPortfolio)) &&
       !force
     ) {
       const merge = <T extends { id: string }>(
@@ -140,8 +167,21 @@ export function useWorkspace() {
       ];
       parsed = {
         ...parsed,
+        vehicles:
+          vehicleSupport.current && pendingVehicles
+            ? merge(parsed.vehicles ?? [], latest.current.vehicles ?? [])
+            : parsed.vehicles,
+        vehicleServices:
+          vehicleSupport.current && pendingVehicles
+            ? merge(
+                parsed.vehicleServices ?? [],
+                latest.current.vehicleServices ?? [],
+              )
+            : parsed.vehicleServices,
         financePortfolio:
-          portfolioSupport.current && pendingPortfolio
+          portfolioSupport.current &&
+          timelineSupport.current &&
+          pendingPortfolio
             ? (Object.fromEntries(
                 Object.keys(emptyPortfolio()).map((key) => [
                   key,
@@ -199,6 +239,10 @@ export function useWorkspace() {
           cloudDate + 1,
         ),
       };
+      if (!isWorkspace(parsed))
+        throw new Error(
+          "Device records conflict with the Sheet. Export a backup before loading the latest tables.",
+        );
       if (
         parsed.financePortfolio &&
         !isFinancePortfolio(parsed.financePortfolio)
@@ -273,7 +317,12 @@ export function useWorkspace() {
     try {
       localStorage.setItem(WORKSPACE_KEY, JSON.stringify(data));
       if (
-        !portfolioSupport.current &&
+        !vehicleSupport.current &&
+        (data.vehicles?.length ?? 0) + (data.vehicleServices?.length ?? 0) > 0
+      )
+        localStorage.setItem(VEHICLE_PENDING_KEY, "true");
+      if (
+        (!portfolioSupport.current || !timelineSupport.current) &&
         data.financePortfolio &&
         Object.values(data.financePortfolio).some((rows) => rows.length)
       )
@@ -323,7 +372,9 @@ export function useWorkspace() {
       while (next.updatedAt > cloudTimestamp.current) {
         if (tableMode.current) {
           cloudRevision.current = await saveWorkspace(
-            next,
+            !timelineSupport.current && next.financePortfolio
+              ? { ...next, financePortfolio: undefined }
+              : next,
             cloudRevision.current,
           );
         } else {
@@ -336,7 +387,9 @@ export function useWorkspace() {
         }
         cloudTimestamp.current = next.updatedAt;
         acknowledge(next.updatedAt, cloudRevision.current);
-        if (portfolioSupport.current)
+        if (vehicleSupport.current)
+          localStorage.removeItem(VEHICLE_PENDING_KEY);
+        if (portfolioSupport.current && timelineSupport.current)
           localStorage.removeItem(PORTFOLIO_PENDING_KEY);
         if (planningSupport.current) localStorage.removeItem(PLAN_PENDING_KEY);
         if (financeSupport.current)
@@ -347,27 +400,30 @@ export function useWorkspace() {
         next = latest.current;
       }
       setStatus(
-        !portfolioSupport.current &&
-          localStorage.getItem(PORTFOLIO_PENDING_KEY) === "true"
-          ? "Portfolio saved on this device · connection update needed"
-          : !planningSupport.current &&
-              localStorage.getItem(PLAN_PENDING_KEY) === "true"
-            ? "Monthly plans saved on this device · connection update needed"
-            : !financeSupport.current &&
-                (latest.current.financeExpenses?.length ?? 0) > 0
-              ? "Finance saved on this device · connection update needed"
-              : !vocabularySupport.current &&
-                  (latest.current.vocabulary?.length ?? 0) > 0
-                ? "Vocabulary saved on this device · connection update needed"
-                : tableMode.current
-                  ? logSupport.current ||
-                    !(
-                      (latest.current.workoutSets?.length ?? 0) +
-                      (latest.current.recurringChecks?.length ?? 0)
-                    )
-                    ? "Saved to per-page Sheet tables"
-                    : "Workout and routine history saved locally · deploy the updated Apps Script"
-                  : "Saved to legacy JSON · update Apps Script for per-page tables",
+        !vehicleSupport.current &&
+          localStorage.getItem(VEHICLE_PENDING_KEY) === "true"
+          ? "Vehicles saved on this device · connection update needed"
+          : (!portfolioSupport.current || !timelineSupport.current) &&
+              localStorage.getItem(PORTFOLIO_PENDING_KEY) === "true"
+            ? "Portfolio saved on this device · connection update needed"
+            : !planningSupport.current &&
+                localStorage.getItem(PLAN_PENDING_KEY) === "true"
+              ? "Monthly plans saved on this device · connection update needed"
+              : !financeSupport.current &&
+                  (latest.current.financeExpenses?.length ?? 0) > 0
+                ? "Finance saved on this device · connection update needed"
+                : !vocabularySupport.current &&
+                    (latest.current.vocabulary?.length ?? 0) > 0
+                  ? "Vocabulary saved on this device · connection update needed"
+                  : tableMode.current
+                    ? logSupport.current ||
+                      !(
+                        (latest.current.workoutSets?.length ?? 0) +
+                        (latest.current.recurringChecks?.length ?? 0)
+                      )
+                      ? "Saved to per-page Sheet tables"
+                      : "Workout and routine history saved locally · deploy the updated Apps Script"
+                    : "Saved to legacy JSON · update Apps Script for per-page tables",
       );
     } catch (error) {
       setStatus(
@@ -399,5 +455,7 @@ export function useWorkspace() {
     financeStorageReady,
     planningStorageReady,
     portfolioStorageReady,
+    vehicleStorageReady,
+    migrationReady,
   };
 }

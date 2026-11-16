@@ -273,7 +273,19 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                       </td>
                       {/* Item */}
                       <td className="px-4 py-3.5 max-w-xs truncate font-medium text-slate-900">
-                        {exp.item}
+                        <span>{exp.item}</span>
+                        {exp.receiptName?.startsWith(
+                          "Bulk screenshot import",
+                        ) && (
+                          <span className="mt-1 block w-fit rounded bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                            Bulk import
+                          </span>
+                        )}
+                        {exp.receiptName?.startsWith("Imported ") && (
+                          <span className="mt-1 block w-fit rounded bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700">
+                            Sheet import
+                          </span>
+                        )}
                       </td>
                       {/* Amount */}
                       <td className="px-4 py-3.5 whitespace-nowrap text-right font-mono font-bold text-slate-900">

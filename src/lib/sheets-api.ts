@@ -39,6 +39,9 @@ export interface SheetData {
     finance?: boolean;
     financePlanning?: boolean;
     financePortfolio?: boolean;
+    portfolioTimeline?: boolean;
+    vehicles?: boolean;
+    legacyBudgetImport?: boolean;
   };
   workspace?: Workspace;
   workspaceRevision?: string;
@@ -182,4 +185,18 @@ export async function uploadFinanceReceipt(
       "Receipt upload was not confirmed. Update the Apps Script connection.",
     );
   return { receiptUrl: result.receiptUrl, receiptName: result.receiptName };
+}
+
+export async function fetchLegacyBudget(): Promise<
+  import("../finance/legacy-import").LegacyTab[]
+> {
+  const url = getScriptUrl();
+  if (!url) throw new Error("Planner connection is not configured");
+  const response = await fetch(`${url}?action=previewBudgetImport`);
+  const result = await response.json();
+  if (!response.ok || !Array.isArray(result.tabs))
+    throw new Error(
+      result.error || "Deploy the updated Apps Script to enable migration",
+    );
+  return result.tabs;
 }

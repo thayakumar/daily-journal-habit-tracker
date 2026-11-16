@@ -1,4 +1,9 @@
 import {
+  validVehicles,
+  type Vehicle,
+  type VehicleService,
+} from "./vehicle-model.ts";
+import {
   emptyPortfolio,
   isFinancePortfolio,
   portfolioCycleError,
@@ -58,12 +63,7 @@ export interface JournalSnapshot {
   showTasksColumn: boolean;
 }
 export type ItemKind =
-  | "work"
-  | "personal"
-  | "grocery"
-  | "wishlist"
-  | "watch"
-  | "goal";
+  "work" | "personal" | "grocery" | "wishlist" | "watch" | "goal";
 export interface ListItem {
   id: string;
   kind: ItemKind;
@@ -163,6 +163,8 @@ export interface FinanceExpense {
   createdAt: string;
 }
 export interface Workspace {
+  vehicles?: Vehicle[];
+  vehicleServices?: VehicleService[];
   financePortfolio?: FinancePortfolio;
   financePlanning?: FinancePlanning;
   financeExpenses?: FinanceExpense[];
@@ -195,6 +197,8 @@ export interface Workspace {
 }
 export function createWorkspace(): Workspace {
   return {
+    vehicles: [],
+    vehicleServices: [],
     financePortfolio: emptyPortfolio(),
     financePlanning: { defaultStartDay: 27, cycles: [], rows: [] },
     financeExpenses: [],
@@ -276,6 +280,10 @@ export function isWorkspace(value: unknown): value is Workspace {
   const p = value.prayer,
     f = value.fitness;
   return (
+    validVehicles(
+      value.vehicles === undefined ? [] : value.vehicles,
+      value.vehicleServices === undefined ? [] : value.vehicleServices,
+    ) &&
     (value.financePlanning === undefined ||
       isFinancePlanning(value.financePlanning)) &&
     (value.financePortfolio === undefined ||
@@ -284,8 +292,7 @@ export function isWorkspace(value: unknown): value is Workspace {
           value.financePortfolio,
           (
             value.financePlanning as
-              | import("../finance/planning").FinancePlanning
-              | undefined
+              import("../finance/planning").FinancePlanning | undefined
           )?.cycles ?? [],
         ))) &&
     (value.financeExpenses === undefined ||

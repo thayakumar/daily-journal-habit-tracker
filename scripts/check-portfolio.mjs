@@ -368,6 +368,7 @@ try {
       await page
         .getByLabel("Billing frequency", { exact: true })
         .selectOption("yearly");
+      await fill("Subscription start date", current.start);
       await fill("Next renewal date", current.start);
       await save("subscription");
       await page
@@ -479,6 +480,11 @@ try {
       await page
         .getByRole("heading", { name: "QA Cash", exact: true })
         .waitFor();
+      await page
+        .getByText("Optional monthly reconciliation & budget links", {
+          exact: true,
+        })
+        .click();
       await page
         .getByLabel("Salary cycle", { exact: true })
         .selectOption("past");

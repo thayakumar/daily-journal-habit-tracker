@@ -1,6 +1,6 @@
 # Finance Portfolio
 
-Portfolio is the third module inside Finance. It shares the existing salary-cycle selector, planner workspace, backup, Apps Script endpoint and spreadsheet. No bank connection, live quote service, new authentication flow or runtime dependency is added. Enter valuations in MYR (RM).
+Portfolio is the third module inside Finance. It uses the existing planner workspace, backup, Apps Script endpoint and spreadsheet. Accounts and balances form an ongoing timeline; the collapsed salary-cycle selector is optional for reconciliation and budget links. Portfolio adds no bank connection, live quote service or authentication flow. Enter valuations in MYR (RM).
 
 ## Accounts and monthly balances
 
@@ -8,9 +8,9 @@ Register bank accounts, cash, wallets, physical gold, investments (including sep
 
 Account references accept only the last four digits. Password-manager HTTPS links are supported; passwords, PINs, OTPs, full account numbers and secret-bearing URL parameters are not supported. Portfolio validation rejects unknown fields such as a password property. Existing sharing settings are unchanged.
 
-Keep opening, current and closing snapshots separately. Opening/closing dates match the selected cycle boundaries; future actual balances are rejected. Physical gold uses quantity in grams multiplied by an entered value per gram. A new account's tracking date controls historical reconciliation, with explicitly entered historical snapshots taking precedence.
+Record current snapshots on any as-of date without a salary cycle. Keep opening, current and closing snapshots separately. Opening/closing dates match the selected cycle boundaries; future actual balances are rejected. Physical gold uses quantity in grams multiplied by an entered value per gram; a manually recorded total is supported when quantity or price is unknown. A new account's tracking date controls historical reconciliation, with explicitly entered historical snapshots taking precedence.
 
-Monthly Budget's linked balance controls open Portfolio → Accounts, where the phase is explicit. Recording a snapshot refreshes the linked monthly row. Link an existing monthly balance when registering an account, or import unlinked monthly rows with an explicit phase. Review account types after importing. Duplicate labels are rejected rather than silently merged. Historical workbook sheets are not imported automatically.
+Monthly Budget's linked balance controls open Portfolio → Accounts, where the phase is explicit. Recording a snapshot refreshes the linked monthly row. Link an existing monthly balance when registering an account, or import unlinked monthly rows with an explicit phase. Review account types after importing. Duplicate labels are rejected rather than silently merged. A reviewed migration of the historical budget workbook is available under Accounts; see [migration details](CALENDAR-VEHICLES-IMPORT.md).
 
 Use **Use previous closing as opening** to carry confirmed values into the selected cycle without overwriting existing openings. New-cycle copies retain Portfolio links and recalculate current/future scheduled commitments; account values need their own opening records rather than a guessed carry-forward.
 
@@ -26,7 +26,7 @@ Fees remain part of investment performance. The result is incomplete until both 
 
 ## Loans and subscriptions
 
-Loans record original principal, current outstanding principal, as-of date, annual rate, reducing/flat method, instalment, start date and next payment due. Estimates include payoff date, remaining interest and an extra-payment comparison. Flat interest uses original principal; reducing interest uses the remaining balance. Estimates assume constant monthly terms and exclude lender fees and settlement-specific adjustments. Payments that cannot clear interest are flagged. Update outstanding balances manually or use cycle loan snapshots.
+Loans record original principal, current outstanding principal, as-of date, annual rate, reducing/flat method, instalment, start date and next payment due. Estimates include payoff date, remaining interest and an extra-payment comparison. Flat interest uses original principal; reducing interest uses the remaining balance. Estimates assume constant monthly terms and exclude lender fees and settlement-specific adjustments. Payments that cannot clear interest are flagged. Update outstanding balances with a dated current snapshot; opening/closing loan snapshots remain optional for monthly reconciliation.
 
 Subscriptions record amount, frequency, start date, renewal date, payment account, active state and a management link. Monthly equivalents help compare costs; syncing commitments uses actual due dates within the salary cycle, with month-end anchors preserved. Stable row links prevent repeated syncs creating duplicates. Link any existing manual commitment explicitly. Historical commitments are not recalculated using today's settings.
 
@@ -52,12 +52,12 @@ Eight new tables store readable rows:
 | PortfolioSnapshots | Opening/current/closing asset valuations |
 | PortfolioFlows | Transfers, contributions, withdrawals and fees |
 | PortfolioLoans | Loan terms and dated principal balances |
-| PortfolioDebtSnapshots | Cycle-specific loan balances |
+| PortfolioDebtSnapshots | Dated current and cycle opening/closing loan balances |
 | PortfolioSubscriptions | Renewals and billing details |
 | PortfolioGoals | Targets, deadlines and contribution plans |
 | PortfolioAllocations | Account-to-goal earmarks |
 
-Replace `google-apps-script/Code.gs` in the existing planner project, then deploy a **New version** of the existing Web app with the same URL. Existing receipt authorization remains sufficient. Tables are created automatically and the endpoint advertises `features.financePortfolio`.
+Replace `google-apps-script/Code.gs` in the existing planner project, then deploy a **New version** of the existing Web app with the same URL. Existing receipt authorization remains sufficient. Tables are created automatically and the endpoint advertises `features.financePortfolio` and `features.portfolioTimeline`.
 
 Until that deployment, Portfolio records remain on the device and merge by ID once the capability is active. Older clients that omit Portfolio cannot erase its tables. Request-local read caching reduces repeated Sheet calls and resets for each request; writes invalidate the relevant cache, and stale revision checks remain active.
 

@@ -36,7 +36,25 @@ export function CalendarPanel({
     { length: Math.ceil((startDay + daysInMonth) / 7) * 7 },
     (_, i) => addDays(first, i - startDay),
   );
-  const events = data.events
+  const vehicleEvents: CalendarEvent[] = (data.vehicles ?? []).flatMap((v) =>
+    (
+      [
+        ["Road tax renewal", v.roadTaxDue],
+        ["Insurance renewal", v.insuranceDue],
+        ["Vehicle service", v.serviceDue],
+      ] as const
+    )
+      .filter(([, date]) => !!date)
+      .map(([label, date]) => ({
+        id: `vehicle:${v.id}:${label}`,
+        title: `${v.name} · ${label}`,
+        date,
+        type: "event" as const,
+        note: v.plate,
+      })),
+  );
+  const allEvents = [...data.events, ...vehicleEvents];
+  const events = allEvents
     .filter((e) => e.date.startsWith(month))
     .sort((a, b) => a.date.localeCompare(b.date));
   function shift(n: number) {
@@ -115,7 +133,7 @@ export function CalendarPanel({
               </div>
             ))}
             {cells.map((d) => {
-              const entries = data.events.filter((e) => e.date === d);
+              const entries = allEvents.filter((e) => e.date === d);
               return (
                 <button
                   key={d}
@@ -125,10 +143,10 @@ export function CalendarPanel({
                     setSelected(d);
                     if (!d.startsWith(month)) setMonth(d.slice(0, 7));
                   }}
-                  className={`min-h-20 rounded-xl border p-2 text-left transition sm:min-h-24 ${selected === d ? "border-rose-400 bg-rose-50 ring-1 ring-rose-200" : "border-slate-100 hover:border-rose-200"} ${!d.startsWith(month) ? "opacity-40" : ""}`}
+                  className={`min-h-14 min-w-0 rounded-xl border p-1 text-left transition sm:min-h-24 sm:p-2 ${selected === d ? "border-rose-400 bg-rose-50 ring-1 ring-rose-200" : "border-slate-100 hover:border-rose-200"} ${!d.startsWith(month) ? "opacity-40" : ""}`}
                 >
                   <span
-                    className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${d === today ? "bg-rose-600 text-white" : "text-slate-600"}`}
+                    className={`inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-xs font-semibold ${d === today ? "bg-rose-600 text-white" : "text-slate-600"}`}
                   >
                     {Number(d.slice(8))}
                   </span>
@@ -309,15 +327,21 @@ export function CalendarPanel({
                       {e.note && ` · ${e.note}`}
                     </p>
                   </div>
-                  <Delete
-                    label={`Delete ${e.title}`}
-                    onClick={() =>
-                      update((s) => ({
-                        ...s,
-                        events: s.events.filter((i) => i.id !== e.id),
-                      }))
-                    }
-                  />
+                  {e.id.startsWith("vehicle:") ? (
+                    <a href="#vehicles" className={secondaryClass}>
+                      Manage
+                    </a>
+                  ) : (
+                    <Delete
+                      label={`Delete ${e.title}`}
+                      onClick={() =>
+                        update((s) => ({
+                          ...s,
+                          events: s.events.filter((i) => i.id !== e.id),
+                        }))
+                      }
+                    />
+                  )}
                 </li>
               ))}
             </ul>

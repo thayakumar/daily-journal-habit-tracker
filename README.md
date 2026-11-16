@@ -4,13 +4,13 @@ A personal workspace built around the original daily food, wellness and habit gr
 
 ## Pages
 
-Overview navigation buttons · Habits (daily/recurring) · Personal lists · Fitness daily workout log · Finance expenses, receipts, monthly budgets and Portfolio · Meals · Brain dump · Ideas · Vocabulary · Settings & backup.
+Overview navigation buttons · Habits (daily/recurring) · Personal lists · Fitness daily workout log · Finance expenses, receipts, monthly budgets and Portfolio · Calendar · Vehicles · Meals · Brain dump · Ideas · Vocabulary · Settings & backup.
 
 Overview contains only large page-navigation buttons. Habit/routine management is collapsed by default, with top-level add buttons opening dialogs. Meals shows all seven days in an editable table, with local horizontal scrolling on phones.
 
 Finance includes configurable salary cycles, date-filtered monthly summaries, income, commitments, spending budgets, account snapshots and category charts. See [Finance storage and activation](docs/FINANCE.md) and [Portfolio setup and calculations](docs/PORTFOLIO.md).
 
-Work, Prayer & goals, Content planner, Calendar and Daily journal pages have been removed. Historical records remain recoverable in the backup-compatible data format.
+Work, Prayer & goals, Content planner and Daily journal pages have been removed. Historical records remain recoverable in the backup-compatible data format.
 
 ## Run and test
 
@@ -66,3 +66,5 @@ Pull requests run tests and a production build. Pushes to main run the same chec
 See [mobile verification and daily workout storage](docs/MOBILE_AND_WORKOUTS.md) for the latest UI and backend activation details. Run `npm run test:responsive` for real Chromium viewport checks.
 
 [Vocabulary](docs/VOCABULARY.md) provides a word/definition/example popup, searchable list, edit/delete controls and a dedicated Sheet table. Its table sync requires the latest Apps Script version; local records are retained until that update is active.
+
+[Calendar, Vehicles, screenshot imports and Sheet migration](docs/CALENDAR-VEHICLES-IMPORT.md) covers renewal reminders, browser OCR with editable expense review, an ongoing Portfolio timeline and the legacy budget migration preview.
