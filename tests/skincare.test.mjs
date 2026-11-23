@@ -117,7 +117,6 @@ test("private photo upload validates image bytes, registers ownership and round-
   for (const angle of ["front", "left", "right"]) {
     const response = b.post({
       action: "uploadSkincarePhoto",
-      photoKey: "synthetic-skin-photo-test-key-123456",
       date,
       angle,
       fileName: "face.jpg",
@@ -134,7 +133,6 @@ test("private photo upload validates image bytes, registers ownership and round-
   for (const photo of w.skincare.photos) {
     const image = b.post({
       action: "getSkincarePhoto",
-      photoKey: "synthetic-skin-photo-test-key-123456",
       fileId: photo.fileId,
     });
     assert.equal(image.success, true, image.error);
@@ -151,7 +149,6 @@ test("private photo upload validates image bytes, registers ownership and round-
     assert.equal(
       b.post({
         action: "uploadSkincarePhoto",
-        photoKey: "synthetic-skin-photo-test-key-123456",
         date,
         angle: "front",
         fileName: "file.jpg",
@@ -165,7 +162,6 @@ test("private photo upload validates image bytes, registers ownership and round-
   assert.equal(
     b.post({
       action: "getSkincarePhoto",
-      photoKey: "synthetic-skin-photo-test-key-123456",
       fileId: "arbitrary-private-id",
     }).success,
     false,
@@ -183,7 +179,6 @@ test("archiving products and habits keeps history and removing a photo link does
   b.get();
   const photo = b.post({
     action: "uploadSkincarePhoto",
-    photoKey: "synthetic-skin-photo-test-key-123456",
     date,
     angle: "front",
     fileName: "a.jpg",
@@ -203,56 +198,40 @@ test("archiving products and habits keeps history and removing a photo link does
   assert.equal(
     b.post({
       action: "getSkincarePhoto",
-      photoKey: "synthetic-skin-photo-test-key-123456",
       fileId: photo.fileId,
     }).success,
     false,
   );
 });
 
-test("photo bytes and uploads require a private key, which is never included in planner records", () => {
-  const b = createBackend(createWorkspace());
+test("direct photo uploads work without a key but arbitrary Drive files remain inaccessible", () => {
+  const w = createWorkspace();
+  w.skincare = skin();
+  w.updatedAt = 1;
+  const b = createBackend(w);
   b.get();
-  assert.equal(
-    b.post({
-      action: "uploadSkincarePhoto",
-      date,
-      angle: "front",
-      fileName: "a.jpg",
-      fileMimeType: "image/jpeg",
-      fileBase64: jpg,
-    }).success,
-    false,
-  );
-  assert.equal(
-    b.post({ action: "checkSkincarePhotoAccess", photoKey: "wrong" }).success,
-    false,
-  );
-  assert.equal(
-    b.post({ action: "getSkincarePhoto", fileId: "private-photo" }).success,
-    false,
-  );
-  assert.equal(
-    b.post({
-      action: "checkSkincarePhotoAccess",
-      photoKey: "synthetic-skin-photo-test-key-123456",
-    }).success,
-    true,
-  );
-  assert.equal(
-    JSON.stringify(b.get()).includes("synthetic-skin-photo-test-key-123456"),
-    false,
-  );
   b.scriptProperties.clear();
+  const uploaded = b.post({
+    action: "uploadSkincarePhoto",
+    date,
+    angle: "front",
+    fileName: "direct.jpg",
+    fileMimeType: "image/jpeg",
+    fileBase64: jpg,
+  });
+  assert.equal(uploaded.success, true, uploaded.error);
+  w.skincare.photos = [uploaded.photo];
+  assert.equal(save(b, w).success, true);
   assert.equal(
-    b.post({ action: "checkSkincarePhotoAccess", photoKey: "x" }).success,
-    false,
-  );
-  b.context.authorizeSkincarePhotos();
-  const key = b.scriptProperties.get("SKINCARE_PHOTO_KEY");
-  assert.equal(key.length, 64);
-  assert.equal(
-    b.post({ action: "checkSkincarePhotoAccess", photoKey: key }).success,
+    b.post({ action: "getSkincarePhoto", fileId: uploaded.photo.fileId })
+      .success,
     true,
   );
+  assert.equal(
+    b.post({ action: "getSkincarePhoto", fileId: "other-private-file" })
+      .success,
+    false,
+  );
+  assert.equal(b.get().features.skincareDirectPhotos, true);
+  assert.equal(b.context.authorizeSkincarePhotos(), "skin-folder");
 });

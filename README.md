@@ -69,4 +69,4 @@ See [mobile verification and daily workout storage](docs/MOBILE_AND_WORKOUTS.md)
 
 [Calendar, Vehicles, screenshot imports and Sheet migration](docs/CALENDAR-VEHICLES-IMPORT.md) covers renewal reminders, browser OCR with editable expense review, an ongoing Portfolio timeline and the legacy budget migration preview.
 
-[Skincare setup and photo storage](docs/SKINCARE.md) explains daily notes/reactions, products, custom AM/PM habits, front/left/right photos and the private device photo key. Portfolio KPI explanations and live contributor lists appear directly on each card.
+[Skincare setup and photo storage](docs/SKINCARE.md) explains daily notes/reactions, products, custom AM/PM habits, front/left/right photos and direct photo uploads through the planner connection. Portfolio KPI explanations and live contributor lists appear directly on each card.

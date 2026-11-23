@@ -1,10 +1,3 @@
-import { verifySkincarePhotoAccess } from "../lib/sheets-api";
-import {
-  hasSkinPhotoAccess,
-  setSkinPhotoAccess,
-  forgetSkinPhotoAccess,
-  PHOTO_ACCESS_EVENT,
-} from "./access";
 import { useEffect, useRef, useState } from "react";
 import { Plus, ChevronLeft, ChevronRight, Camera, Pencil } from "lucide-react";
 import {
@@ -42,14 +35,6 @@ function Photo({
     [loaded, setLoaded] = useState<{ id: string; url: string } | null>(null),
     [failed, setFailed] = useState(""),
     [attempt, setAttempt] = useState(0);
-  useEffect(() => {
-    const changed = () => {
-      setLoaded(null);
-      setAttempt((n) => n + 1);
-    };
-    window.addEventListener(PHOTO_ACCESS_EVENT, changed);
-    return () => window.removeEventListener(PHOTO_ACCESS_EVENT, changed);
-  }, []);
   const url = photo
     ? cachedSkinPhoto(photo.fileId) ||
       (loaded?.id === photo.fileId ? loaded.url : "")
@@ -286,17 +271,14 @@ export default function Skincare({
   update,
   today,
   storageReady,
+  photoReady = false,
 }: {
   data: Workspace;
   update: Update;
   today: string;
   storageReady: boolean;
+  photoReady?: boolean;
 }) {
-  const [accessReady, setAccessReady] = useState(hasSkinPhotoAccess),
-    [accessDialog, setAccessDialog] = useState(false),
-    [accessKey, setAccessKey] = useState(""),
-    [accessBusy, setAccessBusy] = useState(false),
-    [accessError, setAccessError] = useState("");
   const p = data.skincare ?? emptySkincare(),
     [tab, setTab] = useState<"tracker" | "products" | "overview">("tracker"),
     [date, setDate] = useState(today),
@@ -693,40 +675,6 @@ export default function Skincare({
             )}
           </Card>
           <Card
-            title="Photo connection"
-            subtitle="Photos use a separate private Drive folder and a device access key. Journal notes and routines do not require the photo key."
-          >
-            <p className="text-sm text-slate-500">
-              {accessReady
-                ? "This device is connected for skincare photos."
-                : "Connect this device once using the key from your Apps Script setup. Use the same key on your phone or another device."}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                disabled={!storageReady}
-                className={secondaryClass}
-                onClick={() => {
-                  setAccessDialog(true);
-                  setAccessError("");
-                  setAccessKey("");
-                }}
-              >
-                {accessReady ? "Update photo key" : "Connect photos"}
-              </button>
-              {accessReady && (
-                <button
-                  className={secondaryClass}
-                  onClick={() => {
-                    forgetSkinPhotoAccess();
-                    setAccessReady(false);
-                  }}
-                >
-                  Forget key on this device
-                </button>
-              )}
-            </div>
-          </Card>
-          <Card
             title="Daily progress photos"
             subtitle={`Front, left and right views for ${date}. Photos are resized for the gallery and saved privately in your Skincare Drive folder.`}
           >
@@ -735,6 +683,15 @@ export default function Skincare({
               easier to compare. Uploading a replacement changes this day’s
               journal photo; original files stay in Drive.
             </p>
+            {!photoReady && (
+              <p
+                role="status"
+                className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800"
+              >
+                Photo uploads need the latest Apps Script deployment. No photo
+                key or device connection is required.
+              </p>
+            )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               {ANGLES.map((side) => {
                 const photo = p.photos.find(
@@ -745,14 +702,14 @@ export default function Skincare({
                     <h3 className="mb-2 font-semibold capitalize">{side}</h3>
                     <Photo photo={photo} onOpen={setViewPhoto} />
                     <label
-                      className={`mt-3 flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold ${!storageReady || !accessReady || busy ? "cursor-not-allowed bg-slate-100 text-slate-400" : "text-slate-600 hover:bg-slate-50"}`}
+                      className={`mt-3 flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold ${!photoReady || busy ? "cursor-not-allowed bg-slate-100 text-slate-400" : "text-slate-600 hover:bg-slate-50"}`}
                     >
                       <input
                         aria-label={`Upload ${side} skincare photo`}
                         type="file"
                         className="sr-only"
                         accept="image/jpeg,image/png,image/webp"
-                        disabled={!storageReady || !accessReady || !!busy}
+                        disabled={!photoReady || !!busy}
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           e.target.value = "";
@@ -1061,68 +1018,6 @@ export default function Skincare({
             </button>
           )}
         </div>
-      )}
-      {accessDialog && (
-        <Dialog
-          title="Connect skincare photos"
-          onClose={() => {
-            if (!accessBusy) setAccessDialog(false);
-          }}
-        >
-          <form
-            className="space-y-4"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              setAccessBusy(true);
-              setAccessError("");
-              try {
-                await verifySkincarePhotoAccess(accessKey.trim());
-                setSkinPhotoAccess(accessKey);
-                setAccessReady(true);
-                setAccessDialog(false);
-                setNotice("Photo connection saved on this device.");
-              } catch (error) {
-                setAccessError(
-                  error instanceof Error
-                    ? error.message
-                    : "Could not verify the photo key.",
-                );
-              } finally {
-                setAccessBusy(false);
-              }
-            }}
-          >
-            <p className="text-sm text-slate-500">
-              In your Apps Script editor, choose authorizeSkincarePhotos in the
-              function dropdown and click Run once. Copy the photo access key
-              from the Execution log and paste it here. Keep the key private;
-              use it on each device where you want to view or upload photos.
-            </p>
-            <Field label="Photo access key">
-              <input
-                type="password"
-                autoComplete="off"
-                className={inputClass}
-                required
-                minLength={16}
-                value={accessKey}
-                onChange={(e) => setAccessKey(e.target.value)}
-              />
-            </Field>
-            <p className="text-xs text-slate-500">
-              The key stays in this browser. It is not written into your
-              journal, Sheet or JSON backup.
-            </p>
-            {accessError && (
-              <p role="alert" className="text-sm text-rose-700">
-                {accessError}
-              </p>
-            )}
-            <button disabled={accessBusy} className={primaryClass}>
-              {accessBusy ? "Checking…" : "Connect this device"}
-            </button>
-          </form>
-        </Dialog>
       )}
       {product && (
         <ProductEditor

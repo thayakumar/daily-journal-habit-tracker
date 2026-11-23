@@ -1,4 +1,3 @@
-import { skinPhotoAccessKey } from "../skincare/access";
 import type { Workspace } from "../workspace/model";
 export interface Habit {
   id: string;
@@ -43,6 +42,7 @@ export interface SheetData {
     portfolioTimeline?: boolean;
     vehicles?: boolean;
     skincare?: boolean;
+    skincareDirectPhotos?: boolean;
     legacyBudgetImport?: boolean;
   };
   workspace?: Workspace;
@@ -224,7 +224,6 @@ export async function uploadSkincarePhoto(input: {
 }): Promise<import("../skincare/model").SkinPhoto> {
   const data = await skincareRequest({
     action: "uploadSkincarePhoto",
-    photoKey: skinPhotoAccessKey(),
     fileBase64: input.base64,
     fileMimeType: input.mimeType,
     fileName: input.name,
@@ -239,7 +238,6 @@ export async function requestSkincarePhoto(
 ): Promise<{ base64: string; mimeType: string }> {
   const data = await skincareRequest({
     action: "getSkincarePhoto",
-    photoKey: skinPhotoAccessKey(),
     fileId,
   });
   if (
@@ -248,8 +246,4 @@ export async function requestSkincarePhoto(
   )
     throw Error("Invalid photo response");
   return data;
-}
-
-export async function verifySkincarePhotoAccess(photoKey: string) {
-  await skincareRequest({ action: "checkSkincarePhotoAccess", photoKey });
 }

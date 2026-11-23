@@ -1,3 +1,11 @@
+# Direct Skincare uploads — 23 November 2026
+
+At the user's explicit request, the extra photo access key and Connect photos UI have been removed. Uploads and photo reads use the existing planner connection; files keep their private Drive sharing. Registered-photo lookups, file byte/MIME checks, date/angle checks, size limits and journal references remain intact. The backend exposes skincareDirectPhotos so an older key-requiring deployment cannot be mistaken for the new upload contract.
+
+Domain checks cover direct uploads without any Script Properties key, three photo angles, reload/readback and rejection of unrelated Drive IDs. The full browser flow uses no stored photo key or connection dialog. No production photos or journal data are modified by these checks. The older report below records the previous implementation and is superseded for photo access by this section.
+
+---
+
 # Skincare and inline Portfolio information — 23 November 2026
 
 78 automated tests pass. Skincare tests cover five table round trips, reference/date/duplicate validation, three-angle private photo uploads with byte/MIME checks, registry verification, key enforcement, arbitrary-file rejection, archive retention, older-client preservation and local upload after backend activation. Production build passes; lint completes with warnings including existing purity/hook heuristics.

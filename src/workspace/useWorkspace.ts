@@ -57,6 +57,7 @@ export function useWorkspace() {
   const [logStorageReady, setLogStorageReady] = useState(false);
   const skinSupport = useRef(false);
   const [skincareStorageReady, setSkincareStorageReady] = useState(false);
+  const [skincarePhotosReady, setSkincarePhotosReady] = useState(false);
   const vehicleSupport = useRef(false);
   const [vehicleStorageReady, setVehicleStorageReady] = useState(false);
   const [migrationReady, setMigrationReady] = useState(false);
@@ -105,6 +106,7 @@ export function useWorkspace() {
     setVehicleStorageReady(vehicleSupport.current);
     skinSupport.current = remote.features?.skincare === true;
     setSkincareStorageReady(skinSupport.current);
+    setSkincarePhotosReady(remote.features?.skincareDirectPhotos === true);
     let parsed = remoteWorkspace(remote);
     const pendingSkin = localStorage.getItem(SKIN_PENDING_KEY) === "true";
     if (parsed && !skinSupport.current && !force)
@@ -497,6 +499,7 @@ export function useWorkspace() {
     portfolioStorageReady,
     vehicleStorageReady,
     skincareStorageReady,
+    skincarePhotosReady,
     migrationReady,
   };
 }
