@@ -1,3 +1,4 @@
+import { skinPhotoAccessKey } from "../skincare/access";
 import type { Workspace } from "../workspace/model";
 export interface Habit {
   id: string;
@@ -41,6 +42,7 @@ export interface SheetData {
     financePortfolio?: boolean;
     portfolioTimeline?: boolean;
     vehicles?: boolean;
+    skincare?: boolean;
     legacyBudgetImport?: boolean;
   };
   workspace?: Workspace;
@@ -199,4 +201,55 @@ export async function fetchLegacyBudget(): Promise<
       result.error || "Deploy the updated Apps Script to enable migration",
     );
   return result.tabs;
+}
+
+async function skincareRequest(payload: Record<string, unknown>) {
+  const url = getScriptUrl();
+  if (!url) throw Error("Planner connection is not configured");
+  const response = await fetch(url, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  if (!response.ok || data.success !== true)
+    throw Error(data.error || "Skincare photo request failed");
+  return data;
+}
+export async function uploadSkincarePhoto(input: {
+  base64: string;
+  mimeType: string;
+  name: string;
+  date: string;
+  angle: import("../skincare/model").Angle;
+}): Promise<import("../skincare/model").SkinPhoto> {
+  const data = await skincareRequest({
+    action: "uploadSkincarePhoto",
+    photoKey: skinPhotoAccessKey(),
+    fileBase64: input.base64,
+    fileMimeType: input.mimeType,
+    fileName: input.name,
+    date: input.date,
+    angle: input.angle,
+  });
+  if (!data.photo?.fileId) throw Error("Photo upload was not confirmed");
+  return data.photo;
+}
+export async function requestSkincarePhoto(
+  fileId: string,
+): Promise<{ base64: string; mimeType: string }> {
+  const data = await skincareRequest({
+    action: "getSkincarePhoto",
+    photoKey: skinPhotoAccessKey(),
+    fileId,
+  });
+  if (
+    !data.base64 ||
+    !["image/jpeg", "image/png", "image/webp"].includes(data.mimeType)
+  )
+    throw Error("Invalid photo response");
+  return data;
+}
+
+export async function verifySkincarePhotoAccess(photoKey: string) {
+  await skincareRequest({ action: "checkSkincarePhotoAccess", photoKey });
 }

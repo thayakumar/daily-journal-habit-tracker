@@ -1,3 +1,13 @@
+# Skincare and inline Portfolio information — 23 November 2026
+
+78 automated tests pass. Skincare tests cover five table round trips, reference/date/duplicate validation, three-angle private photo uploads with byte/MIME checks, registry verification, key enforcement, arbitrary-file rejection, archive retention, older-client preservation and local upload after backend activation. Production build passes; lint completes with warnings including existing purity/hook heuristics.
+
+The targeted Chromium flow passes 20 layout checks across Daily tracker, My products, Photo overview and Portfolio card information at 320, 375, 390, 768 and 1440 pixels. It exercises notes, a starter/custom routine, products used, real canvas photo resizing and three uploads, a reload with photo reads through the planner, history/angle filters, photo popup and archived-product history. All eight KPI cards have permanently visible descriptions and live breakdowns. Screenshots were inspected; browser errors: zero. Tests use synthetic photos and mocked Google services, never production face photos.
+
+Live Skincare storage/photo verification requires deployment of the updated Code.gs and owner-only authorizeSkincarePhotos key setup. No user finance data was modified for this release.
+
+---
+
 # Expense editing — 16 November 2026
 
 Expense History now supports an edit popup. Targeted Chromium checks at 320, 390, 768 and 1440 pixels cover prefilled fields, native rejection of zero amounts, immediate updates while the cloud response is held, cleared history filters, unchanged record count/ID/receipt/creation timestamp, cancel, reload and moving an expense to a different salary cycle. The actual Code.gs runs against mocked Sheets; browser errors: zero. No production transactions were modified by testing. The production build and existing automated suite pass. Backend contract is unchanged.

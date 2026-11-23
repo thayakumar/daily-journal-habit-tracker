@@ -854,6 +854,61 @@ export function Portfolio({
             sim.method === "loan" ? sim.months : 0,
           )
         : null;
+  const accountBreakdown = (
+    filter: (a: FinancePortfolio["accounts"][number]) => boolean,
+  ) =>
+    totals.values
+      .filter((v) => filter(v.account))
+      .map(
+        (v) =>
+          `${v.account.name}: ${v.snapshot ? money(v.snapshot.value) : "not recorded (counts as RM 0)"}`,
+      );
+  const kpiInfo: Record<string, { text: string; items: string[] }> = {
+    "Recorded net worth": {
+      text: "What remains after recorded debts. Net worth = total assets − outstanding debt. Monthly bills are not subtracted again.",
+      items: [
+        `Assets: ${money(totals.assets)}`,
+        `Less remaining debt: ${money(totals.debt)}`,
+      ],
+    },
+    "Total assets": {
+      text: "Adds the latest recorded balance of each account once. Older snapshots, purchase costs and monthly income are not added again. Missing balances count as zero.",
+      items: accountBreakdown(() => true),
+    },
+    "Bank balances": {
+      text: "Only accounts whose type is Bank. Wallets such as Shopee Pay are excluded. This amount is already part of Total assets and Liquid funds.",
+      items: accountBreakdown((a) => a.kind === "bank"),
+    },
+    "Liquid funds": {
+      text: "Accounts marked available as liquid funds in account settings. Includes eligible bank accounts and wallets. This overlaps Bank balances; do not add these cards together.",
+      items: accountBreakdown((a) => a.liquid),
+    },
+    "Physical gold": {
+      text: "Latest value of accounts typed Physical gold, such as a gold bar. Gold investments held through providers belong under Investments. Already included in Total assets.",
+      items: accountBreakdown((a) => a.kind === "gold"),
+    },
+    Investments: {
+      text: "Latest value of accounts typed Investment, including gold investment accounts. Uses current recorded value, not purchase cost. Already included in Total assets.",
+      items: accountBreakdown((a) => a.kind === "investment"),
+    },
+    "Outstanding debt": {
+      text: "Remaining principal from Loans using each loan’s latest dated balance. Original loan amounts and monthly instalments are not added to this figure. Loans entered only as subscriptions do not count as outstanding debt.",
+      items: p.loans.map(
+        (l) => `${l.name}: ${money(loanCurrentBalance(p, l).balance)}`,
+      ),
+    },
+    "Monthly obligations": {
+      text: "Monthly loan instalments plus active recurring payments. Annual/quarterly subscriptions are converted to monthly equivalents. This is a payment estimate, not your debt balance; it is not deducted from net worth again.",
+      items: [
+        ...p.loans
+          .filter((l) => loanCurrentBalance(p, l).balance > 0)
+          .map((l) => `${l.name}: ${money(l.payment)}/month`),
+        ...p.subscriptions
+          .filter((s) => s.active)
+          .map((s) => `${s.name}: ${money(subscriptionMonthly(s))}/month`),
+      ],
+    },
+  };
   return (
     <div className="min-w-0 space-y-5 break-words [contain:paint]">
       <Card
@@ -975,6 +1030,22 @@ export function Portfolio({
                   <p className="mt-3 break-words text-3xl font-bold">
                     {money(Number(value))}
                   </p>
+                  <p className="mt-3 text-sm leading-relaxed opacity-90">
+                    {kpiInfo[String(label)].text}
+                  </p>
+                  {kpiInfo[String(label)].items.length ? (
+                    <ul className="mt-3 space-y-1 border-t border-current/15 pt-3 text-xs leading-relaxed">
+                      {kpiInfo[String(label)].items.map((item, i) => (
+                        <li key={i} className="break-words">
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-3 text-xs opacity-80">
+                      No matching records yet.
+                    </p>
+                  )}
                 </div>
               );
             })}

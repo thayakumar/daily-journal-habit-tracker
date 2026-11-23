@@ -922,3 +922,71 @@ test("vehicle records and standalone Portfolio stay local on older scripts and m
   assert.equal(b.get().workspace.vehicles[0].id, "car");
   assert.equal(b.get().workspace.financePortfolio.snapshots[0].cycleId, "");
 });
+
+test("skincare notes and routines remain local on an older backend and upload after activation", async () => {
+  const { createBackend } = await import("./apps-script-mock.mjs");
+  let upgraded = false,
+    api;
+  const w = createWorkspace();
+  w.updatedAt = 1;
+  const b = createBackend(w);
+  globalThis.__TEST_SCRIPT_URL__ = "https://example.test/exec";
+  globalThis.fetch = async (_url, options) => ({
+    ok: true,
+    json: async () => {
+      if (options?.method === "POST") {
+        const payload = JSON.parse(options.body);
+        if (!upgraded) assert.equal(payload.data.skincare, undefined);
+        return b.post(payload);
+      }
+      const result = b.get();
+      if (!upgraded) {
+        delete result.features.skincare;
+        delete result.workspace.skincare;
+      }
+      return result;
+    },
+  });
+  function Harness() {
+    api = useWorkspace();
+    return null;
+  }
+  await render(React.createElement(Harness));
+  const date = "2026-11-20";
+  await act(async () =>
+    api.update((s) => ({
+      ...s,
+      skincare: {
+        entries: [
+          {
+            id: "skin:" + date,
+            date,
+            notes: "My face journal",
+            reaction: "Comfortable",
+            productIds: [],
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+        products: [],
+        habits: [],
+        checks: [],
+        photos: [],
+      },
+    })),
+  );
+  await act(async () => sleep(1300));
+  assert.equal(api.skincareStorageReady, false);
+  assert.match(api.status, /Skincare saved on this device/);
+  assert.equal(b.get().workspace.skincare.entries.length, 0);
+  await act(async () => renderer.unmount());
+  renderer = null;
+  await render(React.createElement(Harness));
+  assert.equal(api.data.skincare.entries[0].notes, "My face journal");
+  await act(async () => renderer.unmount());
+  renderer = null;
+  upgraded = true;
+  await render(React.createElement(Harness));
+  await act(async () => sleep(1300));
+  assert.equal(api.skincareStorageReady, true);
+  assert.equal(b.get().workspace.skincare.entries[0].notes, "My face journal");
+});

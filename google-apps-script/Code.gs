@@ -121,6 +121,57 @@ var PORTFOLIO_SCHEMAS = [
     booleans: [],
   },
 ];
+var SKIN_SCHEMAS = [
+  {
+    key: "entries",
+    table: "SkincareJournal",
+    headers: [
+      "id",
+      "date",
+      "notes",
+      "reaction",
+      "productIds_json",
+      "updatedAt",
+    ],
+  },
+  {
+    key: "products",
+    table: "SkincareProducts",
+    headers: [
+      "id",
+      "name",
+      "brand",
+      "type",
+      "notes",
+      "started",
+      "stopped",
+      "active",
+    ],
+  },
+  {
+    key: "habits",
+    table: "SkincareHabits",
+    headers: ["id", "name", "period", "active", "createdAt"],
+  },
+  {
+    key: "checks",
+    table: "SkincareChecks",
+    headers: ["id", "date", "habitId", "done"],
+  },
+  {
+    key: "photos",
+    table: "SkincarePhotos",
+    headers: ["id", "date", "angle", "fileId", "name", "mimeType", "updatedAt"],
+  },
+];
+var SKIN_UPLOAD_HEADERS = [
+  "fileId",
+  "date",
+  "angle",
+  "name",
+  "mimeType",
+  "createdAt",
+];
 var PLANNER_TABLES = {
   Vehicles: [
     "id",
@@ -190,7 +241,7 @@ var PLANNER_TABLES = {
   BrainDump: ["id", "text", "created", "contentId"],
   Ideas: ["id", "title", "url", "note"],
 };
-PORTFOLIO_SCHEMAS.forEach(function (schema) {
+PORTFOLIO_SCHEMAS.concat(SKIN_SCHEMAS).forEach(function (schema) {
   PLANNER_TABLES[schema.table] = schema.headers;
 });
 var HABIT_CHECK_HEADERS = ["date", "habitId", "completed"];
@@ -543,6 +594,17 @@ function plannerToTables(w) {
       });
     });
   });
+  var skin = w.skincare === undefined ? emptySkinData() : w.skincare;
+  validateSkinData(skin);
+  SKIN_SCHEMAS.forEach(function (schema) {
+    tables[schema.table] = skin[schema.key].map(function (row) {
+      return schema.headers.map(function (key) {
+        return key === "productIds_json"
+          ? JSON.stringify(row.productIds)
+          : row[key];
+      });
+    });
+  });
   // Validate all tables before writing any of them.
   Object.keys(PLANNER_TABLES).forEach(function (name) {
     tables[name].forEach(function (row) {
@@ -560,6 +622,7 @@ function plannerToTables(w) {
 function writePlanner(ss, w) {
   // Older clients/backups must not erase newer detailed logs they do not know about.
   if (
+    w.skincare === undefined ||
     w.vehicles === undefined ||
     w.vehicleServices === undefined ||
     w.workoutSets === undefined ||
@@ -571,6 +634,7 @@ function writePlanner(ss, w) {
   ) {
     var existingLogs = readPlanner(ss, settingsOf(ss));
     w = JSON.parse(JSON.stringify(w));
+    if (w.skincare === undefined) w.skincare = existingLogs.skincare;
     if (w.vehicles === undefined) w.vehicles = existingLogs.vehicles;
     if (w.vehicleServices === undefined)
       w.vehicleServices = existingLogs.vehicleServices;
@@ -586,6 +650,25 @@ function writePlanner(ss, w) {
       w.recurringChecks = existingLogs.recurringChecks;
   }
   var tables = plannerToTables(w);
+  // Uploaded photos must come from this planner's private photo upload registry.
+  if (w.skincare && w.skincare.photos.length) {
+    var uploads = readTable(ss, "SkincareUploads", SKIN_UPLOAD_HEADERS);
+    w.skincare.photos.forEach(function (photo) {
+      if (
+        !uploads.some(function (r) {
+          return (
+            stringValue(r[0]) === photo.fileId &&
+            dateValue(r[1]) === photo.date &&
+            stringValue(r[2]) === photo.angle &&
+            stringValue(r[4]) === photo.mimeType
+          );
+        })
+      )
+        throw new Error(
+          "Skincare photo is not a registered upload for this date/angle",
+        );
+    });
+  }
   Object.keys(PLANNER_TABLES).forEach(function (name) {
     ensureSheet(ss, name, PLANNER_TABLES[name]);
   });
@@ -874,6 +957,26 @@ function readPlanner(ss, settings) {
       return r;
     });
   });
+  w.skincare = emptySkinData();
+  SKIN_SCHEMAS.forEach(function (schema) {
+    w.skincare[schema.key] = readTable(ss, schema.table, schema.headers).map(
+      function (values) {
+        var row = {};
+        schema.headers.forEach(function (key, i) {
+          if (key === "productIds_json")
+            row.productIds = parseJson(values[i], []);
+          else
+            row[key] =
+              ["active", "done"].indexOf(key) >= 0
+                ? boolValue(values[i])
+                : ["date", "started", "stopped"].indexOf(key) >= 0
+                  ? dateValue(values[i])
+                  : stringValue(values[i]);
+        });
+        return row;
+      },
+    );
+  });
   w.financePortfolio = emptyPortfolioData();
   PORTFOLIO_SCHEMAS.forEach(function (schema) {
     w.financePortfolio[schema.key] = readTable(
@@ -1000,6 +1103,7 @@ function getAll(ss) {
       financePortfolio: true,
       portfolioTimeline: true,
       vehicles: true,
+      skincare: true,
       legacyBudgetImport: true,
     },
     workspace: readPlanner(ss, settings),
@@ -1031,10 +1135,32 @@ function doGet(e) {
   });
 }
 function doPost(e) {
+  // Photo reads don't take the planner write lock, allowing a scrolling gallery.
+  try {
+    var readPayload = JSON.parse(e.postData.contents);
+    if (readPayload.action === "getSkincarePhoto")
+      return jsonResult(
+        readSkinPhoto(
+          SpreadsheetApp.getActiveSpreadsheet(),
+          readPayload.fileId,
+          readPayload.photoKey,
+        ),
+      );
+  } catch (error) {
+    return jsonResult({
+      success: false,
+      error: stringValue(error.message || error),
+    });
+  }
   return withLock(function (ss) {
     var payload = JSON.parse(e.postData.contents);
     var action = payload.action;
     ensureMigration(ss);
+    if (action === "checkSkincarePhotoAccess") {
+      requireSkinPhotoAccess(payload.photoKey);
+      return { success: true };
+    }
+    if (action === "uploadSkincarePhoto") return uploadSkinPhoto(ss, payload);
     if (action === "uploadFinanceReceipt") {
       if (
         typeof payload.fileBase64 !== "string" ||
@@ -1544,5 +1670,272 @@ function previewBudgetImport() {
           values: values,
         };
       }),
+  };
+}
+
+function emptySkinData() {
+  return { entries: [], products: [], habits: [], checks: [], photos: [] };
+}
+function validateSkinData(p) {
+  if (
+    !p ||
+    typeof p !== "object" ||
+    Object.keys(p).some(function (k) {
+      return !SKIN_SCHEMAS.some(function (s) {
+        return s.key === k;
+      });
+    })
+  )
+    throw new Error("Invalid skincare data");
+  var stamp = function (v) {
+    return typeof v === "string" && !isNaN(Date.parse(v));
+  };
+  var today = Utilities.formatDate(
+    new Date(),
+    SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone(),
+    "yyyy-MM-dd",
+  );
+  SKIN_SCHEMAS.forEach(function (schema) {
+    if (!Array.isArray(p[schema.key]))
+      throw new Error("Missing skincare collection");
+    var ids = {};
+    p[schema.key].forEach(function (r) {
+      if (!r || typeof r.id !== "string" || !r.id || ids[r.id])
+        throw new Error("Invalid/duplicate skincare record");
+      ids[r.id] = true;
+      schema.headers.forEach(function (k) {
+        var v = k === "productIds_json" ? r.productIds : r[k];
+        if (k === "productIds_json") {
+          if (!Array.isArray(v))
+            throw new Error("Invalid skincare product links");
+        } else if (["active", "done"].indexOf(k) >= 0) {
+          if (typeof v !== "boolean") throw new Error("Invalid skincare flag");
+        } else if (typeof v !== "string" || v.length > 10000)
+          throw new Error("Invalid skincare text");
+      });
+    });
+  });
+  p.products.forEach(function (r) {
+    if (
+      !r.name.trim() ||
+      r.name.length > 200 ||
+      r.brand.length > 200 ||
+      r.type.length > 100 ||
+      (r.started && !validDateString(r.started)) ||
+      (r.stopped && !validDateString(r.stopped)) ||
+      (r.started && r.stopped && r.stopped < r.started)
+    )
+      throw new Error("Invalid skincare product");
+  });
+  p.habits.forEach(function (r) {
+    if (
+      !r.name.trim() ||
+      r.name.length > 200 ||
+      ["AM", "PM", "Anytime"].indexOf(r.period) < 0 ||
+      !stamp(r.createdAt)
+    )
+      throw new Error("Invalid skincare habit");
+  });
+  var dates = {};
+  p.entries.forEach(function (r) {
+    if (
+      dates[r.date] ||
+      r.id !== "skin:" + r.date ||
+      !validDateString(r.date) ||
+      r.date > today ||
+      !stamp(r.updatedAt)
+    )
+      throw new Error("Invalid/duplicate/future skincare day");
+    dates[r.date] = true;
+    var ids = {};
+    r.productIds.forEach(function (id) {
+      if (
+        ids[id] ||
+        !p.products.some(function (pr) {
+          return pr.id === id;
+        })
+      )
+        throw new Error("Invalid skincare product reference");
+      ids[id] = true;
+    });
+  });
+  var checks = {};
+  p.checks.forEach(function (r) {
+    var key = r.date + "|" + r.habitId;
+    if (
+      checks[key] ||
+      !dates[r.date] ||
+      !p.habits.some(function (h) {
+        return h.id === r.habitId;
+      })
+    )
+      throw new Error("Invalid skincare check");
+    checks[key] = true;
+  });
+  var photos = {},
+    files = {};
+  p.photos.forEach(function (r) {
+    var key = r.date + "|" + r.angle;
+    if (
+      photos[key] ||
+      files[r.fileId] ||
+      !dates[r.date] ||
+      ["front", "left", "right"].indexOf(r.angle) < 0 ||
+      !/^[\w-]{5,200}$/.test(r.fileId) ||
+      ["image/jpeg", "image/png", "image/webp"].indexOf(r.mimeType) < 0 ||
+      r.name.length > 200 ||
+      !stamp(r.updatedAt)
+    )
+      throw new Error("Invalid skincare photo");
+    photos[key] = true;
+    files[r.fileId] = true;
+  });
+}
+function skinPhotoFolder(ss) {
+  var id = settingsOf(ss).skincarePhotosFolderId;
+  if (id) return DriveApp.getFolderById(id);
+  var folder = DriveApp.createFolder("Personal Planner - Skincare Photos");
+  putSetting(ss, "skincarePhotosFolderId", folder.getId());
+  return folder;
+}
+function authorizeSkincarePhotos() {
+  var properties = PropertiesService.getScriptProperties(),
+    key = properties.getProperty("SKINCARE_PHOTO_KEY");
+  if (!key) {
+    key = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, "");
+    properties.setProperty("SKINCARE_PHOTO_KEY", key);
+  }
+  skinPhotoFolder(SpreadsheetApp.getActiveSpreadsheet());
+  Logger.log("Skincare photo access key (keep private): " + key);
+  return "Photo folder is ready. Copy the key from the Execution log into Skincare > Connect photos on each device.";
+}
+function requireSkinPhotoAccess(key) {
+  var expected =
+    PropertiesService.getScriptProperties().getProperty("SKINCARE_PHOTO_KEY");
+  if (!expected)
+    throw new Error(
+      "Run authorizeSkincarePhotos in Apps Script once to set up your private photo connection.",
+    );
+  if (typeof key !== "string" || key !== expected)
+    throw new Error(
+      "Photo access key is missing or incorrect. Use Connect photos on this device.",
+    );
+}
+function uploadSkinPhoto(ss, p) {
+  requireSkinPhotoAccess(p.photoKey);
+  var today = Utilities.formatDate(
+    new Date(),
+    ss.getSpreadsheetTimeZone(),
+    "yyyy-MM-dd",
+  );
+  if (
+    !validDateString(p.date) ||
+    p.date > today ||
+    ["front", "left", "right"].indexOf(p.angle) < 0
+  )
+    throw new Error("Invalid skincare photo date/angle");
+  if (
+    ["image/jpeg", "image/png", "image/webp"].indexOf(p.fileMimeType) < 0 ||
+    typeof p.fileBase64 !== "string" ||
+    !p.fileBase64 ||
+    p.fileBase64.length > 5592408 ||
+    !/^[A-Za-z0-9+/]+={0,2}$/.test(p.fileBase64)
+  )
+    throw new Error("Invalid skincare photo (maximum 4 MB after resizing)");
+  var bytes = Utilities.base64Decode(p.fileBase64);
+  if (bytes.length > 4194304 || bytes.length < 12)
+    throw new Error("Invalid skincare photo size");
+  var b = function (i) {
+    return (bytes[i] + 256) % 256;
+  };
+  var valid =
+    p.fileMimeType === "image/jpeg"
+      ? b(0) === 255 && b(1) === 216 && b(2) === 255
+      : p.fileMimeType === "image/png"
+        ? b(0) === 137 &&
+          b(1) === 80 &&
+          b(2) === 78 &&
+          b(3) === 71 &&
+          b(4) === 13 &&
+          b(5) === 10 &&
+          b(6) === 26 &&
+          b(7) === 10
+        : b(0) === 82 &&
+          b(1) === 73 &&
+          b(2) === 70 &&
+          b(3) === 70 &&
+          b(8) === 87 &&
+          b(9) === 69 &&
+          b(10) === 66 &&
+          b(11) === 80;
+  if (!valid)
+    throw new Error("The file contents do not match a supported photo format");
+  var name =
+    p.date +
+    "-" +
+    p.angle +
+    "-" +
+    String(p.fileName || "photo.jpg")
+      .replace(/[\\/]/g, "_")
+      .slice(0, 150);
+  var folder = skinPhotoFolder(ss),
+    file = folder.createFile(Utilities.newBlob(bytes, p.fileMimeType, name)),
+    id = file.getId(),
+    stamp = new Date().toISOString();
+  var registry = ensureSheet(ss, "SkincareUploads", SKIN_UPLOAD_HEADERS);
+  registry.appendRow([
+    id,
+    p.date,
+    p.angle,
+    safeCell(name),
+    p.fileMimeType,
+    stamp,
+  ]);
+  if (REQUEST_CACHE) delete REQUEST_CACHE.tables.SkincareUploads;
+  return {
+    success: true,
+    photo: {
+      id: id,
+      date: p.date,
+      angle: p.angle,
+      fileId: id,
+      name: name,
+      mimeType: p.fileMimeType,
+      updatedAt: stamp,
+    },
+  };
+}
+function readSkinPhoto(ss, id, key) {
+  requireSkinPhotoAccess(key);
+  if (typeof id !== "string" || !/^[\w-]{5,200}$/.test(id))
+    throw new Error("Invalid photo identifier");
+  var registered = readTable(
+    ss,
+    "SkincarePhotos",
+    PLANNER_TABLES.SkincarePhotos,
+  ).some(function (r) {
+    return stringValue(r[3]) === id;
+  });
+  var uploaded = readTable(ss, "SkincareUploads", SKIN_UPLOAD_HEADERS).some(
+    function (r) {
+      return stringValue(r[0]) === id;
+    },
+  );
+  if (!registered || !uploaded)
+    throw new Error(
+      "Photo is not in the saved skincare journal yet. Wait for sync, then retry.",
+    );
+  var blob = DriveApp.getFileById(id).getBlob(),
+    mime = blob.getContentType(),
+    bytes = blob.getBytes();
+  if (
+    ["image/jpeg", "image/png", "image/webp"].indexOf(mime) < 0 ||
+    bytes.length > 4194304
+  )
+    throw new Error("Invalid saved skincare photo");
+  return {
+    success: true,
+    mimeType: mime,
+    base64: Utilities.base64Encode(bytes),
   };
 }

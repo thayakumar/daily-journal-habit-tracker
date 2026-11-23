@@ -4,7 +4,7 @@ A personal workspace built around the original daily food, wellness and habit gr
 
 ## Pages
 
-Overview navigation buttons · Habits (daily/recurring) · Personal lists · Fitness daily workout log · Finance expenses, receipts, monthly budgets and Portfolio · Calendar · Vehicles · Meals · Brain dump · Ideas · Vocabulary · Settings & backup.
+Overview navigation buttons · Habits (daily/recurring) · Personal lists · Fitness daily workout log · Finance expenses, receipts, monthly budgets and Portfolio · Skincare daily journal, routine and photo overview · Calendar · Vehicles · Meals · Brain dump · Ideas · Vocabulary · Settings & backup.
 
 Overview contains only large page-navigation buttons. Habit/routine management is collapsed by default, with top-level add buttons opening dialogs. Meals shows all seven days in an editable table, with local horizontal scrolling on phones.
 
@@ -68,3 +68,5 @@ See [mobile verification and daily workout storage](docs/MOBILE_AND_WORKOUTS.md)
 [Vocabulary](docs/VOCABULARY.md) provides a word/definition/example popup, searchable list, edit/delete controls and a dedicated Sheet table. Its table sync requires the latest Apps Script version; local records are retained until that update is active.
 
 [Calendar, Vehicles, screenshot imports and Sheet migration](docs/CALENDAR-VEHICLES-IMPORT.md) covers renewal reminders, browser OCR with editable expense review, an ongoing Portfolio timeline and the legacy budget migration preview.
+
+[Skincare setup and photo storage](docs/SKINCARE.md) explains daily notes/reactions, products, custom AM/PM habits, front/left/right photos and the private device photo key. Portfolio KPI explanations and live contributor lists appear directly on each card.
