@@ -171,6 +171,7 @@ export default function WorkspaceApp() {
     portfolioStorageReady,
     vehicleStorageReady,
     skincareStorageReady,
+    skincarePhotosReady,
     migrationReady,
   } = useWorkspace();
   const [tab, setTab] = useState<Tab>(currentTab);
@@ -380,6 +381,7 @@ export default function WorkspaceApp() {
                 update={update}
                 today={today}
                 storageReady={skincareStorageReady}
+                photoReady={skincarePhotosReady}
               />
             </Suspense>
           )}

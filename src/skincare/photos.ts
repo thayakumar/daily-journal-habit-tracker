@@ -1,37 +1,21 @@
 import { requestSkincarePhoto, uploadSkincarePhoto } from "../lib/sheets-api";
-import {
-  PHOTO_ACCESS_EVENT,
-  hasSkinPhotoAccess,
-  skinPhotoAccessKey,
-} from "./access";
 import type { Angle, SkinPhoto } from "./model";
 const cache = new Map<string, string>();
 const pending = new Map<string, Promise<string>>();
-if (typeof window !== "undefined")
-  window.addEventListener(PHOTO_ACCESS_EVENT, () => {
-    cache.clear();
-    pending.clear();
-  });
 export function cacheSkinPhoto(id: string, dataUrl: string) {
-  if (!hasSkinPhotoAccess()) return;
   cache.set(id, dataUrl);
   while (cache.size > 60) cache.delete(cache.keys().next().value!);
 }
 export function cachedSkinPhoto(id: string) {
-  return hasSkinPhotoAccess() ? cache.get(id) : undefined;
+  return cache.get(id);
 }
 export async function loadSkinPhoto(id: string) {
-  if (!hasSkinPhotoAccess())
-    throw Error("Connect photos on this device first.");
   const cached = cache.get(id);
   if (cached) return cached;
   const active = pending.get(id);
   if (active) return active;
-  const key = skinPhotoAccessKey();
   const promise = requestSkincarePhoto(id)
     .then((data) => {
-      if (key !== skinPhotoAccessKey())
-        throw Error("Photo connection changed. Connect photos and retry.");
       const url = `data:${data.mimeType};base64,${data.base64}`;
       cacheSkinPhoto(id, url);
       return url;
@@ -40,9 +24,7 @@ export async function loadSkinPhoto(id: string) {
   pending.set(id, promise);
   return promise;
 }
-export async function prepareSkinPhoto(
-  file: File,
-): Promise<{
+export async function prepareSkinPhoto(file: File): Promise<{
   base64: string;
   dataUrl: string;
   mimeType: string;

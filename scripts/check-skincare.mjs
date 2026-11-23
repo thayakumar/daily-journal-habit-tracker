@@ -90,12 +90,6 @@ try {
       body: JSON.stringify(result),
     });
   });
-  await page.addInitScript(() =>
-    localStorage.setItem(
-      "skincare.photo-access.v1",
-      "synthetic-skin-photo-test-key-123456",
-    ),
-  );
   const imagePage = await context.newPage();
   await imagePage.setViewportSize({ width: 600, height: 800 });
   await imagePage.setContent(
@@ -301,25 +295,12 @@ try {
     fullPage: true,
   });
   await module("Daily tracker");
-  await page
-    .getByRole("button", { name: "Forget key on this device", exact: true })
-    .click();
   assert.equal(
     await page
-      .getByLabel("Upload front skincare photo", { exact: true })
-      .isDisabled(),
-    true,
+      .getByRole("button", { name: "Connect photos", exact: true })
+      .count(),
+    0,
   );
-  await page
-    .getByRole("button", { name: "Connect photos", exact: true })
-    .click();
-  await page
-    .getByLabel("Photo access key", { exact: true })
-    .fill("synthetic-skin-photo-test-key-123456");
-  await page
-    .getByRole("button", { name: "Connect this device", exact: true })
-    .click();
-  await page.getByRole("dialog").waitFor({ state: "hidden" });
   assert.equal(
     await page
       .getByLabel("Upload front skincare photo", { exact: true })

@@ -1104,6 +1104,7 @@ function getAll(ss) {
       portfolioTimeline: true,
       vehicles: true,
       skincare: true,
+      skincareDirectPhotos: true,
       legacyBudgetImport: true,
     },
     workspace: readPlanner(ss, settings),
@@ -1143,7 +1144,6 @@ function doPost(e) {
         readSkinPhoto(
           SpreadsheetApp.getActiveSpreadsheet(),
           readPayload.fileId,
-          readPayload.photoKey,
         ),
       );
   } catch (error) {
@@ -1157,7 +1157,6 @@ function doPost(e) {
     var action = payload.action;
     ensureMigration(ss);
     if (action === "checkSkincarePhotoAccess") {
-      requireSkinPhotoAccess(payload.photoKey);
       return { success: true };
     }
     if (action === "uploadSkincarePhoto") return uploadSkinPhoto(ss, payload);
@@ -1798,31 +1797,11 @@ function skinPhotoFolder(ss) {
   putSetting(ss, "skincarePhotosFolderId", folder.getId());
   return folder;
 }
+// Optional folder setup for owners; no access key or device connection is needed.
 function authorizeSkincarePhotos() {
-  var properties = PropertiesService.getScriptProperties(),
-    key = properties.getProperty("SKINCARE_PHOTO_KEY");
-  if (!key) {
-    key = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, "");
-    properties.setProperty("SKINCARE_PHOTO_KEY", key);
-  }
-  skinPhotoFolder(SpreadsheetApp.getActiveSpreadsheet());
-  Logger.log("Skincare photo access key (keep private): " + key);
-  return "Photo folder is ready. Copy the key from the Execution log into Skincare > Connect photos on each device.";
-}
-function requireSkinPhotoAccess(key) {
-  var expected =
-    PropertiesService.getScriptProperties().getProperty("SKINCARE_PHOTO_KEY");
-  if (!expected)
-    throw new Error(
-      "Run authorizeSkincarePhotos in Apps Script once to set up your private photo connection.",
-    );
-  if (typeof key !== "string" || key !== expected)
-    throw new Error(
-      "Photo access key is missing or incorrect. Use Connect photos on this device.",
-    );
+  return skinPhotoFolder(SpreadsheetApp.getActiveSpreadsheet()).getName();
 }
 function uploadSkinPhoto(ss, p) {
-  requireSkinPhotoAccess(p.photoKey);
   var today = Utilities.formatDate(
     new Date(),
     ss.getSpreadsheetTimeZone(),
@@ -1905,8 +1884,7 @@ function uploadSkinPhoto(ss, p) {
     },
   };
 }
-function readSkinPhoto(ss, id, key) {
-  requireSkinPhotoAccess(key);
+function readSkinPhoto(ss, id) {
   if (typeof id !== "string" || !/^[\w-]{5,200}$/.test(id))
     throw new Error("Invalid photo identifier");
   var registered = readTable(
