@@ -1,3 +1,4 @@
+import { emptySkincare } from "../skincare/model";
 import { emptyPortfolio, isFinancePortfolio } from "../finance/portfolio-model";
 import { emptyPlanning, isFinancePlanning } from "../finance/planning";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -16,6 +17,7 @@ import {
 } from "./model";
 
 const VEHICLE_PENDING_KEY = "personal-workspace.vehicles-pending.v1";
+const SKIN_PENDING_KEY = "personal-workspace.skincare-pending.v1";
 const CLOUD_KEY = "personalWorkspaceV1";
 const PORTFOLIO_PENDING_KEY = "personal-workspace.portfolio-pending.v1";
 const PLAN_PENDING_KEY = "personal-workspace.finance-planning-pending.v1";
@@ -53,6 +55,8 @@ export function useWorkspace() {
   const [ready, setReady] = useState(!isConfigured());
   const [tableStorage, setTableStorage] = useState(false);
   const [logStorageReady, setLogStorageReady] = useState(false);
+  const skinSupport = useRef(false);
+  const [skincareStorageReady, setSkincareStorageReady] = useState(false);
   const vehicleSupport = useRef(false);
   const [vehicleStorageReady, setVehicleStorageReady] = useState(false);
   const [migrationReady, setMigrationReady] = useState(false);
@@ -99,7 +103,15 @@ export function useWorkspace() {
     setMigrationReady(remote.features?.legacyBudgetImport === true);
     vehicleSupport.current = remote.features?.vehicles === true;
     setVehicleStorageReady(vehicleSupport.current);
+    skinSupport.current = remote.features?.skincare === true;
+    setSkincareStorageReady(skinSupport.current);
     let parsed = remoteWorkspace(remote);
+    const pendingSkin = localStorage.getItem(SKIN_PENDING_KEY) === "true";
+    if (parsed && !skinSupport.current && !force)
+      parsed = {
+        ...parsed,
+        skincare: latest.current.skincare ?? emptySkincare(),
+      };
     const pendingVehicles =
       localStorage.getItem(VEHICLE_PENDING_KEY) === "true";
     if (parsed && !vehicleSupport.current && !force)
@@ -147,7 +159,8 @@ export function useWorkspace() {
     }
     if (
       parsed &&
-      ((vehicleSupport.current && pendingVehicles) ||
+      ((skinSupport.current && pendingSkin) ||
+        (vehicleSupport.current && pendingVehicles) ||
         (logSupport.current && pendingLogs) ||
         (vocabularySupport.current && pendingVocabulary) ||
         (financeSupport.current && pendingFinance) ||
@@ -167,6 +180,22 @@ export function useWorkspace() {
       ];
       parsed = {
         ...parsed,
+        skincare:
+          skinSupport.current && pendingSkin
+            ? (Object.fromEntries(
+                Object.keys(emptySkincare()).map((key) => [
+                  key,
+                  merge<{ id: string }>(
+                    (parsed!.skincare ?? emptySkincare())[
+                      key as keyof ReturnType<typeof emptySkincare>
+                    ],
+                    (latest.current.skincare ?? emptySkincare())[
+                      key as keyof ReturnType<typeof emptySkincare>
+                    ],
+                  ),
+                ]),
+              ) as unknown as ReturnType<typeof emptySkincare>)
+            : parsed.skincare,
         vehicles:
           vehicleSupport.current && pendingVehicles
             ? merge(parsed.vehicles ?? [], latest.current.vehicles ?? [])
@@ -317,6 +346,12 @@ export function useWorkspace() {
     try {
       localStorage.setItem(WORKSPACE_KEY, JSON.stringify(data));
       if (
+        !skinSupport.current &&
+        data.skincare &&
+        Object.values(data.skincare).some((rows) => rows.length)
+      )
+        localStorage.setItem(SKIN_PENDING_KEY, "true");
+      if (
         !vehicleSupport.current &&
         (data.vehicles?.length ?? 0) + (data.vehicleServices?.length ?? 0) > 0
       )
@@ -371,10 +406,11 @@ export function useWorkspace() {
       let next = latest.current;
       while (next.updatedAt > cloudTimestamp.current) {
         if (tableMode.current) {
+          const supported = { ...next };
+          if (!timelineSupport.current) delete supported.financePortfolio;
+          if (!skinSupport.current) delete supported.skincare;
           cloudRevision.current = await saveWorkspace(
-            !timelineSupport.current && next.financePortfolio
-              ? { ...next, financePortfolio: undefined }
-              : next,
+            supported,
             cloudRevision.current,
           );
         } else {
@@ -387,6 +423,7 @@ export function useWorkspace() {
         }
         cloudTimestamp.current = next.updatedAt;
         acknowledge(next.updatedAt, cloudRevision.current);
+        if (skinSupport.current) localStorage.removeItem(SKIN_PENDING_KEY);
         if (vehicleSupport.current)
           localStorage.removeItem(VEHICLE_PENDING_KEY);
         if (portfolioSupport.current && timelineSupport.current)
@@ -400,30 +437,33 @@ export function useWorkspace() {
         next = latest.current;
       }
       setStatus(
-        !vehicleSupport.current &&
-          localStorage.getItem(VEHICLE_PENDING_KEY) === "true"
-          ? "Vehicles saved on this device · connection update needed"
-          : (!portfolioSupport.current || !timelineSupport.current) &&
-              localStorage.getItem(PORTFOLIO_PENDING_KEY) === "true"
-            ? "Portfolio saved on this device · connection update needed"
-            : !planningSupport.current &&
-                localStorage.getItem(PLAN_PENDING_KEY) === "true"
-              ? "Monthly plans saved on this device · connection update needed"
-              : !financeSupport.current &&
-                  (latest.current.financeExpenses?.length ?? 0) > 0
-                ? "Finance saved on this device · connection update needed"
-                : !vocabularySupport.current &&
-                    (latest.current.vocabulary?.length ?? 0) > 0
-                  ? "Vocabulary saved on this device · connection update needed"
-                  : tableMode.current
-                    ? logSupport.current ||
-                      !(
-                        (latest.current.workoutSets?.length ?? 0) +
-                        (latest.current.recurringChecks?.length ?? 0)
-                      )
-                      ? "Saved to per-page Sheet tables"
-                      : "Workout and routine history saved locally · deploy the updated Apps Script"
-                    : "Saved to legacy JSON · update Apps Script for per-page tables",
+        !skinSupport.current &&
+          localStorage.getItem(SKIN_PENDING_KEY) === "true"
+          ? "Skincare saved on this device · connection update needed"
+          : !vehicleSupport.current &&
+              localStorage.getItem(VEHICLE_PENDING_KEY) === "true"
+            ? "Vehicles saved on this device · connection update needed"
+            : (!portfolioSupport.current || !timelineSupport.current) &&
+                localStorage.getItem(PORTFOLIO_PENDING_KEY) === "true"
+              ? "Portfolio saved on this device · connection update needed"
+              : !planningSupport.current &&
+                  localStorage.getItem(PLAN_PENDING_KEY) === "true"
+                ? "Monthly plans saved on this device · connection update needed"
+                : !financeSupport.current &&
+                    (latest.current.financeExpenses?.length ?? 0) > 0
+                  ? "Finance saved on this device · connection update needed"
+                  : !vocabularySupport.current &&
+                      (latest.current.vocabulary?.length ?? 0) > 0
+                    ? "Vocabulary saved on this device · connection update needed"
+                    : tableMode.current
+                      ? logSupport.current ||
+                        !(
+                          (latest.current.workoutSets?.length ?? 0) +
+                          (latest.current.recurringChecks?.length ?? 0)
+                        )
+                        ? "Saved to per-page Sheet tables"
+                        : "Workout and routine history saved locally · deploy the updated Apps Script"
+                      : "Saved to legacy JSON · update Apps Script for per-page tables",
       );
     } catch (error) {
       setStatus(
@@ -456,6 +496,7 @@ export function useWorkspace() {
     planningStorageReady,
     portfolioStorageReady,
     vehicleStorageReady,
+    skincareStorageReady,
     migrationReady,
   };
 }

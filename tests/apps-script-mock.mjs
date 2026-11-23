@@ -9,6 +9,9 @@ export function createBackend(
   const metrics = { reads: 0, bodyReads: {} };
   let lockHeld = false;
   const receipts = [];
+  const scriptProperties = new Map([
+    ["SKINCARE_PHOTO_KEY", "synthetic-skin-photo-test-key-123456"],
+  ]);
   class Range {
     constructor(sheet, row, col, height = 1, width = 1) {
       Object.assign(this, { sheet, row, col, height, width });
@@ -115,18 +118,43 @@ export function createBackend(
     Array,
     Error,
     RegExp,
+    PropertiesService: {
+      getScriptProperties: () => ({
+        getProperty: (key) => scriptProperties.get(key) || null,
+        setProperty: (key, value) => scriptProperties.set(key, value),
+      }),
+    },
+    Logger: { log() {} },
     DriveApp: {
+      createFolder: () => context.DriveApp.getFolderById("skin-folder"),
       getFolderById: (folderId) => ({
+        getId: () => folderId,
+        getName: () => folderId,
         createFile: (blob) => {
           const receipt = {
             folderId,
             ...blob,
+            id: `receipt-${receipts.length + 1}`,
             url: `https://drive.google.com/file/d/receipt-${receipts.length + 1}/view`,
           };
           receipts.push(receipt);
-          return { getName: () => receipt.name, getUrl: () => receipt.url };
+          return {
+            getId: () => receipt.id,
+            getName: () => receipt.name,
+            getUrl: () => receipt.url,
+          };
         },
       }),
+      getFileById: (id) => {
+        const file = receipts.find((r) => r.id === id);
+        if (!file) throw Error("File not found");
+        return {
+          getBlob: () => ({
+            getContentType: () => file.mimeType,
+            getBytes: () => file.bytes,
+          }),
+        };
+      },
     },
     SpreadsheetApp: { getActiveSpreadsheet: () => ss, flush() {} },
     ContentService: {
@@ -150,6 +178,8 @@ export function createBackend(
       }),
     },
     Utilities: {
+      getUuid: () => crypto.randomUUID(),
+      base64Encode: (bytes) => Buffer.from(bytes).toString("base64"),
       base64Decode: (value) => Array.from(Buffer.from(value, "base64")),
       newBlob: (bytes, mimeType, name) => ({ bytes, mimeType, name }),
       DigestAlgorithm: { SHA_256: "sha256" },
@@ -213,6 +243,7 @@ export function createBackend(
     metrics,
     context,
     receipts,
+    scriptProperties,
     get,
     post,
     fetch: async (_url, options) => ({

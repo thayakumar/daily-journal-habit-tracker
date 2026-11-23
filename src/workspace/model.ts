@@ -1,4 +1,9 @@
 import {
+  emptySkincare,
+  isSkincare,
+  type SkincareData,
+} from "../skincare/model.ts";
+import {
   validVehicles,
   type Vehicle,
   type VehicleService,
@@ -163,6 +168,7 @@ export interface FinanceExpense {
   createdAt: string;
 }
 export interface Workspace {
+  skincare?: SkincareData;
   vehicles?: Vehicle[];
   vehicleServices?: VehicleService[];
   financePortfolio?: FinancePortfolio;
@@ -197,6 +203,7 @@ export interface Workspace {
 }
 export function createWorkspace(): Workspace {
   return {
+    skincare: emptySkincare(),
     vehicles: [],
     vehicleServices: [],
     financePortfolio: emptyPortfolio(),
@@ -280,6 +287,7 @@ export function isWorkspace(value: unknown): value is Workspace {
   const p = value.prayer,
     f = value.fitness;
   return (
+    (value.skincare === undefined || isSkincare(value.skincare)) &&
     validVehicles(
       value.vehicles === undefined ? [] : value.vehicles,
       value.vehicleServices === undefined ? [] : value.vehicleServices,

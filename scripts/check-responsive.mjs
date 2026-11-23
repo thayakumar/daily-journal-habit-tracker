@@ -232,7 +232,7 @@ try {
             .getByRole("navigation", { name: "Open a page" })
             .getByRole("button")
             .count(),
-          11,
+          12,
         );
       }
       if (id === "finance") {

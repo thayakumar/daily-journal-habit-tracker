@@ -59,6 +59,7 @@ import {
   type Update,
 } from "./ui";
 
+const Skincare = lazy(() => import("../skincare/Skincare"));
 const Finance = lazy(() => import("../finance/Finance"));
 
 const NAV = [
@@ -79,6 +80,12 @@ const NAV = [
     label: "Personal",
     icon: Heart,
     description: "The everyday things, all together.",
+  },
+  {
+    id: "skincare",
+    label: "Skincare",
+    icon: Flower2,
+    description: "Your routine, products and skin over time.",
   },
   {
     id: "fitness",
@@ -163,6 +170,7 @@ export default function WorkspaceApp() {
     planningStorageReady,
     portfolioStorageReady,
     vehicleStorageReady,
+    skincareStorageReady,
     migrationReady,
   } = useWorkspace();
   const [tab, setTab] = useState<Tab>(currentTab);
@@ -364,6 +372,16 @@ export default function WorkspaceApp() {
               today={today}
               storageReady={vehicleStorageReady}
             />
+          )}
+          {tab === "skincare" && (
+            <Suspense fallback={<p role="status">Loading skincare…</p>}>
+              <Skincare
+                data={data}
+                update={update}
+                today={today}
+                storageReady={skincareStorageReady}
+              />
+            </Suspense>
           )}
           {tab === "finance" && (
             <Suspense fallback={<p role="status">Loading finance…</p>}>
