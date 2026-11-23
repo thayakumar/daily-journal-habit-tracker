@@ -149,6 +149,10 @@ function ProductEditor({
         className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
+          if (!p.name.trim()) {
+            setError("Enter a product name.");
+            return;
+          }
           if (p.started && p.stopped && p.stopped < p.started) {
             setError("The stop date must be on or after the start date.");
             return;
@@ -217,7 +221,8 @@ function HabitEditor({
   onSave: (h: SkinHabit) => void;
   onClose: () => void;
 }) {
-  const [h, setH] = useState(habit);
+  const [h, setH] = useState(habit),
+    [error, setError] = useState("");
   return (
     <Dialog
       title={habit.name ? "Edit skincare habit" : "Add skincare habit"}
@@ -227,6 +232,10 @@ function HabitEditor({
         className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
+          if (!h.name.trim()) {
+            setError("Enter a skincare habit name.");
+            return;
+          }
           onSave({ ...h, name: h.name.trim() });
         }}
       >
@@ -262,6 +271,11 @@ function HabitEditor({
           />
           Active routine step
         </label>
+        {error && (
+          <p role="alert" className="text-sm text-rose-700">
+            {error}
+          </p>
+        )}
         <button className={primaryClass}>Save habit</button>
       </form>
     </Dialog>

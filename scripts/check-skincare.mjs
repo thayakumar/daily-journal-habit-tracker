@@ -151,6 +151,12 @@ try {
   await page
     .getByRole("button", { name: "Add skincare habit", exact: true })
     .click();
+  await page.getByLabel("Skincare habit name", { exact: true }).fill("   ");
+  await page.getByRole("button", { name: "Save habit", exact: true }).click();
+  await page
+    .getByRole("alert")
+    .filter({ hasText: "Enter a skincare habit name" })
+    .waitFor();
   await page
     .getByLabel("Skincare habit name", { exact: true })
     .fill("Evening treatment");
