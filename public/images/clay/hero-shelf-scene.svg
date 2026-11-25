@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="622 14 528 310" fill="none">
+<defs>
+  <filter id="hShadow" x="-20%" y="-20%" width="140%" height="150%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur"/>
+    <feOffset dx="0" dy="9" result="offset"/>
+    <feFlood flood-color="#4A3728" flood-opacity="0.14" result="color"/>
+    <feComposite in="color" in2="offset" operator="in" result="shadow"/>
+    <feMerge>
+      <feMergeNode in="shadow"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <filter id="hBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="5"/>
+  </filter>
+  <filter id="hSheen" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="3"/>
+  </filter>
+  <linearGradient id="oakTop" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" stop-color="#F2D9B5"/>
+    <stop offset="50%" stop-color="#E4C191"/>
+    <stop offset="100%" stop-color="#CFA46F"/>
+  </linearGradient>
+  <linearGradient id="oakFront" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" stop-color="#D8AF7B"/>
+    <stop offset="60%" stop-color="#C1945E"/>
+    <stop offset="100%" stop-color="#A47844"/>
+  </linearGradient>
+  <radialGradient id="hPot" cx="30%" cy="25%" r="75%">
+    <stop offset="0%" stop-color="#F49676"/>
+    <stop offset="52%" stop-color="#D95D39"/>
+    <stop offset="100%" stop-color="#9A371C"/>
+  </radialGradient>
+  <radialGradient id="hLeaf1" cx="28%" cy="25%" r="75%">
+    <stop offset="0%" stop-color="#9FD2BA"/>
+    <stop offset="55%" stop-color="#5C8D78"/>
+    <stop offset="100%" stop-color="#365D4C"/>
+  </radialGradient>
+  <radialGradient id="hLeaf2" cx="28%" cy="25%" r="75%">
+    <stop offset="0%" stop-color="#87BA9F"/>
+    <stop offset="60%" stop-color="#4A7A65"/>
+    <stop offset="100%" stop-color="#2D5040"/>
+  </radialGradient>
+  <radialGradient id="hMug" cx="28%" cy="24%" r="76%">
+    <stop offset="0%" stop-color="#FFFDF9"/>
+    <stop offset="58%" stop-color="#EFE6D8"/>
+    <stop offset="100%" stop-color="#CBBAA3"/>
+  </radialGradient>
+  <radialGradient id="hClock" cx="30%" cy="25%" r="75%">
+    <stop offset="0%" stop-color="#FCE4A3"/>
+    <stop offset="52%" stop-color="#E6B85C"/>
+    <stop offset="100%" stop-color="#B07D24"/>
+  </radialGradient>
+  <radialGradient id="hBottle" cx="30%" cy="26%" r="74%">
+    <stop offset="0%" stop-color="#7EA4D9"/>
+    <stop offset="55%" stop-color="#4A6FA5"/>
+    <stop offset="100%" stop-color="#2E4A74"/>
+  </radialGradient>
+  <linearGradient id="hBookA" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#FAF4EA"/>
+    <stop offset="100%" stop-color="#DDD0BC"/>
+  </linearGradient>
+  <linearGradient id="hBookB" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#769CD2"/>
+    <stop offset="100%" stop-color="#426598"/>
+  </linearGradient>
+</defs>
+
+  <!-- Pure flat warm ivory #FAF7F2 background so left side seamlessly matches page -->
+  
+
+  <!-- Soft warm arched wall alcove behind the shelf on right side only -->
+  <path d="M700 310 L700 132 C700 58 765 20 878 20 C991 20 1056 58 1056 132 L1056 310 Z" fill="#F2EAE0" opacity="0.72"/>
+
+  <!-- Shelf wall shadow -->
+  <rect x="652" y="286" width="468" height="26" rx="13" fill="#4A3728" fill-opacity="0.11" filter="url(#hBlur)"/>
+
+  <!-- Floating pale-oak wooden wall shelf -->
+  <g filter="url(#hShadow)">
+    <!-- Under-brackets -->
+    <rect x="708" y="282" width="16" height="30" rx="8" fill="#B68956"/>
+    <rect x="1044" y="282" width="16" height="30" rx="8" fill="#B68956"/>
+    <!-- Shelf plank front -->
+    <rect x="640" y="264" width="490" height="24" rx="11" fill="url(#oakFront)"/>
+    <!-- Shelf plank top face -->
+    <path d="M648 258 L1122 258 C1128 258 1130 262 1130 267 L1130 272 L640 272 L640 267 C640 262 642 258 648 258 Z" fill="url(#oakTop)"/>
+    <line x1="658" y1="263" x2="1112" y2="263" stroke="#FFF4E0" stroke-width="3" stroke-linecap="round" opacity="0.65"/>
+  </g>
+
+  <!-- 1. Potted Eucalyptus Sprout (left end of shelf) -->
+  <g filter="url(#hShadow)">
+    <ellipse cx="722" cy="260" rx="34" ry="7" fill="#4A3728" fill-opacity="0.12" filter="url(#hBlur)"/>
+    <!-- Stems & sculpted clay leaves -->
+    <path d="M722 195 C720 162 718 135 724 102" stroke="#477360" stroke-width="6" stroke-linecap="round"/>
+    <path d="M722 178 C706 164 696 146 690 128" stroke="#477360" stroke-width="4.8" stroke-linecap="round"/>
+    <path d="M722 162 C738 148 750 132 758 114" stroke="#477360" stroke-width="4.8" stroke-linecap="round"/>
+    <!-- Leaves -->
+    <path d="M718 164 C695 162 677 148 682 132 C698 128 716 141 720 162 Z" fill="url(#hLeaf1)"/>
+    <path d="M724 146 C730 122 751 108 766 119 C767 137 748 151 725 148 Z" fill="url(#hLeaf1)"/>
+    <path d="M720 124 C702 115 693 96 704 83 C719 86 729 102 722 122 Z" fill="url(#hLeaf2)"/>
+    <path d="M724 114 C726 92 742 79 756 87 C756 103 741 116 724 115 Z" fill="url(#hLeaf1)"/>
+    <ellipse cx="744" cy="129" rx="7" ry="3.5" transform="rotate(-24 744 129)" fill="#D6F0E3" opacity="0.45"/>
+    <!-- Terracotta pot -->
+    <path d="M686 196 C686 190 701 186 722 186 C743 186 758 190 758 196 L750 250 C748 258 738 262 722 262 C706 262 696 258 694 250 Z" fill="url(#hPot)"/>
+    <rect x="681" y="186" width="82" height="19" rx="9.5" fill="#E97954"/>
+    <ellipse cx="722" cy="191" rx="35" ry="6" fill="#F5A689" opacity="0.6"/>
+    <path d="M699 214 L703 245" stroke="#FBC0AC" stroke-width="5.5" stroke-linecap="round" opacity="0.45" filter="url(#hSheen)"/>
+  </g>
+
+  <!-- 2. Stacked Linen Journal & Cobalt Notebook + Bud Vase & Resting Pencil -->
+  <g filter="url(#hShadow)">
+    <!-- Bottom cobalt notebook -->
+    <rect x="782" y="232" width="136" height="30" rx="10" fill="url(#hBookB)"/>
+    <rect x="794" y="238" width="114" height="17" rx="5" fill="#FAF5EC"/>
+    <!-- Top linen journal -->
+    <rect x="790" y="203" width="122" height="31" rx="10" fill="url(#hBookA)"/>
+    <rect x="790" y="203" width="22" height="31" rx="9" fill="#D95D39"/>
+    <rect x="818" y="213" width="84" height="11" rx="4" fill="#EFE5D6"/>
+    <!-- Terracotta bookmark peeking -->
+    <path d="M870 232 L882 232 L882 254 L876 248 L870 254 Z" fill="#D95D39"/>
+    <!-- Small cobalt ceramic bud vase sitting cleanly on left-center of top journal -->
+    <path d="M832 146 C832 141 838 139 845 139 C852 139 858 141 858 146 L856 161 C865 167 869 178 868 191 C867 200 859 204 845 204 C831 204 823 200 822 191 C821 178 825 167 834 161 Z" fill="url(#hBottle)"/>
+    <ellipse cx="845" cy="145" rx="13" ry="3.8" fill="#9BBCE6"/>
+    <path d="M831 174 C829 181 830 189 834 194" stroke="#C5DBF7" stroke-width="4" stroke-linecap="round" opacity="0.55" filter="url(#hSheen)"/>
+    <!-- Little wooden pencil resting cleanly on the shelf in front of the books -->
+    <rect x="772" y="253" width="88" height="11" rx="5.5" fill="#E6B85C"/>
+    <path d="M858 253 L858 264 L874 258.5 Z" fill="#EED2A9"/>
+    <path d="M868 256.3 L868 260.7 L874 258.5 Z" fill="#3B322C"/>
+    <rect x="772" y="253" width="12" height="11" rx="5" fill="#DF6E51"/>
+  </g>
+
+  <!-- 3. Warm Ceramic Mug with gentle steam (center-right of shelf) -->
+  <g filter="url(#hShadow)">
+    <!-- Soft steam wisps -->
+    <path d="M956 172 C952 160 961 153 957 141" stroke="#D5C8B8" stroke-width="4.5" stroke-linecap="round" opacity="0.8"/>
+    <path d="M976 164 C972 152 981 145 977 133" stroke="#D5C8B8" stroke-width="4.5" stroke-linecap="round" opacity="0.8"/>
+    <!-- Handle -->
+    <path d="M998 202 C1018 202 1019 238 998 238" stroke="#D6C6B2" stroke-width="11" stroke-linecap="round" fill="none"/>
+    <!-- Mug body -->
+    <path d="M936 192 C936 187 950 183 968 183 C986 183 1000 187 1000 192 L997 248 C996 257 984 262 968 262 C952 262 940 257 939 248 Z" fill="url(#hMug)"/>
+    <!-- Terracotta clay dip band around bottom -->
+    <path d="M938 235 L998 235 L997 248 C996 257 984 262 968 262 C952 262 940 257 939 248 Z" fill="#D95D39" opacity="0.9"/>
+    <ellipse cx="968" cy="192" rx="32" ry="9" fill="#FAF5EC"/>
+    <ellipse cx="968" cy="193" rx="26" ry="6.5" fill="#7D4E33"/>
+    <path d="M947 204 L948 228" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" opacity="0.7" filter="url(#hSheen)"/>
+  </g>
+
+  <!-- 4. Butter-Ochre Rounded Tabletop Clock (right end of shelf) -->
+  <g filter="url(#hShadow)">
+    <!-- Tiny oak feet -->
+    <circle cx="1044" cy="256" r="8" fill="#B58652"/>
+    <circle cx="1086" cy="256" r="8" fill="#B58652"/>
+    <!-- Top brass button -->
+    <rect x="1057" y="169" width="16" height="12" rx="6" fill="#C9963A"/>
+    <!-- Rounded clay clock shell -->
+    <circle cx="1065" cy="218" r="42" fill="url(#hClock)"/>
+    <!-- Warm cream dial -->
+    <circle cx="1065" cy="218" r="30" fill="#FFFDF8"/>
+    <!-- Hour dots (no numbers) -->
+    <circle cx="1065" cy="195" r="2.8" fill="#C8B9A6"/>
+    <circle cx="1088" cy="218" r="2.8" fill="#C8B9A6"/>
+    <circle cx="1065" cy="241" r="2.8" fill="#C8B9A6"/>
+    <circle cx="1042" cy="218" r="2.8" fill="#C8B9A6"/>
+    <!-- Hands -->
+    <line x1="1065" y1="218" x2="1065" y2="201" stroke="#24201D" stroke-width="4.2" stroke-linecap="round"/>
+    <line x1="1065" y1="218" x2="1079" y2="212" stroke="#D95D39" stroke-width="3.8" stroke-linecap="round"/>
+    <circle cx="1065" cy="218" r="4.5" fill="#24201D"/>
+    <!-- Soft clay sheen -->
+    <path d="M1037 195 C1043 187 1051 183 1060 182" stroke="#FFF6D6" stroke-width="4.5" stroke-linecap="round" opacity="0.65" filter="url(#hSheen)"/>
+  </g>
+</svg>

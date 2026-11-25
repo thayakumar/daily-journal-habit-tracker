@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 180" fill="none">
+<defs>
+
+  <filter id="softShadow" x="-25%" y="-25%" width="150%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" result="blur"/>
+    <feOffset dx="0" dy="5" result="offset"/>
+    <feFlood flood-color="#4A3728" flood-opacity="0.16" result="color"/>
+    <feComposite in="color" in2="offset" operator="in" result="shadow"/>
+    <feMerge>
+      <feMergeNode in="shadow"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <filter id="groundBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="4"/>
+  </filter>
+  <filter id="sheenBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="2.2"/>
+  </filter>
+
+  <linearGradient id="edCover" x1="15%" y1="0%" x2="85%" y2="100%">
+    <stop offset="0%" stop-color="#87B8A2"/>
+    <stop offset="55%" stop-color="#5C8D78"/>
+    <stop offset="100%" stop-color="#3A6352"/>
+  </linearGradient>
+  <linearGradient id="edPageL" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#FFFDF9"/>
+    <stop offset="100%" stop-color="#EFE7DA"/>
+  </linearGradient>
+  <linearGradient id="edPageR" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#FAF4EB"/>
+    <stop offset="100%" stop-color="#E5D9C7"/>
+  </linearGradient>
+  <linearGradient id="edPen" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#F29171"/>
+    <stop offset="55%" stop-color="#D95D39"/>
+    <stop offset="100%" stop-color="#9B391E"/>
+  </linearGradient>
+</defs>
+  <ellipse cx="140" cy="148" rx="94" ry="15" fill="#4A3728" fill-opacity="0.1" filter="url(#groundBlur)"/>
+  <g filter="url(#softShadow)">
+    <!-- Open notebook cover -->
+    <path d="M52 54 C52 48 57 44 64 44 L132 52 C138 53 142 53 148 52 L216 44 C223 44 228 48 228 54 L228 134 C228 140 223 144 216 144 L148 138 C142 137 138 137 132 138 L64 144 C57 144 52 140 52 134 Z" fill="url(#edCover)"/>
+    <!-- Pages -->
+    <path d="M62 43 C86 38 116 41 140 52 L140 132 C116 123 86 121 62 128 Z" fill="url(#edPageL)"/>
+    <path d="M218 43 C194 38 164 41 140 52 L140 132 C164 123 194 121 218 128 Z" fill="url(#edPageR)"/>
+    <line x1="140" y1="52" x2="140" y2="132" stroke="#CBBBA4" stroke-width="2.5"/>
+    <!-- Subtle ruled lines -->
+    <rect x="76" y="64" width="46" height="3.5" rx="1.7" fill="#DFD3C2"/>
+    <rect x="76" y="76" width="38" height="3.5" rx="1.7" fill="#E6DBCB"/>
+    <rect x="76" y="88" width="42" height="3.5" rx="1.7" fill="#E6DBCB"/>
+    <!-- Butter ochre ribbon bookmark -->
+    <path d="M161 43 L172 41 L172 95 L166.5 89 L161 95 Z" fill="#E6B85C"/>
+  </g>
+  <!-- Resting terracotta clay pencil -->
+  <g transform="translate(186 108) rotate(-22)" filter="url(#softShadow)">
+    <rect x="-46" y="-6.5" width="76" height="13" rx="6.5" fill="url(#edPen)"/>
+    <path d="M27 -6.5 L27 6.5 L44 0 Z" fill="#EBD0A7"/>
+    <path d="M37.5 -2.4 L37.5 2.4 L44 0 Z" fill="#3B322C"/>
+    <rect x="-41" y="-6.5" width="7" height="13" fill="#E6B85C"/>
+    <line x1="-26" y1="-2.5" x2="18" y2="-2.5" stroke="#FABCA6" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
+  </g>
+</svg>

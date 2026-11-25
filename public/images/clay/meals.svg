@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+<defs>
+
+  <filter id="softShadow" x="-25%" y="-25%" width="150%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" result="blur"/>
+    <feOffset dx="0" dy="5" result="offset"/>
+    <feFlood flood-color="#4A3728" flood-opacity="0.16" result="color"/>
+    <feComposite in="color" in2="offset" operator="in" result="shadow"/>
+    <feMerge>
+      <feMergeNode in="shadow"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <filter id="groundBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="4"/>
+  </filter>
+  <filter id="sheenBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="2.2"/>
+  </filter>
+
+
+    <radialGradient id="bowlOuter" cx="30%" cy="26%" r="74%">
+      <stop offset="0%" stop-color="#FFFDF8"/>
+      <stop offset="52%" stop-color="#ECE2D4"/>
+      <stop offset="100%" stop-color="#C8B69F"/>
+    </radialGradient>
+    <radialGradient id="soupWarm" cx="35%" cy="30%" r="72%">
+      <stop offset="0%" stop-color="#F6AF7A"/>
+      <stop offset="55%" stop-color="#D96B3D"/>
+      <stop offset="100%" stop-color="#9E421E"/>
+    </radialGradient>
+    <linearGradient id="woodSpoon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F0D4AA"/>
+      <stop offset="58%" stop-color="#CA9D66"/>
+      <stop offset="100%" stop-color="#956B3B"/>
+    </linearGradient>
+  
+</defs>
+
+    <ellipse cx="64" cy="108" rx="42" ry="9" fill="#4A3728" fill-opacity="0.14" filter="url(#groundBlur)"/>
+    <!-- Gentle steam wisps -->
+    <path d="M47 40 C44 33 50 28 47 21" stroke="#D5C8B8" stroke-width="3.6" stroke-linecap="round" opacity="0.8"/>
+    <path d="M62 35 C59 27 66 22 62 15" stroke="#D5C8B8" stroke-width="3.6" stroke-linecap="round" opacity="0.8"/>
+    <g filter="url(#softShadow)">
+      <!-- Wooden spoon resting out right -->
+      <path d="M74 61 L99 30 C102 26 107 26 110 29 C112 32 112 37 109 40 L84 68 Z" fill="url(#woodSpoon)"/>
+      <!-- Bowl base foot -->
+      <rect x="42" y="96" width="44" height="10" rx="5" fill="#C4B29B"/>
+      <!-- Plump stoneware bowl -->
+      <path d="M20 57 C20 85 38 102 64 102 C90 102 108 85 108 57 Z" fill="url(#bowlOuter)"/>
+      <!-- Bowl rim & warm soup inside -->
+      <ellipse cx="64" cy="57" rx="44" ry="15" fill="#FBF8F3"/>
+      <ellipse cx="64" cy="58" rx="37" ry="11.5" fill="url(#soupWarm)"/>
+      <!-- Little herb garnish dots -->
+      <ellipse cx="53" cy="57" rx="6" ry="3.2" transform="rotate(-12 53 57)" fill="#6FA18B"/>
+      <ellipse cx="68" cy="60" rx="5" ry="2.8" transform="rotate(14 68 60)" fill="#85B8A0"/>
+      <circle cx="62" cy="54" r="3" fill="#F6D78F"/>
+      <!-- Glaze highlight -->
+      <path d="M29 69 C32 81 39 90 48 94" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" opacity="0.65" filter="url(#sheenBlur)"/>
+    </g>
+  
+</svg>

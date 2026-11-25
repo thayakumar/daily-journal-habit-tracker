@@ -118,8 +118,8 @@ export function MonthlyBudget({
   }
   return (
     <div className="min-w-0 space-y-5 [contain:paint]">
-      <details className="rounded-2xl border border-slate-200 bg-white">
-        <summary className="cursor-pointer p-5 text-lg font-semibold text-slate-700">
+      <details className="rounded-2xl border border-[#EAE2D6] bg-white">
+        <summary className="cursor-pointer p-5 text-lg font-semibold text-[#3B342E]">
           Salary cycle settings
         </summary>
         <Card
@@ -167,18 +167,18 @@ export function MonthlyBudget({
                 </select>
               </Field>
             </div>
-            <p className="max-w-lg text-xs leading-relaxed text-slate-500">
+            <p className="max-w-lg text-xs leading-relaxed text-[#62584E]">
               Used for new cycles only. You can adjust each cycle’s exact dates.
               Short months use the last available day.
             </p>
           </div>
           {cycle && (
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-rose-50 p-4">
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#FBECE7] p-4">
               <div>
-                <p className="font-semibold text-slate-800">
+                <p className="font-semibold text-[#24201D]">
                   {monthName(cycle.month)}
                 </p>
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-sm text-[#62584E]">
                   {cycle.start} → {cycle.end} · both dates included
                 </p>
               </div>
@@ -235,19 +235,19 @@ export function MonthlyBudget({
             ].map(([label, value, hint], index) => (
               <div
                 key={String(label)}
-                className={`min-w-0 rounded-2xl border p-6 shadow-sm ${["border-emerald-200 bg-emerald-50/70", "border-amber-200 bg-amber-50/70", "border-rose-200 bg-rose-50/70", "border-sky-200 bg-sky-50/70", "border-violet-200 bg-violet-50/70", "border-teal-200 bg-teal-50/70"][index]}`}
+                className={`min-w-0 rounded-2xl border p-6 shadow-sm ${["border-emerald-200 bg-emerald-50/70", "border-amber-200 bg-amber-50/70", "border-[#F2C9BC] bg-[#FBECE7]/70", "border-sky-200 bg-sky-50/70", "border-[#CFDCEB] bg-[#EDF2F8]/80", "border-teal-200 bg-teal-50/70"][index]}`}
               >
                 <p
-                  className={`text-lg font-bold sm:text-xl ${["text-emerald-800", "text-amber-800", "text-rose-800", "text-sky-800", "text-violet-800", "text-teal-800"][index]}`}
+                  className={`text-lg font-bold sm:text-xl ${["text-emerald-800", "text-amber-800", "text-[#A83E20]", "text-sky-800", "text-[#355380]", "text-teal-800"][index]}`}
                 >
                   {label}
                 </p>
                 <p
-                  className={`mt-3 break-words text-3xl font-bold ${Number(value) < 0 ? "text-rose-600" : "text-slate-900"}`}
+                  className={`mt-3 break-words text-3xl font-bold ${Number(value) < 0 ? "text-[#D95D39]" : "text-[#24201D]"}`}
                 >
                   {money(Number(value))}
                 </p>
-                <p className="mt-3 text-sm leading-relaxed text-slate-500">
+                <p className="mt-3 text-sm leading-relaxed text-[#62584E]">
                   {hint}
                 </p>
               </div>
@@ -310,7 +310,7 @@ export function MonthlyBudget({
                     x="60"
                     y="58"
                     textAnchor="middle"
-                    className="fill-slate-400"
+                    className="fill-[#8C8073]"
                     fontSize="7"
                   >
                     TOTAL EXPENSES
@@ -319,7 +319,7 @@ export function MonthlyBudget({
                     x="60"
                     y="70"
                     textAnchor="middle"
-                    className="fill-slate-800"
+                    className="fill-[#24201D]"
                     fontSize="9"
                     fontWeight="600"
                   >
@@ -336,13 +336,13 @@ export function MonthlyBudget({
                         className="h-3 w-3 shrink-0 rounded-full"
                         style={{ background: COLORS[i % COLORS.length] }}
                       />
-                      <span className="min-w-0 flex-1 break-words text-slate-600">
+                      <span className="min-w-0 flex-1 break-words text-[#62584E]">
                         {c.name}
                       </span>
-                      <span className="font-medium text-slate-800">
+                      <span className="font-medium text-[#24201D]">
                         {money(c.amount)}
                       </span>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-[#8C8073]">
                         (
                         {summary.spent
                           ? ((c.amount / summary.spent) * 100).toFixed(1)
@@ -402,7 +402,7 @@ export function MonthlyBudget({
                         className={`w-full text-sm ${kind === "budget" ? "min-w-[560px]" : "min-w-[270px]"}`}
                       >
                         <thead>
-                          <tr className="text-left text-xs text-slate-400">
+                          <tr className="text-left text-xs text-[#8C8073]">
                             <th className="pb-3">Name</th>
                             <th className="pb-3 text-right">
                               {kind === "budget" ? "Planned" : "Amount"}
@@ -428,22 +428,22 @@ export function MonthlyBudget({
                               return (
                                 <tr
                                   key={row.id}
-                                  className="border-t border-slate-100"
+                                  className="border-t border-[#EFE8DC]"
                                 >
                                   <th
                                     scope="row"
-                                    className="max-w-48 break-words py-3 pr-3 text-left font-medium text-slate-700"
+                                    className="max-w-48 break-words py-3 pr-3 text-left font-medium text-[#3B342E]"
                                   >
                                     {row.name}
                                     {kind === "balance" && (
-                                      <span className="block text-xs font-normal text-slate-400">
+                                      <span className="block text-xs font-normal text-[#8C8073]">
                                         {row.liquid
                                           ? "Liquid account"
                                           : "Other asset"}
                                       </span>
                                     )}
                                     {kind === "budget" && (
-                                      <span className="block text-xs font-normal text-slate-400">
+                                      <span className="block text-xs font-normal text-[#8C8073]">
                                         {row.categories.join(", ") ||
                                           "No categories selected"}
                                       </span>
@@ -458,7 +458,7 @@ export function MonthlyBudget({
                                         {money(budget.spent)}
                                       </td>
                                       <td
-                                        className={`whitespace-nowrap px-2 text-right ${budget.remaining < 0 ? "text-rose-600" : "text-emerald-600"}`}
+                                        className={`whitespace-nowrap px-2 text-right ${budget.remaining < 0 ? "text-[#D95D39]" : "text-emerald-600"}`}
                                       >
                                         {money(budget.remaining)}
                                       </td>
@@ -468,7 +468,7 @@ export function MonthlyBudget({
                                     <div className="flex justify-end">
                                       <button
                                         aria-label={`Edit ${row.name}`}
-                                        className="flex h-11 w-11 shrink-0 items-center justify-center text-slate-400 hover:text-rose-600"
+                                        className="flex h-11 w-11 shrink-0 items-center justify-center text-[#8C8073] hover:text-[#C04C2B]"
                                         onClick={() =>
                                           row.id.startsWith("portfolio:") &&
                                           kind === "balance" &&
@@ -510,16 +510,16 @@ export function MonthlyBudget({
                   )}
                   {kind === "balance" && (
                     <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-xl bg-slate-50 p-3">
-                        <p className="text-xs text-slate-400">
+                      <div className="rounded-xl bg-[#FAF7F2] p-3">
+                        <p className="text-xs text-[#8C8073]">
                           Liquid accounts
                         </p>
                         <p className="mt-1 break-words font-semibold">
                           {money(summary.liquid)}
                         </p>
                       </div>
-                      <div className="rounded-xl bg-slate-50 p-3">
-                        <p className="text-xs text-slate-400">
+                      <div className="rounded-xl bg-[#FAF7F2] p-3">
+                        <p className="text-xs text-[#8C8073]">
                           Total assets · before debts
                         </p>
                         <p className="mt-1 break-words font-semibold">
@@ -548,7 +548,7 @@ export function MonthlyBudget({
                   className="w-full min-w-[450px] text-sm"
                 >
                   <thead>
-                    <tr className="text-left text-xs text-slate-400">
+                    <tr className="text-left text-xs text-[#8C8073]">
                       <th className="pb-3">Date</th>
                       <th>Item</th>
                       <th>Category</th>
@@ -559,7 +559,7 @@ export function MonthlyBudget({
                     {[...summary.transactions]
                       .sort((a, b) => b.date.localeCompare(a.date))
                       .map((e) => (
-                        <tr key={e.id} className="border-t border-slate-100">
+                        <tr key={e.id} className="border-t border-[#EFE8DC]">
                           <td className="whitespace-nowrap py-3 pr-3">
                             {e.date}
                           </td>
@@ -726,7 +726,7 @@ export function MonthlyBudget({
                       </option>
                     ))}
                 </select>
-                <p className="mt-2 text-xs text-slate-400">
+                <p className="mt-2 text-xs text-[#8C8073]">
                   Copying carries income, commitments and budgets forward.
                   Account names copy with zero balances. Expenses always come
                   from their dates.
@@ -734,7 +734,7 @@ export function MonthlyBudget({
               </Field>
             )}
             {error && (
-              <p role="alert" className="text-sm text-rose-600">
+              <p role="alert" className="text-sm text-[#D95D39]">
                 {error}
               </p>
             )}
@@ -817,14 +817,14 @@ export function MonthlyBudget({
             </Field>
             {rowDialog.kind === "budget" && (
               <fieldset>
-                <legend className="mb-2 text-xs font-medium text-slate-500">
+                <legend className="mb-2 text-xs font-medium text-[#62584E]">
                   Expense categories
                 </legend>
                 <div className="space-y-2">
                   {categories.map((category) => (
                     <label
                       key={category}
-                      className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 text-sm text-slate-600"
+                      className="flex items-center gap-3 rounded-xl border border-[#EFE8DC] p-3 text-sm text-[#62584E]"
                     >
                       <input
                         type="checkbox"
@@ -847,7 +847,7 @@ export function MonthlyBudget({
               </fieldset>
             )}
             {rowDialog.kind === "balance" && (
-              <label className="flex items-center gap-3 text-sm text-slate-600">
+              <label className="flex items-center gap-3 text-sm text-[#62584E]">
                 <input
                   type="checkbox"
                   checked={rowDialog.liquid}
@@ -859,7 +859,7 @@ export function MonthlyBudget({
               </label>
             )}
             {error && (
-              <p role="alert" className="text-sm text-rose-600">
+              <p role="alert" className="text-sm text-[#D95D39]">
                 {error}
               </p>
             )}

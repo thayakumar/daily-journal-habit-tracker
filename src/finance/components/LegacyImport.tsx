@@ -92,7 +92,7 @@ export function LegacyImport({
         </p>
       )}
       {error && (
-        <p role="alert" className="mt-3 text-sm text-rose-700">
+        <p role="alert" className="mt-3 text-sm text-[#A83E20]">
           {error}
         </p>
       )}
@@ -107,7 +107,7 @@ export function LegacyImport({
           title="Review budget Sheet migration"
           onClose={() => setOpen(false)}
         >
-          <p className="mb-4 text-sm text-slate-600">
+          <p className="mb-4 text-sm text-[#62584E]">
             The original Sheet is read only. Existing app records stay in place.
             Duplicate source rows are skipped. Since Savings Breakdown was
             updated at different times, enter the actual balance date for each
@@ -121,7 +121,7 @@ export function LegacyImport({
               return (
                 <section
                   key={c.sheetId}
-                  className="rounded-xl border border-slate-200 p-4"
+                  className="rounded-xl border border-[#EAE2D6] p-4"
                 >
                   <label className="flex min-h-11 items-center gap-2 font-semibold">
                     <input
@@ -139,7 +139,7 @@ export function LegacyImport({
                     />
                     {m.name}
                   </label>
-                  <p className="my-2 text-sm text-slate-500">
+                  <p className="my-2 text-sm text-[#62584E]">
                     {m.income.length} income · {m.commitments.length}{" "}
                     commitments · {m.budgets.length} budgets ·{" "}
                     {m.expenses.length} dated expenses · {m.undated} undated
@@ -175,7 +175,7 @@ export function LegacyImport({
                     <summary className="cursor-pointer text-sm font-semibold">
                       Review transaction dates ({m.expenses.length})
                     </summary>
-                    <p className="my-2 text-xs text-slate-500">
+                    <p className="my-2 text-xs text-[#62584E]">
                       Dates are preserved from the source. Correct any source
                       errors; blank or future dates are excluded. Dates outside
                       the cycle appear under their actual date’s cycle.
@@ -212,7 +212,7 @@ export function LegacyImport({
                     <summary className="cursor-pointer text-sm font-semibold">
                       Review income, commitments and budgets
                     </summary>
-                    <p className="my-2 text-xs text-slate-500">
+                    <p className="my-2 text-xs text-[#62584E]">
                       Existing matching app rows are retained, including Salary
                       / Wages aliases. Confirm amounts before importing.
                     </p>
@@ -228,7 +228,7 @@ export function LegacyImport({
                         {entries.map((r, i) => (
                           <p
                             key={i}
-                            className="break-words text-sm text-slate-500"
+                            className="break-words text-sm text-[#62584E]"
                           >
                             {r.name} · RM {r.amount.toFixed(2)}
                           </p>
@@ -264,7 +264,7 @@ export function LegacyImport({
             })}
           </div>
           <h3 className="my-4 font-semibold">Map balance accounts</h3>
-          <p className="mb-3 text-sm text-slate-500">
+          <p className="mb-3 text-sm text-[#62584E]">
             Choose the correct type and whether funds are available as cash.
             Instalments in commitments are not imported as outstanding debt.
             “NET” totals are recalculated rather than imported as assets.
@@ -272,7 +272,7 @@ export function LegacyImport({
           {accounts.map((a) => (
             <div
               key={a.name}
-              className="mb-3 grid gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-3"
+              className="mb-3 grid gap-3 rounded-xl bg-[#FAF7F2] p-3 sm:grid-cols-3"
             >
               <strong className="self-center text-sm">{a.name}</strong>
               <Field label={`Destination · ${a.name}`}>
@@ -362,12 +362,12 @@ export function LegacyImport({
             </div>
           )}
           {error && (
-            <p role="alert" className="my-3 text-sm text-rose-700">
+            <p role="alert" className="my-3 text-sm text-[#A83E20]">
               {error}
             </p>
           )}
           {previewError && (
-            <p role="alert" className="my-3 text-sm text-rose-700">
+            <p role="alert" className="my-3 text-sm text-[#A83E20]">
               {previewError}
             </p>
           )}

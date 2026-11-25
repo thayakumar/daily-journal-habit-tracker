@@ -168,14 +168,14 @@ export function StatementImport({
             setOpen(false);
           }}
         >
-          <p className="mb-4 text-sm text-slate-500">
+          <p className="mb-4 text-sm text-[#62584E]">
             OCR runs in your browser. The screenshot is not uploaded or stored.
             OCR language files download on first use. Select only outgoing
             expenses; incoming payments and transfers between your own accounts
             should be excluded. Imported rows are labelled “Bulk screenshot
             import”.
           </p>
-          <p className="mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">
+          <p className="mb-4 rounded-xl bg-[#FBECE7] p-3 text-sm text-[#A83E20]">
             Import into {cycle.start} → {cycle.end}. Switch salary cycle before
             importing a different period. Review any dates without a printed
             year, especially around New Year.
@@ -240,7 +240,7 @@ export function StatementImport({
             {rows.map((r, i) => (
               <section
                 key={r.id}
-                className="rounded-xl border border-slate-200 p-3"
+                className="rounded-xl border border-[#EAE2D6] p-3"
               >
                 <label className="mb-3 flex min-h-11 items-center gap-3 text-sm font-semibold">
                   <input
@@ -298,7 +298,7 @@ export function StatementImport({
             ))}
           </div>
           {error && (
-            <p role="alert" className="mb-3 text-sm text-rose-700">
+            <p role="alert" className="mb-3 text-sm text-[#A83E20]">
               {error}
             </p>
           )}

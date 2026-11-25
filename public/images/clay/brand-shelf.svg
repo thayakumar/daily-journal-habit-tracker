@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+<defs>
+
+  <filter id="softShadow" x="-25%" y="-25%" width="150%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" result="blur"/>
+    <feOffset dx="0" dy="5" result="offset"/>
+    <feFlood flood-color="#4A3728" flood-opacity="0.16" result="color"/>
+    <feComposite in="color" in2="offset" operator="in" result="shadow"/>
+    <feMerge>
+      <feMergeNode in="shadow"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <filter id="groundBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="4"/>
+  </filter>
+  <filter id="sheenBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="2.2"/>
+  </filter>
+
+
+    <radialGradient id="brandBg" cx="28%" cy="22%" r="78%">
+      <stop offset="0%" stop-color="#F28A68"/>
+      <stop offset="55%" stop-color="#D95D39"/>
+      <stop offset="100%" stop-color="#A83F22"/>
+    </radialGradient>
+    <radialGradient id="brandLeaf" cx="30%" cy="25%" r="75%">
+      <stop offset="0%" stop-color="#A4D5BE"/>
+      <stop offset="58%" stop-color="#5C8D78"/>
+      <stop offset="100%" stop-color="#3A6251"/>
+    </radialGradient>
+  
+</defs>
+
+    <rect x="8" y="8" width="112" height="112" rx="30" fill="url(#brandBg)"/>
+    <!-- Subtle inner top rim highlight -->
+    <path d="M26 20 L102 20" stroke="#FBC1AD" stroke-width="4" stroke-linecap="round" opacity="0.45" filter="url(#sheenBlur)"/>
+    <!-- Clay shelf plank -->
+    <rect x="24" y="83" width="80" height="13" rx="6.5" fill="#F8EFE2"/>
+    <rect x="24" y="90" width="80" height="6" rx="3" fill="#DECDB7"/>
+    <!-- Little cream mug on left -->
+    <rect x="33" y="54" width="24" height="29" rx="8" fill="#FFFDF9"/>
+    <path d="M56 61 C63 61 63 75 56 75" stroke="#F4EAE0" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <!-- Little potted sprout on right -->
+    <path d="M68 65 L92 65 L89 83 L71 83 Z" fill="#F2D29B"/>
+    <path d="M80 65 L80 48" stroke="#45715E" stroke-width="4" stroke-linecap="round"/>
+    <path d="M80 54 C71 52 67 45 70 39 C76 38 81 44 80 54 Z" fill="url(#brandLeaf)"/>
+    <path d="M80 51 C83 41 92 38 96 42 C96 50 89 54 80 52 Z" fill="url(#brandLeaf)"/>
+  
+</svg>

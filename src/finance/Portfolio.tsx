@@ -671,7 +671,7 @@ export function Portfolio({
     <div className="flex shrink-0 justify-end">
       <button
         aria-label={`Edit ${row.name ?? NAMES[entity]}`}
-        className="flex h-11 w-11 items-center justify-center text-slate-400 hover:text-rose-600"
+        className="flex h-11 w-11 items-center justify-center text-[#8C8073] hover:text-[#C04C2B]"
         onClick={() => open(entity, row)}
       >
         <Pencil className="h-4 w-4" />
@@ -945,7 +945,7 @@ export function Portfolio({
                 setTab(id);
                 setNotice("");
               }}
-              className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold capitalize ${tab === id ? "bg-slate-800 text-white" : "bg-slate-50 text-slate-500"}`}
+              className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold capitalize ${tab === id ? "bg-[#24201D] text-white" : "bg-[#FAF7F2] text-[#62584E]"}`}
             >
               {id}
             </button>
@@ -954,7 +954,7 @@ export function Portfolio({
         {notice && (
           <p
             role="status"
-            className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600"
+            className="mt-4 rounded-xl bg-[#FAF7F2] p-3 text-sm text-[#62584E]"
           >
             {notice}
           </p>
@@ -968,19 +968,19 @@ export function Portfolio({
                 "Recorded net worth",
                 totals.netWorth,
                 Landmark,
-                "bg-violet-50 border-violet-200 text-violet-800",
+                "bg-[#EDF2F8] border-[#CFDCEB] text-[#355380]",
               ],
               [
                 "Total assets",
                 totals.assets,
                 Landmark,
-                "bg-slate-50 border-slate-200 text-slate-800",
+                "bg-[#FAF7F2] border-[#EAE2D6] text-[#24201D]",
               ],
               [
                 "Bank balances",
                 totals.bank,
                 Landmark,
-                "bg-indigo-50 border-indigo-200 text-indigo-800",
+                "bg-[#EDF2F8] border-[#CFDCEB] text-[#355380]",
               ],
               [
                 "Liquid funds",
@@ -1004,7 +1004,7 @@ export function Portfolio({
                 "Outstanding debt",
                 totals.debt,
                 CreditCard,
-                "bg-rose-50 border-rose-200 text-rose-800",
+                "bg-[#FBECE7] border-[#F2C9BC] text-[#A83E20]",
               ],
               [
                 "Monthly obligations",
@@ -1050,7 +1050,7 @@ export function Portfolio({
               );
             })}
           </div>
-          <p className="text-sm leading-relaxed text-slate-500">
+          <p className="text-sm leading-relaxed text-[#62584E]">
             Net worth = recorded assets minus recorded outstanding debt. Liquid
             funds follow your account settings. Monthly obligations use loan
             instalments and subscription monthly equivalents; actual cycle
@@ -1092,9 +1092,9 @@ export function Portfolio({
                   ].map(([label, value]) => (
                     <div
                       key={String(label)}
-                      className="rounded-xl bg-slate-50 p-4"
+                      className="rounded-xl bg-[#FAF7F2] p-4"
                     >
-                      <p className="text-sm text-slate-500">{label}</p>
+                      <p className="text-sm text-[#62584E]">{label}</p>
                       <p className="mt-2 break-words text-xl font-bold">
                         {value === null
                           ? "Closing incomplete"
@@ -1136,7 +1136,7 @@ export function Portfolio({
                     </p>
                   </div>
                 )}
-                <p className="mt-4 text-xs leading-relaxed text-slate-500">
+                <p className="mt-4 text-xs leading-relaxed text-[#62584E]">
                   Transfers between your accounts do not create wealth.
                   Investment results adjust for recorded contributions and
                   withdrawals. An unexplained difference can include missing
@@ -1162,13 +1162,13 @@ export function Portfolio({
                 {totals.values.map(({ account, snapshot }) => (
                   <div
                     key={account.id}
-                    className="min-w-0 rounded-xl border border-slate-100 p-4"
+                    className="min-w-0 rounded-xl border border-[#EFE8DC] p-4"
                   >
                     <p className="break-words font-semibold">{account.name}</p>
                     <p className="mt-2 text-xl font-bold">
                       {snapshot ? money(snapshot.value) : "No valuation"}
                     </p>
-                    <p className="mt-1 text-xs text-slate-400">
+                    <p className="mt-1 text-xs text-[#8C8073]">
                       {snapshot
                         ? `As of ${snapshot.date} · ${snapshot.phase}`
                         : "Update this account in Accounts"}
@@ -1200,14 +1200,14 @@ export function Portfolio({
                   return (
                     <div
                       key={a.id}
-                      className="min-w-0 rounded-xl border border-slate-200 p-4"
+                      className="min-w-0 rounded-xl border border-[#EAE2D6] p-4"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <h3 className="min-w-0 flex-1 break-words text-lg font-bold">
                             {a.name}
                           </h3>
-                          <p className="mt-1 text-xs capitalize text-slate-400">
+                          <p className="mt-1 text-xs capitalize text-[#8C8073]">
                             {a.kind}
                             {a.maskedRef ? ` · •••• ${a.maskedRef}` : ""}
                           </p>
@@ -1217,13 +1217,13 @@ export function Portfolio({
                       <p className="mt-3 text-2xl font-bold">
                         {latest ? money(latest.value) : "No valuation"}
                       </p>
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 text-xs text-[#8C8073]">
                         {latest
                           ? `As of ${latest.date} · ${latest.phase}`
                           : "No date recorded"}
                       </p>
                       {a.costBasis > 0 && latest && (
-                        <p className="mt-2 text-sm text-slate-500">
+                        <p className="mt-2 text-sm text-[#62584E]">
                           Value vs recorded cost:{" "}
                           {money(latest.value - a.costBasis)}
                         </p>
@@ -1296,7 +1296,7 @@ export function Portfolio({
                 Link monthly balances
               </button>
             </div>
-            <p className="mb-4 text-xs text-slate-500">
+            <p className="mb-4 text-xs text-[#62584E]">
               Linking imports existing Monthly Budget balance rows using the
               phase you choose. Other monthly rows stay unchanged. Record the
               correct phase before importing historical balances.
@@ -1310,7 +1310,7 @@ export function Portfolio({
               >
                 <table aria-label="Portfolio balances" className={TABLE}>
                   <thead>
-                    <tr className="text-left text-xs text-slate-400">
+                    <tr className="text-left text-xs text-[#8C8073]">
                       <th>Account</th>
                       <th>Phase</th>
                       <th>Date</th>
@@ -1323,7 +1323,7 @@ export function Portfolio({
 
                       .sort((a, b) => b.date.localeCompare(a.date))
                       .map((s) => (
-                        <tr className="border-t border-slate-100" key={s.id}>
+                        <tr className="border-t border-[#EFE8DC]" key={s.id}>
                           <td className="max-w-48 break-words py-3 pr-3">
                             {p.accounts.find((a) => a.id === s.accountId)?.name}
                           </td>
@@ -1353,7 +1353,7 @@ export function Portfolio({
               >
                 <table aria-label="Investment performance" className={TABLE}>
                   <thead>
-                    <tr className="text-left text-xs text-slate-400">
+                    <tr className="text-left text-xs text-[#8C8073]">
                       <th>Account</th>
                       <th>Opening</th>
                       <th>Closing</th>
@@ -1365,7 +1365,7 @@ export function Portfolio({
                     {investmentPerformance(p, cycle).map((r) => (
                       <tr
                         key={r.account.id}
-                        className="border-t border-slate-100"
+                        className="border-t border-[#EFE8DC]"
                       >
                         <th className="max-w-44 break-words py-3 pr-3 text-left font-medium">
                           {r.account.name}
@@ -1384,7 +1384,7 @@ export function Portfolio({
                         <td
                           className={
                             r.result !== null && r.result < 0
-                              ? "text-rose-600"
+                              ? "text-[#D95D39]"
                               : "text-emerald-700"
                           }
                         >
@@ -1420,7 +1420,7 @@ export function Portfolio({
                 {p.flows.map((f) => (
                   <div
                     key={f.id}
-                    className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 p-3"
+                    className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-[#EFE8DC] p-3"
                   >
                     <div className="min-w-0">
                       <p className="break-words font-medium">
@@ -1430,7 +1430,7 @@ export function Portfolio({
                         {p.accounts.find((a) => a.id === f.toId)?.name ??
                           "Outside portfolio"}
                       </p>
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 text-xs text-[#8C8073]">
                         {f.date} · {f.kind} · {money(f.amount)}
                         {f.budgetIncluded ? " · already in budget" : ""}
                       </p>
@@ -1480,7 +1480,7 @@ export function Portfolio({
                   return (
                     <div
                       key={l.id}
-                      className="min-w-0 rounded-xl border border-slate-200 p-4"
+                      className="min-w-0 rounded-xl border border-[#EAE2D6] p-4"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="min-w-0 flex-1 break-words text-lg font-bold">
@@ -1491,7 +1491,7 @@ export function Portfolio({
                       <p className="mt-2 text-2xl font-bold">
                         {money(balance)}
                       </p>
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 text-xs text-[#8C8073]">
                         As of {debt.date} · {l.apr}% {l.rateType} interest
                       </p>
                       <p className="mt-3 text-sm">
@@ -1503,7 +1503,7 @@ export function Portfolio({
                           : "Payment does not clear the interest or the estimate exceeds 100 years."}
                       </p>
                       {f.amortizes && (
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="mt-1 text-sm text-[#62584E]">
                           Estimated remaining interest: {money(f.interest)}
                         </p>
                       )}
@@ -1543,7 +1543,7 @@ export function Portfolio({
                 {p.debtSnapshots.map((s) => (
                   <div
                     key={s.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 p-3"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#EFE8DC] p-3"
                   >
                     <p className="break-words text-sm">
                       {p.loans.find((l) => l.id === s.loanId)?.name} · {s.phase}{" "}
@@ -1599,7 +1599,7 @@ export function Portfolio({
               {p.subscriptions.map((s) => (
                 <div
                   key={s.id}
-                  className="min-w-0 rounded-xl border border-slate-200 p-4"
+                  className="min-w-0 rounded-xl border border-[#EAE2D6] p-4"
                 >
                   <div className="flex justify-between gap-2">
                     <h3 className="min-w-0 flex-1 break-words text-lg font-bold">
@@ -1610,11 +1610,11 @@ export function Portfolio({
                   <p className="mt-2 text-xl font-bold">
                     {money(s.amount)} / {s.frequency}
                   </p>
-                  <p className="mt-2 text-sm text-slate-500">
+                  <p className="mt-2 text-sm text-[#62584E]">
                     {s.active ? "Active" : "Inactive"} · next renewal{" "}
                     {s.nextDue}
                   </p>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="mt-1 text-sm text-[#62584E]">
                     Monthly equivalent {money(subscriptionMonthly(s))}
                   </p>
                   {s.manageUrl && (
@@ -1672,7 +1672,7 @@ export function Portfolio({
                   return (
                     <div
                       key={g.id}
-                      className="min-w-0 rounded-xl border border-slate-200 p-4"
+                      className="min-w-0 rounded-xl border border-[#EAE2D6] p-4"
                     >
                       <div className="flex justify-between gap-2">
                         <h3 className="min-w-0 flex-1 break-words text-lg font-bold">
@@ -1685,7 +1685,7 @@ export function Portfolio({
                       </p>
                       <progress
                         aria-label={`Progress for ${g.name}`}
-                        className="mt-3 h-3 w-full accent-rose-600"
+                        className="mt-3 h-3 w-full accent-[#D95D39]"
                         value={Math.min(progress.progress, g.target)}
                         max={g.target}
                       />
@@ -1697,14 +1697,14 @@ export function Portfolio({
                             ? "On track"
                             : "Needs more saving"}
                       </p>
-                      <p className="mt-2 text-sm text-slate-500">
+                      <p className="mt-2 text-sm text-[#62584E]">
                         Monthly amount needed:{" "}
                         {progress.required === null
                           ? "Deadline passed"
                           : money(progress.required)}
                         . Planned: {money(g.monthlyContribution)}.
                       </p>
-                      <p className="mt-1 text-sm text-slate-500">
+                      <p className="mt-1 text-sm text-[#62584E]">
                         Projected completion:{" "}
                         {progress.completion || "Add a monthly contribution"}.
                       </p>
@@ -1749,7 +1749,7 @@ export function Portfolio({
                 {p.allocations.map((a) => (
                   <div
                     key={a.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 p-3"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#EFE8DC] p-3"
                   >
                     <p className="break-words text-sm">
                       {p.accounts.find((x) => x.id === a.accountId)?.name} →{" "}
@@ -1897,7 +1897,7 @@ export function Portfolio({
             </Field>
           </div>
           {!validSim ? (
-            <p role="alert" className="mt-4 text-sm text-rose-600">
+            <p role="alert" className="mt-4 text-sm text-[#D95D39]">
               Check the price, deposit, interest and term.
             </p>
           ) : !simAccount || !latestSnapshot(p, simAccount.id) ? (
@@ -1918,9 +1918,9 @@ export function Portfolio({
                   ].map(([label, value]) => (
                     <div
                       key={String(label)}
-                      className="rounded-xl bg-slate-50 p-4"
+                      className="rounded-xl bg-[#FAF7F2] p-4"
                     >
-                      <p className="text-sm text-slate-500">{label}</p>
+                      <p className="text-sm text-[#62584E]">{label}</p>
                       <p className="mt-2 break-words text-xl font-bold">
                         {money(Number(value))}
                       </p>
@@ -1928,7 +1928,7 @@ export function Portfolio({
                   ))}
                 </div>
                 {sim.method === "loan" && scenario.principal > 0 && (
-                  <p className="mt-4 text-sm text-slate-600">
+                  <p className="mt-4 text-sm text-[#62584E]">
                     Estimated final payment: {addMonths(today, sim.months)}{" "}
                     (first payment assumed next month).
                   </p>
@@ -1945,7 +1945,7 @@ export function Portfolio({
                     committing.
                   </p>
                 )}
-                <p className="mt-4 text-xs leading-relaxed text-slate-500">
+                <p className="mt-4 text-xs leading-relaxed text-[#62584E]">
                   Headroom uses the lower of planned savings and logged surplus,
                   including scheduled Portfolio commitments in the selected
                   cycle. Sync commitments to show these in Monthly Budget.
@@ -1954,7 +1954,7 @@ export function Portfolio({
                   loan.
                 </p>
                 {simGoal && baselineGoal && changedGoal && (
-                  <p className="mt-4 rounded-xl bg-violet-50 p-4 text-sm text-violet-800">
+                  <p className="mt-4 rounded-xl bg-[#EDF2F8] p-4 text-sm text-[#355380]">
                     {simGoal.name}: estimated completion{" "}
                     {baselineGoal.completion || "unknown"} →{" "}
                     {changedGoal.completion || "not funded at this rate"}.
@@ -1999,7 +1999,7 @@ export function Portfolio({
                   <input
                     aria-label={f.label}
                     type="checkbox"
-                    className="h-5 w-5 accent-rose-600"
+                    className="h-5 w-5 accent-[#D95D39]"
                     checked={!!editor.draft[f.key]}
                     onChange={(e) => changeDraft(f.key, e.target.checked)}
                   />
@@ -2019,7 +2019,7 @@ export function Portfolio({
                   />
                 )}{" "}
                 {f.hint && (
-                  <p className="mt-1 text-xs font-normal leading-relaxed text-slate-400">
+                  <p className="mt-1 text-xs font-normal leading-relaxed text-[#8C8073]">
                     {f.hint}
                   </p>
                 )}
@@ -2038,7 +2038,7 @@ export function Portfolio({
             {error && (
               <p
                 role="alert"
-                className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700"
+                className="rounded-xl bg-[#FBECE7] p-3 text-sm text-[#A83E20]"
               >
                 {error}
               </p>

@@ -48,7 +48,7 @@ const CATEGORY_META = [
     name: Category.Entertainment,
     label: "Entertainment",
     icon: Film,
-    bg: "bg-pink-50 text-pink-700 border-pink-200",
+    bg: "bg-[#FBECE7] text-[#A83E20] border-[#F2C9BC]",
   },
   {
     name: Category.Food,
@@ -210,16 +210,16 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
   return (
     <div
       id="expense-form-root"
-      className="w-full bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm"
+      className="w-full bg-white border border-[#EAE2D6] rounded-2xl p-6 md:p-8 shadow-sm"
     >
       <div
         id="form-header"
-        className="border-b border-slate-100 pb-6 mb-6 -mx-6 -mt-6 p-6 rounded-t-xl bg-slate-50/50"
+        className="border-b border-[#EFE8DC] pb-6 mb-6 -mx-6 -mt-6 p-6 rounded-t-xl bg-[#FAF7F2]/60"
       >
-        <h2 className="font-sans font-bold text-lg text-slate-800">
+        <h2 className="font-sans font-bold text-lg text-[#24201D]">
           New Expense Entry
         </h2>
-        <p className="text-slate-400 text-xs mt-1">
+        <p className="text-[#8C8073] text-xs mt-1">
           Your daily expenses and receipts
         </p>
       </div>
@@ -237,11 +237,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
       >
         {/* Date Row */}
         <div id="input-group-date">
-          <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-            Date of Expense <span className="text-rose-600 font-bold">*</span>
+          <label className="block text-xs font-bold text-[#8C8073] uppercase tracking-widest mb-1.5">
+            Date of Expense <span className="text-[#D95D39] font-bold">*</span>
           </label>
           <div className="relative">
-            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8C8073]">
               <Calendar className="h-4 w-4" />
             </span>
             <input
@@ -252,19 +252,19 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="min-w-0 w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 text-sm focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all outline-none"
+              className="min-w-0 w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#EAE2D6] bg-[#FAF7F2] text-[#24201D] text-sm focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] transition-all outline-none"
             />
           </div>
         </div>
 
         {/* Item Row */}
         <div id="input-group-item">
-          <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+          <label className="block text-xs font-bold text-[#8C8073] uppercase tracking-widest mb-1.5">
             Item / Description{" "}
-            <span className="text-rose-600 font-bold">*</span>
+            <span className="text-[#D95D39] font-bold">*</span>
           </label>
           <div className="relative">
-            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8C8073]">
               <Tag className="h-4 w-4" />
             </span>
             <input
@@ -274,18 +274,18 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               placeholder="e.g., Office broadband subscription"
               value={item}
               onChange={(e) => setItem(e.target.value)}
-              className="min-w-0 w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 text-sm placeholder:text-slate-400 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all outline-none"
+              className="min-w-0 w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#EAE2D6] bg-[#FAF7F2] text-[#24201D] text-sm placeholder:text-[#9D9083] focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] transition-all outline-none"
             />
           </div>
         </div>
 
         {/* Amount Row */}
         <div id="input-group-amount">
-          <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-            Amount (RM) <span className="text-rose-600 font-bold">*</span>
+          <label className="block text-xs font-bold text-[#8C8073] uppercase tracking-widest mb-1.5">
+            Amount (RM) <span className="text-[#D95D39] font-bold">*</span>
           </label>
           <div className="relative">
-            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8C8073]">
               <Coins className="h-4 w-4" />
             </span>
             <input
@@ -297,15 +297,15 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="min-w-0 w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 text-sm placeholder:text-slate-400 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all outline-none"
+              className="min-w-0 w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#EAE2D6] bg-[#FAF7F2] text-[#24201D] text-sm placeholder:text-[#9D9083] focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] transition-all outline-none"
             />
           </div>
         </div>
 
         {/* Category Row with Rich Selector */}
         <div id="input-group-category">
-          <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2.5">
-            Category <span className="text-rose-600 font-bold">*</span>
+          <label className="block text-xs font-bold text-[#8C8073] uppercase tracking-widest mb-2.5">
+            Category <span className="text-[#D95D39] font-bold">*</span>
           </label>
           <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-2">
             {CATEGORY_META.map((meta) => {
@@ -318,8 +318,8 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
                   onClick={() => setSelectedCategory(meta.name)}
                   className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs text-left cursor-pointer transition-all duration-150 ${
                     isSelected
-                      ? `border-rose-500 bg-rose-50 text-rose-700 font-semibold shadow-xs`
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                      ? `border-[#D95D39] bg-[#FBECE7] text-[#A83E20] font-semibold shadow-xs`
+                      : "bg-[#FAF7F2] border-[#EAE2D6] text-[#62584E] hover:bg-[#F3EDE3]"
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5 shrink-0" />
@@ -332,9 +332,9 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
         {/* Receipt Upload Row */}
         <div id="input-group-receipt">
-          <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+          <label className="block text-xs font-bold text-[#8C8073] uppercase tracking-widest mb-1.5">
             Receipt File{" "}
-            <span className="text-slate-400 font-normal normal-case">
+            <span className="text-[#8C8073] font-normal normal-case">
               (Optional)
             </span>
           </label>
@@ -357,15 +357,15 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               onClick={() => fileInputRef.current?.click()}
               className={`border border-dashed rounded-lg p-5 text-center flex flex-col items-center justify-center cursor-pointer transition-colors duration-150 ${
                 dragActive
-                  ? "border-rose-500 bg-rose-50/30"
-                  : "border-slate-200 bg-slate-50/50 hover:bg-slate-50"
+                  ? "border-[#D95D39] bg-[#FBECE7]/40"
+                  : "border-[#EAE2D6] bg-[#FAF7F2]/60 hover:bg-[#FAF7F2]"
               }`}
             >
-              <FileUp className="h-6 w-6 text-slate-400 mb-2" />
-              <p className="text-xs text-slate-700 font-medium">
+              <FileUp className="h-6 w-6 text-[#8C8073] mb-2" />
+              <p className="text-xs text-[#3B342E] font-medium">
                 Drag-and-drop or click to browse
               </p>
-              <p className="text-[10px] text-slate-400 mt-1">
+              <p className="text-[10px] text-[#8C8073] mt-1">
                 Supports PDF, JPG, PNG under 10MB
               </p>
               <input
@@ -378,16 +378,16 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               />
             </div>
           ) : (
-            <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-[#FAF7F2] border border-[#EAE2D6] rounded-lg">
               <div className="flex items-center gap-2.5 overflow-hidden">
-                <div className="p-2 bg-slate-200 border border-slate-300 rounded-md shrink-0">
-                  <FileText className="h-4 w-4 text-slate-600" />
+                <div className="p-2 bg-[#EAE2D6] border border-[#DDD2C3] rounded-md shrink-0">
+                  <FileText className="h-4 w-4 text-[#62584E]" />
                 </div>
                 <div className="overflow-hidden">
-                  <p className="text-xs text-slate-800 font-medium truncate">
+                  <p className="text-xs text-[#24201D] font-medium truncate">
                     {receiptFile.name}
                   </p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
+                  <p className="text-[10px] text-[#8C8073] mt-0.5">
                     {(receiptFile.size / 1024).toFixed(1)} KB
                   </p>
                 </div>
@@ -396,7 +396,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
                 type="button"
                 aria-label="Remove selected receipt"
                 onClick={handleRemoveFile}
-                className="p-1.5 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-800 cursor-pointer"
+                className="p-1.5 hover:bg-[#EAE2D6] rounded-full text-[#8C8073] hover:text-[#24201D] cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -431,7 +431,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
           id="btn-submit-expense"
           type="submit"
           disabled={isSubmitting || (!!receiptFile && !receiptReady)}
-          className="w-full flex items-center justify-center gap-2 py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg shadow-md shadow-rose-100 hover:shadow-lg hover:shadow-rose-200 transition-all cursor-pointer disabled:bg-slate-300 text-sm"
+          className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#D95D39] hover:bg-[#C04C2B] text-white font-bold rounded-lg shadow-md shadow-[#D95D39]/15 hover:shadow-lg hover:shadow-[#D95D39]/25 transition-all cursor-pointer disabled:bg-[#D5C9B9] text-sm"
         >
           {isSubmitting ? (
             <>

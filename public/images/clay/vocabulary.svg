@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+<defs>
+
+  <filter id="softShadow" x="-25%" y="-25%" width="150%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" result="blur"/>
+    <feOffset dx="0" dy="5" result="offset"/>
+    <feFlood flood-color="#4A3728" flood-opacity="0.16" result="color"/>
+    <feComposite in="color" in2="offset" operator="in" result="shadow"/>
+    <feMerge>
+      <feMergeNode in="shadow"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <filter id="groundBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="4"/>
+  </filter>
+  <filter id="sheenBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="2.2"/>
+  </filter>
+
+
+    <linearGradient id="dictCover" x1="10%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%" stop-color="#6B91C7"/>
+      <stop offset="55%" stop-color="#4A6FA5"/>
+      <stop offset="100%" stop-color="#2E4A74"/>
+    </linearGradient>
+    <linearGradient id="leftPage" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFDF9"/>
+      <stop offset="100%" stop-color="#E7DCCB"/>
+    </linearGradient>
+    <linearGradient id="rightPage" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FAF4EA"/>
+      <stop offset="100%" stop-color="#DDD0BC"/>
+    </linearGradient>
+  
+</defs>
+
+    <ellipse cx="64" cy="107" rx="46" ry="9" fill="#4A3728" fill-opacity="0.14" filter="url(#groundBlur)"/>
+    <g filter="url(#softShadow)">
+      <!-- Thick cloth outer cover -->
+      <path d="M14 40 C14 35 18 32 24 32 L59 38 C63 39 65 39 69 38 L104 32 C110 32 114 35 114 40 L114 93 C114 98 110 101 104 101 L69 97 C65 96 63 96 59 97 L24 101 C18 101 14 98 14 93 Z" fill="url(#dictCover)"/>
+      <!-- Left curved clay page block -->
+      <path d="M21 32 C35 28 52 30 64 38 L64 91 C52 84 35 83 21 88 Z" fill="url(#leftPage)"/>
+      <!-- Right curved clay page block -->
+      <path d="M107 32 C93 28 76 30 64 38 L64 91 C76 84 93 83 107 88 Z" fill="url(#rightPage)"/>
+      <!-- Soft center fold crease -->
+      <line x1="64" y1="38" x2="64" y2="91" stroke="#C5B49D" stroke-width="2.5"/>
+      <!-- Soft embossed lines -->
+      <rect x="29" y="45" width="24" height="4" rx="2" fill="#4A6FA5" opacity="0.5"/>
+      <rect x="29" y="55" width="26" height="3.5" rx="1.7" fill="#C9B9A4"/>
+      <rect x="29" y="64" width="21" height="3.5" rx="1.7" fill="#D5C8B5"/>
+      <rect x="73" y="45" width="24" height="4" rx="2" fill="#5C8D78" opacity="0.55"/>
+      <rect x="73" y="55" width="25" height="3.5" rx="1.7" fill="#C9B9A4"/>
+      <rect x="73" y="64" width="19" height="3.5" rx="1.7" fill="#D5C8B5"/>
+      <!-- Terracotta ribbon bookmark -->
+      <path d="M77 32 L87 30 L87 67 L82 62 L77 67 Z" fill="#D95D39"/>
+    </g>
+  
+</svg>

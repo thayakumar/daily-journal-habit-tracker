@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+<defs>
+
+  <filter id="softShadow" x="-25%" y="-25%" width="150%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" result="blur"/>
+    <feOffset dx="0" dy="5" result="offset"/>
+    <feFlood flood-color="#4A3728" flood-opacity="0.16" result="color"/>
+    <feComposite in="color" in2="offset" operator="in" result="shadow"/>
+    <feMerge>
+      <feMergeNode in="shadow"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <filter id="groundBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="4"/>
+  </filter>
+  <filter id="sheenBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="2.2"/>
+  </filter>
+
+
+    <radialGradient id="kbBody" cx="30%" cy="28%" r="72%">
+      <stop offset="0%" stop-color="#8EC0AA"/>
+      <stop offset="52%" stop-color="#5C8D78"/>
+      <stop offset="100%" stop-color="#375C4C"/>
+    </radialGradient>
+    <linearGradient id="kbHandle" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#F2D7B0"/>
+      <stop offset="55%" stop-color="#D2A773"/>
+      <stop offset="100%" stop-color="#9A7041"/>
+    </linearGradient>
+    <radialGradient id="kbBadge" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#F7D78E"/>
+      <stop offset="65%" stop-color="#E6B85C"/>
+      <stop offset="100%" stop-color="#B98831"/>
+    </radialGradient>
+  
+</defs>
+
+    <ellipse cx="64" cy="109" rx="38" ry="9" fill="#4A3728" fill-opacity="0.15" filter="url(#groundBlur)"/>
+    <g filter="url(#softShadow)">
+      <!-- Thick arched wood handle -->
+      <path d="M40 56 C40 31 48 21 64 21 C80 21 88 31 88 56" stroke="url(#kbHandle)" stroke-width="14" stroke-linecap="round" fill="none"/>
+      <path d="M43 44 C46 31 53 26 64 26" stroke="#FFF1DA" stroke-width="3.5" stroke-linecap="round" opacity="0.55" filter="url(#sheenBlur)"/>
+      <!-- Plump clay kettlebell bell -->
+      <path d="M35 53 C44 47 84 47 93 53 C103 62 104 82 97 96 C92 104 81 107 64 107 C47 107 36 104 31 96 C24 82 25 62 35 53 Z" fill="url(#kbBody)"/>
+      <!-- Sculpted gold emblem medallion -->
+      <circle cx="64" cy="79" r="14" fill="url(#kbBadge)"/>
+      <circle cx="64" cy="79" r="8.5" fill="#F9E3AE" opacity="0.55"/>
+      <!-- Top-left matte highlight -->
+      <path d="M38 64 C35 72 35 83 39 91" stroke="#C4E6D6" stroke-width="5.5" stroke-linecap="round" opacity="0.45" filter="url(#sheenBlur)"/>
+    </g>
+  
+</svg>

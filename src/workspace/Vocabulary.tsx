@@ -118,7 +118,7 @@ export function Vocabulary({
           <div className="min-w-40 flex-1">
             <Field label="Search vocabulary">
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-[#8C8073]" />
                 <input
                   aria-label="Search vocabulary"
                   className={`${inputClass} !pl-9`}
@@ -141,7 +141,7 @@ export function Vocabulary({
             </select>
           </Field>
         </div>
-        <p className="mb-4 text-xs text-slate-400">
+        <p className="mb-4 text-xs text-[#8C8073]">
           {entries.length} of {(data.vocabulary ?? []).length} words
         </p>
         {entries.length ? (
@@ -151,7 +151,7 @@ export function Vocabulary({
               className="block w-full border-collapse text-sm md:table"
             >
               <thead className="hidden md:table-header-group">
-                <tr className="border-b border-slate-200 text-left text-xs text-slate-400">
+                <tr className="border-b border-[#EAE2D6] text-left text-xs text-[#8C8073]">
                   <th scope="col" className="p-3">
                     Word
                   </th>
@@ -170,27 +170,27 @@ export function Vocabulary({
                 {entries.map((entry) => (
                   <tr
                     key={entry.id}
-                    className="mb-4 block rounded-xl border border-slate-200 p-1 md:mb-0 md:table-row md:rounded-none md:border-x-0 md:border-t-0"
+                    className="mb-4 block rounded-xl border border-[#EAE2D6] p-1 md:mb-0 md:table-row md:rounded-none md:border-x-0 md:border-t-0"
                   >
                     <th
                       scope="row"
-                      className="block min-w-0 break-words p-3 text-left font-semibold text-slate-800 md:table-cell md:w-[18%] md:align-top"
+                      className="block min-w-0 break-words p-3 text-left font-semibold text-[#24201D] md:table-cell md:w-[18%] md:align-top"
                     >
                       {entry.word}
                     </th>
                     <td className="block min-w-0 p-3 pt-0 md:table-cell md:w-[32%] md:pt-3 md:align-top">
-                      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-400 md:hidden">
+                      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[#8C8073] md:hidden">
                         Definition
                       </span>
-                      <p className="whitespace-pre-wrap break-words text-slate-600 [overflow-wrap:anywhere]">
+                      <p className="whitespace-pre-wrap break-words text-[#62584E] [overflow-wrap:anywhere]">
                         {entry.definition}
                       </p>
                     </td>
                     <td className="block min-w-0 p-3 pt-0 md:table-cell md:w-[36%] md:pt-3 md:align-top">
-                      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-400 md:hidden">
+                      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[#8C8073] md:hidden">
                         Example usage
                       </span>
-                      <p className="whitespace-pre-wrap break-words text-slate-500 [overflow-wrap:anywhere]">
+                      <p className="whitespace-pre-wrap break-words text-[#62584E] [overflow-wrap:anywhere]">
                         {entry.example}
                       </p>
                     </td>
@@ -238,7 +238,7 @@ export function Vocabulary({
       </Card>
       {open && (
         <div
-          className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-slate-900/40 p-3 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-[#24201D]/35 p-3 backdrop-blur-sm sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) close();
           }}
@@ -249,20 +249,20 @@ export function Vocabulary({
             aria-modal="true"
             aria-labelledby="vocabulary-dialog-title"
             aria-describedby="vocabulary-dialog-description"
-            className="max-h-[calc(100dvh-24px)] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl"
+            className="max-h-[calc(100dvh-24px)] w-full max-w-lg overflow-y-auto rounded-2xl border border-[#EAE2D6] bg-white shadow-xl"
           >
-            <div className="flex items-start justify-between gap-3 border-b border-slate-100 p-5">
+            <div className="flex items-start justify-between gap-3 border-b border-[#EFE8DC] p-5">
               <div>
                 <h2
                   id="vocabulary-dialog-title"
-                  className="flex items-center gap-2 font-semibold text-slate-900"
+                  className="flex items-center gap-2 font-semibold text-[#24201D]"
                 >
-                  <BookOpen className="h-5 w-5 text-rose-500" />
+                  <BookOpen className="h-5 w-5 text-[#D95D39]" />
                   {editing ? "Edit word" : "Add a new word"}
                 </h2>
                 <p
                   id="vocabulary-dialog-description"
-                  className="mt-1 text-sm text-slate-500"
+                  className="mt-1 text-sm text-[#62584E]"
                 >
                   All three fields help make the word stick.
                 </p>
@@ -365,12 +365,12 @@ export function Vocabulary({
               {error && (
                 <p
                   role="alert"
-                  className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700"
+                  className="rounded-xl bg-[#FBECE7] p-3 text-sm text-[#A83E20]"
                 >
                   {error}
                 </p>
               )}
-              <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
+              <div className="flex flex-wrap justify-end gap-2 border-t border-[#EFE8DC] pt-4">
                 <button
                   type="button"
                   className={secondaryClass}
