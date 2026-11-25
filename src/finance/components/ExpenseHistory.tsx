@@ -101,17 +101,17 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
         {/* Metric 1 */}
         <div
           id="metric-total-box"
-          className="min-w-0 p-4 bg-white border border-slate-200 rounded-2xl flex items-center justify-between shadow-sm"
+          className="min-w-0 p-4 bg-white border border-[#EAE2D6] rounded-2xl flex items-center justify-between shadow-sm"
         >
           <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+            <p className="text-[10px] text-[#8C8073] font-bold uppercase tracking-wider">
               Total Recorded Spending
             </p>
-            <p className="break-words text-xl font-sans font-bold text-slate-800 mt-1">
+            <p className="break-words text-xl font-sans font-bold text-[#24201D] mt-1">
               {money(totalAmount)}
             </p>
           </div>
-          <div className="hidden 2xl:block p-3 bg-rose-50 rounded-lg text-rose-600 border border-rose-100 shadow-xs">
+          <div className="hidden 2xl:block p-3 bg-[#FBECE7] rounded-lg text-[#D95D39] border border-[#F5D8CE] shadow-xs">
             <DollarSign className="h-5 w-5" />
           </div>
         </div>
@@ -119,17 +119,17 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
         {/* Metric 2 */}
         <div
           id="metric-avg-box"
-          className="min-w-0 p-4 bg-white border border-slate-200 rounded-2xl flex items-center justify-between shadow-sm"
+          className="min-w-0 p-4 bg-white border border-[#EAE2D6] rounded-2xl flex items-center justify-between shadow-sm"
         >
           <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+            <p className="text-[10px] text-[#8C8073] font-bold uppercase tracking-wider">
               Average Expense
             </p>
-            <p className="break-words text-xl font-sans font-bold text-slate-800 mt-1">
+            <p className="break-words text-xl font-sans font-bold text-[#24201D] mt-1">
               {money(averageAmount)}
             </p>
           </div>
-          <div className="hidden 2xl:block p-3 bg-rose-50 rounded-lg text-rose-600 border border-rose-100 shadow-xs">
+          <div className="hidden 2xl:block p-3 bg-[#FBECE7] rounded-lg text-[#D95D39] border border-[#F5D8CE] shadow-xs">
             <TrendingUp className="h-5 w-5" />
           </div>
         </div>
@@ -137,17 +137,17 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
         {/* Metric 3 */}
         <div
           id="metric-max-box"
-          className="min-w-0 p-4 bg-white border border-slate-200 rounded-2xl flex items-center justify-between shadow-sm"
+          className="min-w-0 p-4 bg-white border border-[#EAE2D6] rounded-2xl flex items-center justify-between shadow-sm"
         >
           <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+            <p className="text-[10px] text-[#8C8073] font-bold uppercase tracking-wider">
               Highest Transaction
             </p>
-            <p className="break-words text-xl font-sans font-bold text-slate-800 mt-1">
+            <p className="break-words text-xl font-sans font-bold text-[#24201D] mt-1">
               {money(maxExpense)}
             </p>
           </div>
-          <div className="hidden 2xl:block p-3 bg-rose-50 rounded-lg text-rose-600 border border-rose-100 shadow-xs">
+          <div className="hidden 2xl:block p-3 bg-[#FBECE7] rounded-lg text-[#D95D39] border border-[#F5D8CE] shadow-xs">
             <Receipt className="h-5 w-5" />
           </div>
         </div>
@@ -156,14 +156,14 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
       {/* Control Block */}
       <div
         id="history-controls"
-        className="min-w-0 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4"
+        className="min-w-0 bg-white border border-[#EAE2D6] rounded-2xl p-5 shadow-sm space-y-4"
       >
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between pb-3 border-b border-slate-100">
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between pb-3 border-b border-[#EFE8DC]">
           <div className="w-full sm:w-auto">
-            <h3 className="font-sans font-bold text-slate-800 text-sm">
+            <h3 className="font-sans font-bold text-[#24201D] text-sm">
               Expense History Log
             </h3>
-            <p className="text-slate-400 text-xs mt-0.5">
+            <p className="text-[#8C8073] text-xs mt-0.5">
               Selected salary cycle · updates as soon as you save
             </p>
             {lastSaved && (
@@ -179,7 +179,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
           <button
             id="btn-refresh-logs"
             onClick={onSync}
-            className="flex items-center gap-2 px-3.5 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-2 px-3.5 py-1.5 border border-[#EAE2D6] hover:bg-[#FAF7F2] text-[#62584E] text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
           >
             <RefreshCw className="h-3 w-3" />
             <span>Sync expenses</span>
@@ -190,8 +190,8 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Search bar */}
           <div className="relative sm:col-span-2">
-            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-              <Search className="h-4 w-4 text-slate-400" />
+            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#8C8073]">
+              <Search className="h-4 w-4 text-[#8C8073]" />
             </span>
             <input
               type="text"
@@ -199,7 +199,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
               placeholder="Search expenses by item or tag..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="min-w-0 w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all"
+              className="min-w-0 w-full pl-9 pr-4 py-2 bg-[#FAF7F2] border border-[#EAE2D6] rounded-lg text-xs focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] outline-none transition-all"
             />
           </div>
 
@@ -208,7 +208,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
             aria-label="Filter expense category"
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all"
+            className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#EAE2D6] rounded-lg text-xs text-[#3B342E] focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] outline-none transition-all"
           >
             <option value="All">All Categories</option>
             {Object.values(Category).map((cat) => (
@@ -223,13 +223,13 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
         {filteredExpenses.length === 0 ? (
           <div
             id="empty-history"
-            className="py-16 text-center text-slate-400 border border-dashed border-slate-200 rounded-lg bg-slate-50 font-medium"
+            className="py-16 text-center text-[#8C8073] border border-dashed border-[#EAE2D6] rounded-lg bg-[#FAF7F2] font-medium"
           >
-            <Receipt className="h-8 w-8 mx-auto text-slate-300 mb-2" />
-            <p className="text-xs font-bold text-slate-600">
+            <Receipt className="h-8 w-8 mx-auto text-[#C5B8A8] mb-2" />
+            <p className="text-xs font-bold text-[#62584E]">
               No transactions recorded
             </p>
-            <p className="text-[10px] text-slate-400 mt-1">
+            <p className="text-[10px] text-[#8C8073] mt-1">
               {expenses.length === 0
                 ? "Add your first expense using the form."
                 : "No items match your active search filter."}
@@ -238,10 +238,10 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
         ) : (
           <div
             id="expense-table"
-            className="max-w-full overflow-x-auto rounded-lg border border-slate-200/80"
+            className="max-w-full overflow-x-auto rounded-lg border border-[#EAE2D6]"
           >
-            <table className="min-w-full divide-y divide-slate-100 text-left">
-              <thead className="bg-slate-50 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+            <table className="min-w-full divide-y divide-[#EFE8DC] text-left">
+              <thead className="bg-[#FAF7F2] text-[10px] text-[#62584E] font-bold uppercase tracking-wider">
                 <tr>
                   <th scope="col" className="px-4 py-3">
                     Date
@@ -265,7 +265,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs text-slate-700 bg-white">
+              <tbody className="divide-y divide-[#EFE8DC] text-xs text-[#3B342E] bg-white">
                 {filteredExpenses.map((exp) => {
                   const CategoryIcon =
                     CATEGORY_ICONS[exp.category] || HelpCircle;
@@ -275,29 +275,29 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                       className={
                         exp.id === lastSaved?.id
                           ? "bg-emerald-50"
-                          : "hover:bg-slate-50/50 transition-colors"
+                          : "hover:bg-[#FAF7F2]/70 transition-colors"
                       }
                     >
                       {/* Date */}
-                      <td className="px-4 py-3.5 whitespace-nowrap text-[11px] font-mono text-slate-500">
+                      <td className="px-4 py-3.5 whitespace-nowrap text-[11px] font-mono text-[#62584E]">
                         {exp.date}
                       </td>
                       {/* Category */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 border border-slate-200/60 rounded text-[10px] text-slate-600 font-bold uppercase tracking-wide">
-                          <CategoryIcon className="h-3 w-3 text-slate-500" />
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#F3EDE3] border border-[#EAE2D6] rounded text-[10px] text-[#62584E] font-bold uppercase tracking-wide">
+                          <CategoryIcon className="h-3 w-3 text-[#62584E]" />
                           <span className="max-w-[100px] truncate">
                             {exp.category}
                           </span>
                         </span>
                       </td>
                       {/* Item */}
-                      <td className="px-4 py-3.5 max-w-xs truncate font-medium text-slate-900">
+                      <td className="px-4 py-3.5 max-w-xs truncate font-medium text-[#24201D]">
                         <span>{exp.item}</span>
                         {exp.receiptName?.startsWith(
                           "Bulk screenshot import",
                         ) && (
-                          <span className="mt-1 block w-fit rounded bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                          <span className="mt-1 block w-fit rounded bg-[#EDF2F8] px-2 py-0.5 text-[10px] font-semibold text-[#355380]">
                             Bulk import
                           </span>
                         )}
@@ -308,7 +308,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                         )}
                       </td>
                       {/* Amount */}
-                      <td className="px-4 py-3.5 whitespace-nowrap text-right font-mono font-bold text-slate-900">
+                      <td className="px-4 py-3.5 whitespace-nowrap text-right font-mono font-bold text-[#24201D]">
                         {money(exp.amount)}
                       </td>
                       {/* Receipt link */}
@@ -321,13 +321,13 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                               setPreviewLoading(true);
                               setReceipt(exp);
                             }}
-                            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#F2C9BC] bg-[#FBECE7] px-3 py-2 text-xs font-semibold text-[#A83E20] hover:bg-[#F7DDD4]"
                           >
                             <FileText className="h-4 w-4" />
                             View
                           </button>
                         ) : (
-                          <span className="text-[10px] text-slate-300 font-mono">
+                          <span className="text-[10px] text-[#C5B8A8] font-mono">
                             -
                           </span>
                         )}
@@ -407,7 +407,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                 }
               />
             </Field>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[#62584E]">
               Changing the date moves this transaction into the matching salary
               cycle.
             </p>
@@ -450,12 +450,12 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
               </select>
             </Field>
             {editing.receiptUrl && (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-[#62584E]">
                 Your existing receipt will be kept.
               </p>
             )}
             {editError && (
-              <p role="alert" className="text-sm text-rose-700">
+              <p role="alert" className="text-sm text-[#A83E20]">
                 {editError}
               </p>
             )}
@@ -474,13 +474,13 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
       )}
       {receipt && (
         <Dialog wide title="Receipt preview" onClose={() => setReceipt(null)}>
-          <p className="mb-3 break-words text-sm text-slate-600">
+          <p className="mb-3 break-words text-sm text-[#62584E]">
             {receipt.receiptName || receipt.item}
           </p>
           {previewUrl ? (
             <>
               {previewLoading && (
-                <p role="status" className="mb-3 text-sm text-slate-500">
+                <p role="status" className="mb-3 text-sm text-[#62584E]">
                   Loading receipt…
                 </p>
               )}
@@ -488,14 +488,14 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                 title={`Receipt for ${receipt.item}`}
                 src={previewUrl}
                 onLoad={() => setPreviewLoading(false)}
-                className="h-[60dvh] min-h-64 w-full rounded-xl border border-slate-200"
+                className="h-[60dvh] min-h-64 w-full rounded-xl border border-[#EAE2D6]"
                 allow="fullscreen"
               />
-              <p className="mt-3 text-xs leading-relaxed text-slate-500">
+              <p className="mt-3 text-xs leading-relaxed text-[#62584E]">
                 The preview uses your existing Google Drive access. If Google
                 blocks it, you can{" "}
                 <a
-                  className="font-medium text-rose-600 underline"
+                  className="font-medium text-[#D95D39] underline"
                   href={previewUrl.replace(/\/preview$/, "/view")}
                   target="_blank"
                   rel="noreferrer"

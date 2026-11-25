@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+<defs>
+
+  <filter id="softShadow" x="-25%" y="-25%" width="150%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" result="blur"/>
+    <feOffset dx="0" dy="5" result="offset"/>
+    <feFlood flood-color="#4A3728" flood-opacity="0.16" result="color"/>
+    <feComposite in="color" in2="offset" operator="in" result="shadow"/>
+    <feMerge>
+      <feMergeNode in="shadow"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <filter id="groundBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="4"/>
+  </filter>
+  <filter id="sheenBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="2.2"/>
+  </filter>
+
+
+    <radialGradient id="bulbGlow" cx="32%" cy="28%" r="70%">
+      <stop offset="0%" stop-color="#FFF5CF"/>
+      <stop offset="48%" stop-color="#F0C667"/>
+      <stop offset="100%" stop-color="#C88E2B"/>
+    </radialGradient>
+    <linearGradient id="brassBase" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="#E7D8C5"/>
+      <stop offset="55%" stop-color="#B9A794"/>
+      <stop offset="100%" stop-color="#877564"/>
+    </linearGradient>
+    <radialGradient id="sparkHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#F6D178" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#F6D178" stop-opacity="0"/>
+    </radialGradient>
+  
+</defs>
+
+    <circle cx="64" cy="54" r="46" fill="url(#sparkHalo)"/>
+    <ellipse cx="64" cy="110" rx="30" ry="8" fill="#4A3728" fill-opacity="0.14" filter="url(#groundBlur)"/>
+    <!-- Clay light rays -->
+    <rect x="61.5" y="9" width="5" height="11" rx="2.5" fill="#E6B85C"/>
+    <rect x="26" y="25" width="5" height="11" rx="2.5" transform="rotate(-42 28.5 30.5)" fill="#E6B85C"/>
+    <rect x="97" y="25" width="5" height="11" rx="2.5" transform="rotate(42 99.5 30.5)" fill="#E6B85C"/>
+    <g filter="url(#softShadow)">
+      <!-- Plump matte clay bulb -->
+      <path d="M64 24 C45 24 33 37 33 54 C33 66 41 74 47 82 L81 82 C87 74 95 66 95 54 C95 37 83 24 64 24 Z" fill="url(#bulbGlow)"/>
+      <!-- Soft inner warm filament arc -->
+      <path d="M55 62 C55 52 73 52 73 62" stroke="#FFFDF4" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+      <line x1="64" y1="62" x2="64" y2="78" stroke="#FFFDF4" stroke-width="3.5" stroke-linecap="round" opacity="0.65"/>
+      <!-- Rounded ceramic screw base -->
+      <rect x="46" y="79" width="36" height="12" rx="6" fill="url(#brassBase)"/>
+      <rect x="49" y="89" width="30" height="10" rx="5" fill="#9E8C79"/>
+      <path d="M54 99 L74 99 C73 105 69 108 64 108 C59 108 55 105 54 99 Z" fill="#D95D39"/>
+      <!-- Specular clay sheen -->
+      <ellipse cx="49" cy="43" rx="6" ry="11" transform="rotate(-20 49 43)" fill="#FFFFFF" opacity="0.55" filter="url(#sheenBlur)"/>
+    </g>
+  
+</svg>

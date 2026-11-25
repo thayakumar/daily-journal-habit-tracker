@@ -86,7 +86,7 @@ export default function Finance({
     return (
       <p
         role="status"
-        className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500"
+        className="rounded-2xl border border-[#EAE2D6] bg-white p-6 text-sm text-[#62584E]"
       >
         Loading your current salary cycle…
       </p>
@@ -109,7 +109,7 @@ export default function Finance({
               aria-selected={view === tab}
               aria-controls={`finance-${tab}`}
               id={`tab-${tab}`}
-              className={`min-h-11 rounded-xl px-4 py-2.5 text-sm font-medium ${view === tab ? "bg-rose-600 text-white" : "bg-slate-50 text-slate-500"}`}
+              className={`min-h-11 rounded-xl px-4 py-2.5 text-sm font-medium ${view === tab ? "bg-[#D95D39] text-white" : "bg-[#FAF7F2] text-[#62584E]"}`}
               onClick={() => {
                 if (tab === "portfolio") setPortfolioSection("overview");
                 setView(tab);
@@ -134,13 +134,13 @@ export default function Finance({
           key={view === "portfolio" ? "portfolio" : "budget"}
           className="max-w-md"
         >
-          <summary className="mb-3 cursor-pointer text-sm font-semibold text-slate-600">
+          <summary className="mb-3 cursor-pointer text-sm font-semibold text-[#62584E]">
             {view === "portfolio"
               ? "Optional monthly reconciliation & budget links"
               : "Salary cycle"}
           </summary>
           {view === "portfolio" && (
-            <p className="mb-3 text-sm text-slate-500">
+            <p className="mb-3 text-sm text-[#62584E]">
               Portfolio values and history span all dates. Select a cycle only
               for opening/closing comparisons and links to Monthly Budget.
             </p>
@@ -167,7 +167,7 @@ export default function Finance({
             </select>
           </Field>
           {cycle && (
-            <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+            <p className="mt-3 rounded-xl bg-[#FBECE7] px-3 py-2 text-sm font-medium text-[#A83E20]">
               {cycle.start} → {cycle.end}
             </p>
           )}

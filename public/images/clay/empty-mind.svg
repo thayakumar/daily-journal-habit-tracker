@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 180" fill="none">
+<defs>
+
+  <filter id="softShadow" x="-25%" y="-25%" width="150%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" result="blur"/>
+    <feOffset dx="0" dy="5" result="offset"/>
+    <feFlood flood-color="#4A3728" flood-opacity="0.16" result="color"/>
+    <feComposite in="color" in2="offset" operator="in" result="shadow"/>
+    <feMerge>
+      <feMergeNode in="shadow"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <filter id="groundBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="4"/>
+  </filter>
+  <filter id="sheenBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="2.2"/>
+  </filter>
+
+  <radialGradient id="emCup" cx="30%" cy="26%" r="74%">
+    <stop offset="0%" stop-color="#92C4AE"/>
+    <stop offset="55%" stop-color="#5C8D78"/>
+    <stop offset="100%" stop-color="#3A6251"/>
+  </radialGradient>
+  <linearGradient id="emNote" x1="15%" y1="0%" x2="85%" y2="100%">
+    <stop offset="0%" stop-color="#FFFDF9"/>
+    <stop offset="60%" stop-color="#F2EAE0"/>
+    <stop offset="100%" stop-color="#D9CBB7"/>
+  </linearGradient>
+</defs>
+  <ellipse cx="142" cy="148" rx="90" ry="15" fill="#4A3728" fill-opacity="0.1" filter="url(#groundBlur)"/>
+  <!-- Calm curling steam -->
+  <path d="M98 64 C94 53 102 47 98 37" stroke="#D1C3B0" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+  <path d="M114 58 C110 47 118 41 114 31" stroke="#D1C3B0" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+  <g filter="url(#softShadow)">
+    <!-- Folded cream paper note on right -->
+    <g transform="translate(178 106) rotate(7)">
+      <rect x="-40" y="-32" width="80" height="64" rx="14" fill="url(#emNote)"/>
+      <path d="M-40 -10 L0 10 L40 -10" stroke="#DDD0BC" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <circle cx="0" cy="8" r="8" fill="#D95D39"/>
+    </g>
+    <!-- Eucalyptus teacup on saucer on left -->
+    <ellipse cx="105" cy="133" rx="44" ry="13" fill="#EFE6D8"/>
+    <ellipse cx="105" cy="131" rx="28" ry="7.5" fill="#DDD0BC"/>
+    <path d="M128 92 C142 92 143 115 128 115" stroke="#4D7C68" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <path d="M80 83 C80 79 91 76 105 76 C119 76 130 79 130 83 L128 119 C127 127 118 131 105 131 C92 131 83 127 82 119 Z" fill="url(#emCup)"/>
+    <ellipse cx="105" cy="83" rx="25" ry="8" fill="#F8F3EC"/>
+    <ellipse cx="105" cy="84" rx="20" ry="5.5" fill="#C98A4B"/>
+    <path d="M89 95 L90 116" stroke="#C5E6D6" stroke-width="4.5" stroke-linecap="round" opacity="0.5" filter="url(#sheenBlur)"/>
+  </g>
+</svg>

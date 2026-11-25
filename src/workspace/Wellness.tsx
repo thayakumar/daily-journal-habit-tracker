@@ -49,10 +49,10 @@ export function Meals({
           </div>
         }
       >
-        <p className="mb-4 text-xs text-slate-400">
+        <p className="mb-4 text-xs text-[#8C8073]">
           {dates[0]} — {dates[6]} · saves as you type
         </p>
-        <p className="mb-3 text-xs text-slate-500">
+        <p className="mb-3 text-xs text-[#62584E]">
           All days are shown below. Swipe horizontally on smaller screens.
         </p>
         <div data-horizontal-scroll className="max-w-full overflow-x-auto">
@@ -66,7 +66,7 @@ export function Meals({
                   (label) => (
                     <th
                       key={label}
-                      className="p-3 text-left font-semibold text-slate-600"
+                      className="p-3 text-left font-semibold text-[#62584E]"
                     >
                       {label}
                     </th>
@@ -79,17 +79,17 @@ export function Meals({
                 <tr
                   key={d}
                   className={
-                    d === today ? "bg-rose-50/50" : "border-t border-slate-100"
+                    d === today ? "bg-[#FBECE7]/60" : "border-t border-[#EFE8DC]"
                   }
                 >
-                  <th scope="row" className="w-28 p-3 text-left text-slate-600">
+                  <th scope="row" className="w-28 p-3 text-left text-[#62584E]">
                     {new Date(`${d}T12:00`).toLocaleDateString("en", {
                       weekday: "short",
                       month: "short",
                       day: "numeric",
                     })}
                     {d === today && (
-                      <span className="block text-xs text-rose-500">Today</span>
+                      <span className="block text-xs text-[#D95D39]">Today</span>
                     )}
                   </th>
                   {(["breakfast", "lunch", "dinner", "snack"] as const).map(

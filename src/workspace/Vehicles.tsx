@@ -86,14 +86,14 @@ export function Vehicles({
             {vehicles.map((v) => (
               <article
                 key={v.id}
-                className="min-w-0 rounded-2xl border border-slate-200 p-4"
+                className="min-w-0 rounded-2xl border border-[#EAE2D6] p-4"
               >
                 <div className="flex gap-2">
                   <div className="min-w-0 flex-1">
                     <h3 className="break-words text-lg font-semibold">
                       {v.name}
                     </h3>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-[#62584E]">
                       {v.plate || "No plate recorded"} ·{" "}
                       {v.odometer.toLocaleString()} km
                     </p>
@@ -132,7 +132,7 @@ export function Vehicles({
                   ).map(([label, date]) => (
                     <div
                       key={label}
-                      className={`flex flex-wrap justify-between gap-2 rounded-xl p-3 text-sm ${date && date <= today ? "bg-rose-50 text-rose-700" : "bg-slate-50 text-slate-600"}`}
+                      className={`flex flex-wrap justify-between gap-2 rounded-xl p-3 text-sm ${date && date <= today ? "bg-[#FBECE7] text-[#A83E20]" : "bg-[#FAF7F2] text-[#62584E]"}`}
                     >
                       <strong>{label}</strong>
                       <span>
@@ -142,18 +142,18 @@ export function Vehicles({
                   ))}
                 </div>
                 {!!v.serviceAtKm && (
-                  <p className="mb-3 text-sm font-medium text-violet-700">
+                  <p className="mb-3 text-sm font-medium text-[#355380]">
                     Service at {v.serviceAtKm.toLocaleString()} km ·{" "}
                     {v.odometer >= v.serviceAtKm
                       ? "Mileage reached"
                       : `${(v.serviceAtKm - v.odometer).toLocaleString()} km remaining`}
                   </p>
                 )}
-                <p className="break-words text-sm text-slate-500">
+                <p className="break-words text-sm text-[#62584E]">
                   {v.insurer}
                   {v.policy && ` · Policy ${v.policy}`}
                 </p>
-                <p className="my-3 whitespace-pre-wrap break-words text-sm text-slate-500">
+                <p className="my-3 whitespace-pre-wrap break-words text-sm text-[#62584E]">
                   {v.notes}
                 </p>
                 <button className={secondaryClass} onClick={() => log(v)}>
@@ -171,7 +171,7 @@ export function Vehicles({
                       .map((s) => (
                         <li
                           key={s.id}
-                          className="flex gap-2 rounded-xl bg-slate-50 p-3"
+                          className="flex gap-2 rounded-xl bg-[#FAF7F2] p-3"
                         >
                           <div className="min-w-0 flex-1 break-words text-sm">
                             <strong>

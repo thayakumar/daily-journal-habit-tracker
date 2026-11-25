@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+<defs>
+
+  <filter id="softShadow" x="-25%" y="-25%" width="150%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" result="blur"/>
+    <feOffset dx="0" dy="5" result="offset"/>
+    <feFlood flood-color="#4A3728" flood-opacity="0.16" result="color"/>
+    <feComposite in="color" in2="offset" operator="in" result="shadow"/>
+    <feMerge>
+      <feMergeNode in="shadow"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <filter id="groundBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="4"/>
+  </filter>
+  <filter id="sheenBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="2.2"/>
+  </filter>
+
+
+    <radialGradient id="walletBody" cx="28%" cy="22%" r="78%">
+      <stop offset="0%" stop-color="#F08A68"/>
+      <stop offset="52%" stop-color="#D95D39"/>
+      <stop offset="100%" stop-color="#9A381D"/>
+    </radialGradient>
+    <radialGradient id="walletClasp" cx="30%" cy="25%" r="75%">
+      <stop offset="0%" stop-color="#F49A7B"/>
+      <stop offset="58%" stop-color="#C84E2C"/>
+      <stop offset="100%" stop-color="#8D3117"/>
+    </radialGradient>
+    <radialGradient id="goldCoin" cx="30%" cy="26%" r="72%">
+      <stop offset="0%" stop-color="#FCE4A3"/>
+      <stop offset="52%" stop-color="#E6B85C"/>
+      <stop offset="100%" stop-color="#B07D24"/>
+    </radialGradient>
+    <linearGradient id="billGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8BC0A9"/>
+      <stop offset="100%" stop-color="#4D7E69"/>
+    </linearGradient>
+  
+</defs>
+
+    <ellipse cx="64" cy="108" rx="44" ry="9" fill="#4A3728" fill-opacity="0.14" filter="url(#groundBlur)"/>
+    <g filter="url(#softShadow)">
+      <!-- Tucked sage note peeking out -->
+      <rect x="28" y="31" width="60" height="28" rx="8" transform="rotate(-7 58 45)" fill="url(#billGreen)"/>
+      <circle cx="57" cy="43" r="6" fill="#C4E6D6" opacity="0.5"/>
+      <!-- Main wallet body -->
+      <rect x="19" y="40" width="84" height="62" rx="16" fill="url(#walletBody)"/>
+      <!-- Subtle stitched trim -->
+      <rect x="25" y="46" width="72" height="50" rx="11" stroke="#F8B59B" stroke-width="1.6" stroke-dasharray="4 4" opacity="0.55"/>
+      <!-- Clasp strap -->
+      <rect x="74" y="60" width="33" height="22" rx="11" fill="url(#walletClasp)"/>
+      <circle cx="86" cy="71" r="5" fill="url(#goldCoin)"/>
+      <!-- Matte highlight -->
+      <path d="M29 48 L66 48" stroke="#F9C1AC" stroke-width="4" stroke-linecap="round" opacity="0.45" filter="url(#sheenBlur)"/>
+    </g>
+    <!-- Butter gold coin leaning in front -->
+    <g filter="url(#softShadow)">
+      <circle cx="94" cy="92" r="16" fill="url(#goldCoin)"/>
+      <circle cx="94" cy="92" r="11" stroke="#FFF1C7" stroke-width="2" opacity="0.7"/>
+      <ellipse cx="89" cy="86" rx="4.5" ry="2.5" transform="rotate(-30 89 86)" fill="#FFFFFF" opacity="0.55"/>
+    </g>
+  
+</svg>

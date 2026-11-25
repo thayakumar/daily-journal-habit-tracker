@@ -42,22 +42,22 @@ export function TodayHabits({
       {(journal?.habits ?? []).map((h) => (
         <div
           key={h.id}
-          className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 p-3"
+          className="flex min-w-0 items-center gap-3 rounded-xl border border-[#EAE2D6] bg-[#FAF7F2]/60 p-3.5 transition hover:border-[#DDD2C3]"
         >
           <button
             type="button"
             aria-label={`${h.name} today`}
             aria-pressed={!!row?.habits[h.id]}
             onClick={() => journal?.toggleDay(today, h.id)}
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 text-sm ${row?.habits[h.id] ? `${h.color} text-white` : "border-slate-200 text-slate-300"}`}
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 text-sm transition ${row?.habits[h.id] ? `${h.color} text-white` : "border-[#DDD2C3] bg-white text-transparent hover:border-[#D95D39]"}`}
           >
             {row?.habits[h.id] ? "✓" : ""}
           </button>
           <div className="min-w-0">
-            <p className="break-words text-sm font-medium text-slate-700">
+            <p className="break-words text-sm font-semibold text-[#24201D]">
               {h.name}
             </p>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-0.5 text-xs text-[#8C8073]">
               Daily{data.reminders[h.id] ? ` · ${data.reminders[h.id]}` : ""}
             </p>
           </div>
@@ -71,7 +71,7 @@ export function TodayHabits({
         return (
           <div
             key={h.id}
-            className={`flex min-w-0 items-center gap-3 rounded-xl border p-3 ${done ? "border-emerald-200 bg-emerald-50/30" : "border-amber-200 bg-amber-50/50"}`}
+            className={`flex min-w-0 items-center gap-3 rounded-xl border p-3.5 ${done ? "border-[#CFE0D7] bg-[#F1F6F3]" : "border-[#EFE0BE] bg-[#FBF6EA]"}`}
           >
             <Circle
               checked={done}
@@ -83,11 +83,11 @@ export function TodayHabits({
               }}
             />
             <div className="min-w-0">
-              <p className="break-words text-sm font-medium text-slate-700">
+              <p className="break-words text-sm font-semibold text-[#24201D]">
                 {h.name}
               </p>
               <p
-                className={`mt-1 text-xs ${done ? "text-emerald-600" : "text-amber-700"}`}
+                className={`mt-0.5 text-xs ${done ? "text-[#3F6B57]" : "text-[#9A6F25]"}`}
               >
                 {done
                   ? "Completed today"
@@ -305,15 +305,15 @@ export function Habits({
           today={today}
         />
       </Card>
-      <details className="rounded-2xl border border-slate-200 bg-white">
-        <summary className="cursor-pointer p-5 text-sm font-semibold text-slate-700">
+      <details className="clay-card rounded-2xl">
+        <summary className="cursor-pointer p-5 text-sm font-semibold text-[#24201D]">
           Customize daily habits
         </summary>
         <Card
           title="Customize daily habits"
           subtitle="Add, rename, recolour or remove habits here. Existing checkmarks stay attached to the same habit."
           action={
-            <span role="status" className="text-xs text-slate-500">
+            <span role="status" className="text-xs text-[#62584E]">
               {journal?.saveStatus ?? "Loading habits…"}
             </span>
           }
@@ -327,7 +327,7 @@ export function Habits({
               return (
                 <div
                   key={h.id}
-                  className="grid min-w-0 grid-cols-[1fr_auto] items-end gap-3 rounded-xl border border-slate-100 p-3 sm:grid-cols-[1fr_120px_130px_auto]"
+                  className="grid min-w-0 grid-cols-[1fr_auto] items-end gap-3 rounded-xl border border-[#EFE8DC] bg-[#FAF7F2]/50 p-3 sm:grid-cols-[1fr_120px_130px_auto]"
                 >
                   <Field label="Name">
                     <input
@@ -426,7 +426,7 @@ export function Habits({
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
-            className="text-xs font-medium text-slate-500"
+            className="text-xs font-semibold text-[#62584E] hover:text-[#24201D]"
             onClick={() => setWeek(today)}
           >
             {dates[0]} — {dates[6]}
@@ -443,11 +443,13 @@ export function Habits({
           <table className="w-full min-w-[550px] text-sm">
             <thead>
               <tr>
-                <th className="pb-3 text-left text-xs text-slate-400">Habit</th>
+                <th className="pb-3 text-left text-xs font-semibold text-[#8C8073]">
+                  Habit
+                </th>
                 {dates.map((d) => (
                   <th
                     key={d}
-                    className="pb-3 text-xs font-medium text-slate-400"
+                    className={`pb-3 text-xs font-medium ${d === today ? "font-bold text-[#D95D39]" : "text-[#8C8073]"}`}
                   >
                     {new Date(`${d}T12:00`).toLocaleDateString("en", {
                       weekday: "short",
@@ -459,10 +461,10 @@ export function Habits({
             </thead>
             <tbody>
               {journal?.habits.map((h) => (
-                <tr key={h.id} className="border-t border-slate-100">
+                <tr key={h.id} className="border-t border-[#EFE8DC]">
                   <td className="py-3 pr-3">
                     <span
-                      className={`inline-flex max-w-[170px] break-words rounded-xl border px-2 py-1 text-xs ${h.lightBg}`}
+                      className={`inline-flex max-w-[170px] break-words rounded-xl border px-2.5 py-1 text-xs font-medium ${h.lightBg}`}
                     >
                       {h.name}
                     </span>
@@ -477,7 +479,7 @@ export function Habits({
                           aria-pressed={checked}
                           disabled={d > today}
                           onClick={() => journal.toggleDay(d, h.id)}
-                          className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full border-2 disabled:opacity-30 ${checked ? `${h.color} text-white` : "border-slate-200"}`}
+                          className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full border-2 transition disabled:opacity-30 ${checked ? `${h.color} text-white` : "border-[#DDD2C3] bg-white hover:border-[#D95D39]"}`}
                         >
                           {checked ? "✓" : ""}
                         </button>
@@ -490,8 +492,8 @@ export function Habits({
           </table>
         </div>
       </Card>
-      <details className="rounded-2xl border border-slate-200 bg-white">
-        <summary className="cursor-pointer p-5 text-sm font-semibold text-slate-700">
+      <details className="clay-card rounded-2xl">
+        <summary className="cursor-pointer p-5 text-sm font-semibold text-[#24201D]">
           Recurring routines
         </summary>
         <Card
@@ -504,17 +506,17 @@ export function Habits({
               return (
                 <div
                   key={h.id}
-                  className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-slate-200 p-4"
+                  className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-[#EAE2D6] bg-[#FAF7F2]/60 p-4"
                 >
                   <div className="min-w-0">
-                    <h3 className="break-words text-sm font-medium text-slate-700">
+                    <h3 className="break-words text-sm font-semibold text-[#24201D]">
                       {h.name}
                     </h3>
-                    <p className="mt-1 text-xs text-slate-400">
+                    <p className="mt-1 text-xs text-[#8C8073]">
                       Every {h.interval} days · last done {h.lastDone}
                     </p>
                     <p
-                      className={`mt-2 text-xs font-semibold ${due <= 0 ? "text-amber-700" : "text-emerald-600"}`}
+                      className={`mt-2 text-xs font-semibold ${due <= 0 ? "text-[#9A6F25]" : "text-[#3F6B57]"}`}
                     >
                       {due < 0
                         ? `${-due} days overdue`

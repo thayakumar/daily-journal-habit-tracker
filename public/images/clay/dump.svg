@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+<defs>
+
+  <filter id="softShadow" x="-25%" y="-25%" width="150%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" result="blur"/>
+    <feOffset dx="0" dy="5" result="offset"/>
+    <feFlood flood-color="#4A3728" flood-opacity="0.16" result="color"/>
+    <feComposite in="color" in2="offset" operator="in" result="shadow"/>
+    <feMerge>
+      <feMergeNode in="shadow"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <filter id="groundBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="4"/>
+  </filter>
+  <filter id="sheenBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="2.2"/>
+  </filter>
+
+
+    <linearGradient id="paperCard" x1="15%" y1="10%" x2="85%" y2="95%">
+      <stop offset="0%" stop-color="#FFFDF9"/>
+      <stop offset="60%" stop-color="#F2EAE0"/>
+      <stop offset="100%" stop-color="#D5C6B3"/>
+    </linearGradient>
+    <radialGradient id="cloudClay" cx="32%" cy="26%" r="74%">
+      <stop offset="0%" stop-color="#EDF3FA"/>
+      <stop offset="55%" stop-color="#C8DAEE"/>
+      <stop offset="100%" stop-color="#96B2D4"/>
+    </radialGradient>
+    <linearGradient id="fountainPen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F08B6B"/>
+      <stop offset="55%" stop-color="#D95D39"/>
+      <stop offset="100%" stop-color="#9A391E"/>
+    </linearGradient>
+  
+</defs>
+
+    <ellipse cx="64" cy="109" rx="42" ry="9" fill="#4A3728" fill-opacity="0.13" filter="url(#groundBlur)"/>
+    <g filter="url(#softShadow)">
+      <!-- Soft clay thought cloud behind -->
+      <path d="M36 52 C27 52 21 46 21 38 C21 31 26 26 33 25 C36 17 44 13 53 15 C60 11 71 14 75 22 C83 22 89 28 89 36 C89 45 82 52 73 52 Z" fill="url(#cloudClay)"/>
+      <!-- Small clay thought dots -->
+      <circle cx="42" cy="60" r="4.5" fill="#E6DBCD"/>
+      <!-- Warm cream folded note card -->
+      <rect x="26" y="48" width="66" height="54" rx="14" fill="url(#paperCard)"/>
+      <rect x="38" y="63" width="36" height="4.5" rx="2.2" fill="#D95D39" opacity="0.55"/>
+      <rect x="38" y="74" width="42" height="4" rx="2" fill="#C9BA9F"/>
+      <rect x="38" y="84" width="28" height="4" rx="2" fill="#D5C8B5"/>
+    </g>
+    <!-- Fountain pen resting diagonally -->
+    <g transform="translate(88 73) rotate(36)" filter="url(#softShadow)">
+      <rect x="-7.5" y="-34" width="15" height="52" rx="7.5" fill="url(#fountainPen)"/>
+      <rect x="-7.5" y="4" width="15" height="5" fill="#E6B85C"/>
+      <path d="M-6 15 L6 15 L0 30 Z" fill="#E6B85C"/>
+      <line x1="-2.5" y1="-25" x2="-2.5" y2="0" stroke="#FABCA6" stroke-width="2.6" stroke-linecap="round" opacity="0.65"/>
+    </g>
+  
+</svg>

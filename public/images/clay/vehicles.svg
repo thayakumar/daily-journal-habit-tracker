@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+<defs>
+
+  <filter id="softShadow" x="-25%" y="-25%" width="150%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" result="blur"/>
+    <feOffset dx="0" dy="5" result="offset"/>
+    <feFlood flood-color="#4A3728" flood-opacity="0.16" result="color"/>
+    <feComposite in="color" in2="offset" operator="in" result="shadow"/>
+    <feMerge>
+      <feMergeNode in="shadow"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <filter id="groundBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="4"/>
+  </filter>
+  <filter id="sheenBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="2.2"/>
+  </filter>
+
+
+    <radialGradient id="fobBody" cx="30%" cy="22%" r="75%">
+      <stop offset="0%" stop-color="#769AD0"/>
+      <stop offset="52%" stop-color="#4A6FA5"/>
+      <stop offset="100%" stop-color="#2D466D"/>
+    </radialGradient>
+    <radialGradient id="brassRing" cx="30%" cy="25%" r="75%">
+      <stop offset="0%" stop-color="#FAE2A0"/>
+      <stop offset="58%" stop-color="#E6B85C"/>
+      <stop offset="100%" stop-color="#AA7924"/>
+    </radialGradient>
+    <radialGradient id="tagTag" cx="30%" cy="25%" r="75%">
+      <stop offset="0%" stop-color="#F29373"/>
+      <stop offset="58%" stop-color="#D95D39"/>
+      <stop offset="100%" stop-color="#9A391E"/>
+    </radialGradient>
+  
+</defs>
+
+    <ellipse cx="64" cy="109" rx="38" ry="9" fill="#4A3728" fill-opacity="0.14" filter="url(#groundBlur)"/>
+    <g filter="url(#softShadow)">
+      <!-- Brass keyring loop -->
+      <circle cx="53" cy="36" r="18" stroke="url(#brassRing)" stroke-width="8" fill="none"/>
+      <path d="M40 28 C44 22 50 20 57 20" stroke="#FFF4D1" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+      <!-- Terracotta leather tag on right -->
+      <g transform="translate(83 63) rotate(18)">
+        <rect x="-12" y="-22" width="24" height="44" rx="12" fill="url(#tagTag)"/>
+        <circle cx="0" cy="-12" r="3.5" fill="#FAF7F2"/>
+      </g>
+      <!-- Rounded clay car key fob -->
+      <g transform="translate(52 74) rotate(-14)">
+        <rect x="-21" y="-31" width="42" height="62" rx="18" fill="url(#fobBody)"/>
+        <!-- Raised clay buttons -->
+        <rect x="-12" y="-16" width="24" height="12" rx="6" fill="#9BB8E3" opacity="0.88"/>
+        <circle cx="0" cy="6" r="7.5" fill="#E6B85C"/>
+        <rect x="-10" y="18" width="20" height="5" rx="2.5" fill="#324D78" opacity="0.55"/>
+        <!-- Sheen -->
+        <path d="M-14 -19 L-14 14" stroke="#B7D0F2" stroke-width="3.8" stroke-linecap="round" opacity="0.45" filter="url(#sheenBlur)"/>
+      </g>
+    </g>
+  
+</svg>

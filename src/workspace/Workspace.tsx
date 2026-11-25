@@ -7,27 +7,15 @@ import {
   useState,
 } from "react";
 import {
-  CalendarDays,
-  Car,
   ArrowRight,
-  BookOpen,
   CheckCircle2,
   ChevronRight,
   Cloud,
   Download,
-  Dumbbell,
-  Flower2,
-  Heart,
-  LayoutDashboard,
-  Lightbulb,
+  LayoutGrid,
   Menu,
-  MessageCircle,
-  Settings,
-  Sprout,
   Upload,
-  Utensils,
   X,
-  Wallet,
 } from "lucide-react";
 import Journal, { type JournalBridge } from "../App";
 import { isConfigured } from "../lib/sheets-api";
@@ -39,6 +27,7 @@ import { Fitness } from "./Fitness";
 import { Vocabulary } from "./Vocabulary";
 import { BrainDump, Ideas } from "./Creativity";
 import { useWorkspace } from "./useWorkspace";
+import { ClayObject, clayAssetUrl, type ClayAssetName } from "./clayAssets";
 import {
   downloadJson,
   isJournal,
@@ -46,6 +35,8 @@ import {
   JOURNAL_KEY,
   localDate,
   readJournal,
+  todayRecurring,
+  recurringDone,
   WORKSPACE_KEY,
   type Workspace,
 } from "./model";
@@ -62,91 +53,113 @@ import {
 const Skincare = lazy(() => import("../skincare/Skincare"));
 const Finance = lazy(() => import("../finance/Finance"));
 
-const NAV = [
+interface NavEntry {
+  id:
+    | "overview"
+    | "habits"
+    | "personal"
+    | "skincare"
+    | "fitness"
+    | "finance"
+    | "calendar"
+    | "vehicles"
+    | "meals"
+    | "dump"
+    | "ideas"
+    | "vocabulary"
+    | "settings";
+  label: string;
+  asset?: ClayAssetName;
+  description: string;
+}
+
+const NAV: readonly NavEntry[] = [
   {
     id: "overview",
     label: "Overview",
-    icon: LayoutDashboard,
-    description: "A little clarity for your day.",
+    description: "Every room on your daily shelf.",
   },
   {
     id: "habits",
     label: "Habits",
-    icon: Sprout,
-    description: "Small steps, a little more often.",
+    asset: "habits",
+    description: "Daily check-ins and recurring routines.",
   },
   {
     id: "personal",
     label: "Personal",
-    icon: Heart,
-    description: "The everyday things, all together.",
+    asset: "personal",
+    description: "Errands, groceries, wishlist, and watch list.",
   },
   {
     id: "skincare",
     label: "Skincare",
-    icon: Flower2,
-    description: "Your routine, products and skin over time.",
+    asset: "skincare",
+    description: "Morning and night shelf, products, and notes.",
   },
   {
     id: "fitness",
     label: "Fitness",
-    icon: Dumbbell,
-    description: "Show up for yourself.",
+    asset: "fitness",
+    description: "Workouts, dated sets, and cardio sessions.",
   },
   {
     id: "finance",
     label: "Finance",
-    icon: Wallet,
-    description: "Your expenses and receipts, together.",
+    asset: "finance",
+    description: "Expenses, monthly cycles, receipts, and net worth.",
   },
   {
     id: "calendar",
     label: "Calendar",
-    icon: CalendarDays,
-    description: "Events, holidays and time for yourself.",
+    asset: "calendar",
+    description: "Upcoming dates, holidays, and time off.",
   },
   {
     id: "vehicles",
     label: "Vehicles",
-    icon: Car,
-    description: "Renewals, mileage and service history.",
+    asset: "vehicles",
+    description: "Renewals, mileage, and service logs.",
   },
   {
     id: "meals",
     label: "Meals",
-    icon: Utensils,
-    description: "A little planning goes a long way.",
+    asset: "meals",
+    description: "Weekly breakfast, lunch, dinner, and snacks.",
   },
   {
     id: "dump",
     label: "Brain dump",
-    icon: MessageCircle,
-    description: "Think it. Drop it. Breathe.",
+    asset: "dump",
+    description: "Unfiltered notes whenever something crosses your mind.",
   },
   {
     id: "ideas",
     label: "Ideas",
-    icon: Lightbulb,
-    description: "Keep the things that spark something.",
+    asset: "ideas",
+    description: "Saved links, references, and notes for later.",
   },
   {
     id: "vocabulary",
     label: "Vocabulary",
-    icon: BookOpen,
-    description: "New words, clearer meanings, better expression.",
+    asset: "vocabulary",
+    description: "New words, meanings, and examples to keep.",
   },
   {
     id: "settings",
     label: "Settings & backup",
-    icon: Settings,
-    description: "Your space, your data.",
+    asset: "settings",
+    description: "Workspace name, sync status, and JSON backups.",
   },
 ] as const;
-type Tab = (typeof NAV)[number]["id"];
+
+type Tab = NavEntry["id"];
+
 function currentTab(): Tab {
   const id = window.location.hash.slice(1);
   return NAV.some((n) => n.id === id) ? (id as Tab) : "overview";
 }
+
 function useToday() {
   const [today, setToday] = useState(localDate);
   useEffect(() => {
@@ -155,6 +168,92 @@ function useToday() {
   }, []);
   return today;
 }
+
+function timeGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+function countTodayHabits(
+  data: Workspace,
+  journal: JournalBridge | null,
+  today: string,
+) {
+  const row = journal?.rows.find((r) => r.dateStr === today);
+  const daily = journal?.habits ?? [];
+  const recurring = todayRecurring(data, today);
+  const doneDaily = daily.filter((h) => !!row?.habits[h.id]).length;
+  const doneRecurring = recurring.filter((h) =>
+    recurringDone(data, h.id, today),
+  ).length;
+  return {
+    done: doneDaily + doneRecurring,
+    total: daily.length + recurring.length,
+  };
+}
+
+function roomMeta(
+  id: Tab,
+  data: Workspace,
+  journal: JournalBridge | null,
+  today: string,
+): string | null {
+  switch (id) {
+    case "habits": {
+      const { done, total } = countTodayHabits(data, journal, today);
+      return total ? `${done}/${total} today` : "No habits yet";
+    }
+    case "personal": {
+      const open = data.items.filter(
+        (i) =>
+          ["personal", "grocery", "wishlist", "watch"].includes(i.kind) &&
+          !i.done,
+      ).length;
+      return open ? `${open} open` : "All clear";
+    }
+    case "skincare": {
+      const count = data.skincare?.products.filter((p) => p.active).length ?? 0;
+      return count ? `${count} active` : "Routine & shelf";
+    }
+    case "fitness": {
+      const count = data.workoutSets?.length ?? 0;
+      return count ? `${count} logged sets` : "Log a session";
+    }
+    case "finance": {
+      const count = data.financeExpenses?.length ?? 0;
+      return count ? `${count} expenses` : "Budget & receipts";
+    }
+    case "calendar": {
+      const upcoming = data.events.filter((e) => e.date >= today).length;
+      return upcoming ? `${upcoming} upcoming` : "Open calendar";
+    }
+    case "vehicles": {
+      const count = data.vehicles?.length ?? 0;
+      return count ? `${count} tracked` : "Service & renewals";
+    }
+    case "meals":
+      return "7-day table";
+    case "dump": {
+      const count = data.thoughts.length;
+      return count ? `${count} notes` : "Clear mind";
+    }
+    case "ideas": {
+      const count = data.ideas.length;
+      return count ? `${count} saved` : "Shelf for later";
+    }
+    case "vocabulary": {
+      const count = data.vocabulary?.length ?? 0;
+      return count ? `${count} words` : "Pocket lexicon";
+    }
+    case "settings":
+      return isConfigured() ? "Sheets sync" : "Local device";
+    default:
+      return null;
+  }
+}
+
 export default function WorkspaceApp() {
   const {
     data,
@@ -226,79 +325,109 @@ export default function WorkspaceApp() {
     }, 15_000);
     return () => clearInterval(timer);
   }, []);
+
+  const habitSummary = countTodayHabits(data, journal, today);
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 selection:bg-rose-100 selection:text-rose-900">
+    <div className="min-h-screen bg-[#FAF7F2] text-[#24201D] selection:bg-[#FBECE7] selection:text-[#9A381D]">
       {menu && (
         <button
           aria-label="Close navigation overlay"
-          className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-[#24201D]/30 backdrop-blur-xs lg:hidden"
           onClick={() => setMenu(false)}
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-slate-200 bg-white transition-transform lg:translate-x-0 ${menu ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-[#EAE2D6] bg-white transition-transform lg:translate-x-0 ${menu ? "translate-x-0" : "-translate-x-full"}`}
       >
         <a
           href="#overview"
-          onClick={() => navigate("overview")}
-          className="flex items-center gap-3 px-6 pb-6 pt-7"
+          onClick={(e) => {
+            e.preventDefault();
+            navigate("overview");
+          }}
+          className="flex items-center gap-3 px-6 pb-6 pt-6"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-orange-400 text-white shadow-md shadow-rose-500/15">
-            <BookOpen className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="block max-w-36 truncate text-lg font-bold tracking-tight text-slate-900">
+          <ClayObject
+            name="brand-shelf"
+            className="h-11 w-11 shrink-0 rounded-2xl shadow-xs"
+          />
+          <div className="min-w-0">
+            <span className="font-display block max-w-36 truncate text-lg font-bold text-[#24201D]">
               {data.name}
             </span>
-            <span className="text-[10px] font-semibold uppercase tracking-[.2em] text-slate-400">
-              A little more you
+            <span className="block text-[11px] font-medium text-[#8C8073]">
+              Daily shelf
             </span>
           </div>
         </a>
-        <div className="px-6 pb-3 text-[10px] font-semibold uppercase tracking-[.18em] text-slate-400">
-          Your everyday space
+        <div className="px-6 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9D9083]">
+          Rooms
         </div>
         <nav
           aria-label="Main navigation"
           className="flex-1 space-y-1 overflow-y-auto px-3 pb-4"
         >
-          {NAV.map((n) => (
-            <a
-              key={n.id}
-              href={`#${n.id}`}
-              onClick={(e) => {
-                e.preventDefault();
-                navigate(n.id);
-              }}
-              aria-current={tab === n.id ? "page" : undefined}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition ${n.id === "settings" ? "!mt-5 border-t border-slate-100" : ""} ${tab === n.id ? "bg-rose-50 text-rose-600" : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"}`}
-            >
-              <n.icon
-                className={`h-[17px] w-[17px] ${tab === n.id ? "text-rose-500" : "text-slate-400"}`}
-              />
-              {n.label}
-              {tab === n.id && (
-                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-rose-500" />
-              )}
-            </a>
-          ))}
+          {NAV.map((n) => {
+            const active = tab === n.id;
+            return (
+              <a
+                key={n.id}
+                href={`#${n.id}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate(n.id);
+                }}
+                aria-current={active ? "page" : undefined}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition ${n.id === "settings" ? "!mt-4 border-t border-[#EFE8DC] pt-3" : ""} ${active ? "bg-[#FBECE7] font-semibold text-[#B84727]" : "text-[#62584E] hover:bg-[#F6F1E9] hover:text-[#24201D]"}`}
+              >
+                {n.asset ? (
+                  <ClayObject
+                    name={n.asset}
+                    className="h-6 w-6 shrink-0"
+                  />
+                ) : (
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${active ? "bg-[#F6D6CB] text-[#B84727]" : "bg-[#F3EDE3] text-[#62584E]"}`}
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                  </span>
+                )}
+                <span className="truncate">{n.label}</span>
+                {active && (
+                  <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-[#D95D39]" />
+                )}
+              </a>
+            );
+          })}
         </nav>
-        <div className="m-4 rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 to-orange-50 p-4">
-          <Flower2 className="mb-2 h-5 w-5 text-rose-400" />
-          <p className="text-xs font-semibold text-slate-700">
-            Progress, at your pace.
-          </p>
-          <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
-            A small step today is still a step.
-          </p>
+        <div className="m-4 rounded-2xl border border-[#EAE2D6] bg-[#F3EDE3] p-4">
+          <div className="flex items-center gap-3">
+            <ClayObject
+              name="spot-cup"
+              className="h-12 w-12 shrink-0"
+            />
+            <div className="min-w-0">
+              <p className="font-display text-sm font-semibold text-[#24201D]">
+                {habitSummary.total > 0
+                  ? `${habitSummary.done} of ${habitSummary.total} today`
+                  : "Fresh shelf today"}
+              </p>
+              <p className="mt-0.5 text-xs leading-snug text-[#62584E]">
+                {habitSummary.total > 0 && habitSummary.done === habitSummary.total
+                  ? "All daily habits checked."
+                  : "Check off habits as the day goes."}
+              </p>
+            </div>
+          </div>
         </div>
       </aside>
-      <div className="lg:pl-60">
-        <header className="border-b border-slate-200 bg-white/95 px-4 py-4 sm:px-7">
-          <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3">
+      <div className="lg:pl-64">
+        <header className="sticky top-0 z-30 border-b border-[#EAE2D6] bg-[#FAF7F2]/92 px-4 py-3 backdrop-blur-sm sm:px-8">
+          <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <button
-                className="rounded-xl border border-slate-200 p-2 text-slate-500 lg:hidden"
+                className="rounded-xl border border-[#E4DBCE] bg-white p-2 text-[#62584E] transition hover:bg-[#F3EDE3] lg:hidden"
                 aria-label="Open navigation"
                 onClick={() => setMenu(true)}
               >
@@ -308,16 +437,16 @@ export default function WorkspaceApp() {
                   <Menu className="h-5 w-5" />
                 )}
               </button>
-              <div className="flex items-center gap-2 text-xs text-slate-400">
+              <div className="flex items-center gap-2 text-xs text-[#8C8073]">
                 <span className="hidden sm:inline">{data.name}</span>
                 <ChevronRight className="hidden h-3 w-3 sm:block" />
-                <span className="font-medium text-slate-700">
+                <span className="font-semibold text-[#24201D]">
                   {heading.label}
                 </span>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="hidden text-xs text-slate-400 md:inline">
+              <span className="hidden text-xs font-medium text-[#62584E] md:inline">
                 {new Date(`${today}T12:00`).toLocaleDateString(undefined, {
                   weekday: "short",
                   month: "short",
@@ -326,10 +455,10 @@ export default function WorkspaceApp() {
               </span>
               <button
                 onClick={() => navigate("settings")}
-                className="flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1.5 text-[10px] font-medium text-emerald-700"
+                className="flex items-center gap-1.5 rounded-full border border-[#E4DBCE] bg-white px-3 py-1.5 text-[11px] font-medium text-[#62584E] transition hover:border-[#D5C9B9] hover:text-[#24201D]"
                 title={status}
               >
-                <CheckCircle2 className="h-3 w-3" />
+                <CheckCircle2 className="h-3.5 w-3.5 text-[#5C8D78]" />
                 <span>
                   {isConfigured()
                     ? tableStorage
@@ -338,7 +467,7 @@ export default function WorkspaceApp() {
                     : "Device storage"}
                 </span>
               </button>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[#E4DBCE] bg-[#F3EDE3] font-display text-xs font-bold text-[#24201D]">
                 {data.name.trim().slice(0, 1).toUpperCase() || "M"}
               </div>
             </div>
@@ -346,23 +475,33 @@ export default function WorkspaceApp() {
         </header>
         <main
           id="main-content"
-          className="mx-auto max-w-[1600px] px-4 py-7 sm:px-7 sm:py-9"
+          className="mx-auto max-w-[1440px] px-4 py-8 sm:px-8 sm:py-10"
         >
           {tab !== "overview" && (
-            <div className="mb-7">
-              <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.18em] text-rose-500">
-                <heading.icon className="h-3.5 w-3.5" />
-                Your personal planner
+            <div className="mb-8 flex items-center gap-4">
+              {heading.asset && (
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-[#EAE2D6] bg-[#F3EDE3] p-2">
+                  <ClayObject name={heading.asset} className="h-12 w-12" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <h1 className="font-display text-2xl font-bold text-[#24201D] sm:text-3xl">
+                  {heading.label}
+                </h1>
+                <p className="mt-1 text-sm text-[#62584E]">
+                  {heading.description}
+                </p>
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                {heading.label}
-              </h1>
-              <p className="mt-2 text-sm text-slate-500">
-                {heading.description}
-              </p>
             </div>
           )}
-          {tab === "overview" && <Overview navigate={navigate} />}
+          {tab === "overview" && (
+            <Overview
+              data={data}
+              journal={journal}
+              today={today}
+              navigate={navigate}
+            />
+          )}
           {tab === "calendar" && (
             <CalendarPanel data={data} update={update} today={today} />
           )}
@@ -408,11 +547,11 @@ export default function WorkspaceApp() {
             />
           )}
           {tab === "personal" && (
-            <div className="grid items-start gap-5 xl:grid-cols-2">
+            <div className="grid items-start gap-6 xl:grid-cols-2">
               <ListPanel
                 kind="personal"
                 title="Personal to-do list"
-                subtitle="Appointments, errands and things just for you."
+                subtitle="Appointments, errands, and personal tasks."
                 data={data}
                 update={update}
                 today={today}
@@ -420,7 +559,7 @@ export default function WorkspaceApp() {
               <ListPanel
                 kind="wishlist"
                 title="Shopping wishlist"
-                subtitle="Park a want here. After 30 days it moves to the review archive, so you can decide whether it still matters."
+                subtitle="Park a want for 30 days before deciding whether it still matters."
                 data={data}
                 update={update}
                 today={today}
@@ -428,7 +567,7 @@ export default function WorkspaceApp() {
               <ListPanel
                 kind="grocery"
                 title="Groceries"
-                subtitle="Your next trip, a little more organised."
+                subtitle="Items ready for your next market trip."
                 data={data}
                 update={update}
                 today={today}
@@ -436,7 +575,7 @@ export default function WorkspaceApp() {
               <ListPanel
                 kind="watch"
                 title="Watch & read"
-                subtitle="Movies, shows and books worth making time for."
+                subtitle="Books, shows, and films worth making time for."
                 data={data}
                 update={update}
                 today={today}
@@ -476,43 +615,152 @@ export default function WorkspaceApp() {
           )}
         </main>
         <Journal onReady={onJournalReady} headless />
-        <footer className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-4 py-6 text-[11px] text-slate-400 sm:px-7">
-          <span>
-            Your habits, workouts, meals and ideas. One personal space.
-          </span>
+        <footer className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-2 border-t border-[#EFE8DC] px-4 py-6 text-xs text-[#8C8073] sm:px-8">
+          <span>{data.name} · Habits, meals, notes, and plans in one quiet place.</span>
           <button
-            className="hover:text-rose-500"
+            className="font-medium text-[#62584E] transition hover:text-[#D95D39]"
             onClick={() => navigate("settings")}
           >
-            Your data & backups <ArrowRight className="ml-1 inline h-3 w-3" />
+            Your data &amp; backups <ArrowRight className="ml-1 inline h-3 w-3" />
           </button>
         </footer>
       </div>
     </div>
   );
 }
-function Overview({ navigate }: { navigate: (tab: Tab) => void }) {
+
+function Overview({
+  data,
+  journal,
+  today,
+  navigate,
+}: {
+  data: Workspace;
+  journal: JournalBridge | null;
+  today: string;
+  navigate: (tab: Tab) => void;
+}) {
+  const { done, total } = countTodayHabits(data, journal, today);
+  const openTasks = data.items.filter(
+    (i) =>
+      ["personal", "grocery", "wishlist", "watch"].includes(i.kind) && !i.done,
+  ).length;
+  const formattedDate = new Date(`${today}T12:00`).toLocaleDateString(
+    undefined,
+    {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    },
+  );
+
   return (
-    <nav
-      aria-label="Open a page"
-      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
-    >
-      {NAV.filter((item) => item.id !== "overview").map((item) => (
-        <button
-          key={item.id}
-          onClick={() => navigate(item.id)}
-          className="flex min-h-40 items-center gap-5 rounded-2xl border border-rose-100 bg-white p-6 text-left shadow-sm transition hover:border-rose-300 hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-rose-500"
+    <div className="space-y-8">
+      {/* Clay Shelf Hero Banner — flat #FAF7F2 surface with lush shelf diorama on the right */}
+      <section className="relative overflow-hidden rounded-3xl border border-[#EAE2D6] bg-[#FAF7F2]">
+        <div className="relative z-10 grid items-center gap-6 p-6 sm:p-8 lg:grid-cols-12 lg:gap-4 lg:p-10">
+          <div className="lg:col-span-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8C8073]">
+              {formattedDate}
+            </p>
+            <h1 className="font-display mt-3 text-3xl font-bold leading-tight text-[#24201D] sm:text-4xl">
+              {timeGreeting()}, {data.name}.
+            </h1>
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-[#62584E] sm:text-base">
+              {total > 0
+                ? `${done} of ${total} habits checked today`
+                : "Your daily habits are ready"}
+              {openTasks > 0
+                ? ` · ${openTasks} personal ${openTasks === 1 ? "item" : "items"} open.`
+                : " · Everything else sits neatly on your shelf."}
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                className={primaryClass}
+                onClick={() => navigate("habits")}
+              >
+                Check today&apos;s habits
+                <ArrowRight className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                className={secondaryClass}
+                onClick={() => navigate("dump")}
+              >
+                Drop a thought
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center justify-center lg:col-span-6 lg:justify-end">
+            <img
+              src={clayAssetUrl("hero-shelf-scene")}
+              alt="A warm pale-oak wall shelf holding a potted sprout, stacked notebooks, a ceramic coffee mug, and a butter-ochre tabletop clock"
+              className="w-full max-w-[440px] select-none object-contain lg:max-w-[480px]"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* 12 Rooms Shelf Grid — keeps exact 12 buttons inside nav[aria-label="Open a page"] */}
+      <div>
+        <div className="mb-4 flex items-baseline justify-between gap-2">
+          <h2 className="font-display text-lg font-semibold text-[#24201D]">
+            On your shelf
+          </h2>
+          <span className="text-xs font-medium text-[#8C8073]">12 rooms</span>
+        </div>
+        <nav
+          aria-label="Open a page"
+          className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
         >
-          <item.icon className="h-10 w-10 shrink-0 text-rose-500" />
-          <span className="flex-1 text-xl font-semibold text-slate-800">
-            {item.label}
-          </span>
-          <ArrowRight className="h-5 w-5 text-rose-400" />
-        </button>
-      ))}
-    </nav>
+          {NAV.filter((item) => item.id !== "overview").map((item) => {
+            const meta = roomMeta(item.id, data, journal, today);
+            return (
+              <div
+                key={item.id}
+                className="clay-card clay-card-interactive group relative flex min-h-36 items-center gap-4 rounded-2xl p-6 text-left focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#D95D39]"
+              >
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#F3EDE3] p-2 transition group-hover:bg-[#ECE3D5]">
+                  {item.asset && (
+                    <ClayObject
+                      name={item.asset}
+                      className="h-12 w-12 transition-transform duration-200 group-hover:scale-105"
+                    />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate(item.id)}
+                      className="font-display text-left text-lg font-semibold text-[#24201D] outline-none after:absolute after:inset-0 after:rounded-2xl"
+                    >
+                      {item.label}
+                    </button>
+                    <ArrowRight
+                      aria-hidden="true"
+                      className="h-4 w-4 shrink-0 text-[#B8AA9B] transition-transform duration-200 group-hover:translate-x-1 group-hover:text-[#D95D39]"
+                    />
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#62584E]">
+                    {item.description}
+                  </p>
+                  {meta && (
+                    <span className="mt-2 inline-block text-[11px] font-semibold text-[#8C8073]">
+                      {meta}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </nav>
+      </div>
+    </div>
   );
 }
+
 function SettingsPanel({
   data,
   update,
@@ -574,10 +822,10 @@ function SettingsPanel({
     }
   }
   return (
-    <div className="grid items-start gap-5 lg:grid-cols-2">
+    <div className="grid items-start gap-6 lg:grid-cols-2">
       <Card
         title="Make yourself at home"
-        subtitle="A small name for a space that’s yours."
+        subtitle="Give your personal space a name."
       >
         <Field label="Workspace name">
           <input
@@ -587,7 +835,7 @@ function SettingsPanel({
             onChange={(e) => update((s) => ({ ...s, name: e.target.value }))}
           />
         </Field>
-        <p className="mt-4 text-sm leading-relaxed text-slate-500">
+        <p className="mt-4 text-sm leading-relaxed text-[#62584E]">
           Your habits, daily workouts, meals and personal lists live in their
           own sections. Historical journal records are preserved in your
           backups.
@@ -597,13 +845,13 @@ function SettingsPanel({
         title="Storage & sync"
         subtitle="Your existing Google Sheets connection and historical records are preserved."
       >
-        <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <Cloud className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+        <div className="flex items-start gap-3 rounded-xl border border-[#EAE2D6] bg-[#FAF7F2] p-4">
+          <Cloud className="mt-0.5 h-5 w-5 shrink-0 text-[#8C8073]" />
           <div>
-            <p role="status" className="text-sm font-medium text-slate-700">
+            <p role="status" className="text-sm font-medium text-[#24201D]">
               {status}
             </p>
-            <p className="mt-2 text-xs leading-relaxed text-slate-500">
+            <p className="mt-2 text-xs leading-relaxed text-[#62584E]">
               {isConfigured()
                 ? "Planner sections save to their own Sheet tables after the Apps Script update. Journal records continue to use Entries and Habits. The sync status above identifies the active storage mode."
                 : "Changes stay in this browser, on this device. Your existing GitHub Pages deployment keeps its Sheets configuration when this update is merged."}
@@ -635,8 +883,8 @@ function SettingsPanel({
             Load latest Sheet tables
           </button>
         )}
-        <div className="mt-4 rounded-xl border border-slate-200 p-4 text-xs leading-relaxed text-slate-500">
-          <p className="font-semibold text-slate-700">
+        <div className="mt-4 rounded-xl border border-[#EAE2D6] p-4 text-xs leading-relaxed text-[#62584E]">
+          <p className="font-semibold text-[#24201D]">
             Where your data is stored
           </p>
           <p className="mt-2">
@@ -663,7 +911,7 @@ function SettingsPanel({
             Sheet. A configured connection alone does not confirm a saved copy.
           </p>
         </div>
-        <p className="mt-4 text-xs leading-relaxed text-slate-400">
+        <p className="mt-4 text-xs leading-relaxed text-[#8C8073]">
           Keep a backup before clearing browser data or changing devices.
           Journal sync and planner sync have separate status indicators. Legacy
           JSON storage has a per-cell size limit; per-page table storage removes
@@ -715,12 +963,12 @@ function SettingsPanel({
         {message && (
           <p
             role="status"
-            className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600"
+            className="mt-4 rounded-xl bg-[#FAF7F2] p-3 text-sm text-[#62584E]"
           >
             {message}
           </p>
         )}
-        <p className="mt-4 text-xs leading-relaxed text-slate-400">
+        <p className="mt-4 text-xs leading-relaxed text-[#8C8073]">
           Historical journal records remain in Entries and in your full backup.
         </p>
       </Card>
@@ -728,7 +976,7 @@ function SettingsPanel({
         title="A few useful details"
         subtitle="Simple controls, so you know what to expect."
       >
-        <ul className="space-y-3 text-sm leading-relaxed text-slate-500">
+        <ul className="space-y-3 text-sm leading-relaxed text-[#62584E]">
           <li>
             Habit reminders need notification permission and the app open.
           </li>

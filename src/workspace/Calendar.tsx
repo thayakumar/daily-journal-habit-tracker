@@ -127,7 +127,7 @@ export function CalendarPanel({
             {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
               <div
                 key={day}
-                className="pb-3 text-center text-xs font-medium text-slate-400"
+                className="pb-3 text-center text-xs font-medium text-[#8C8073]"
               >
                 {day}
               </div>
@@ -143,10 +143,10 @@ export function CalendarPanel({
                     setSelected(d);
                     if (!d.startsWith(month)) setMonth(d.slice(0, 7));
                   }}
-                  className={`min-h-14 min-w-0 rounded-xl border p-1 text-left transition sm:min-h-24 sm:p-2 ${selected === d ? "border-rose-400 bg-rose-50 ring-1 ring-rose-200" : "border-slate-100 hover:border-rose-200"} ${!d.startsWith(month) ? "opacity-40" : ""}`}
+                  className={`min-h-14 min-w-0 rounded-xl border p-1 text-left transition sm:min-h-24 sm:p-2 ${selected === d ? "border-[#D95D39] bg-[#FBECE7] ring-1 ring-[#F2C9BC]" : "border-[#EFE8DC] hover:border-[#EAB9A9]"} ${!d.startsWith(month) ? "opacity-40" : ""}`}
                 >
                   <span
-                    className={`inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-xs font-semibold ${d === today ? "bg-rose-600 text-white" : "text-slate-600"}`}
+                    className={`inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-xs font-semibold ${d === today ? "bg-[#D95D39] text-white" : "text-[#62584E]"}`}
                   >
                     {Number(d.slice(8))}
                   </span>
@@ -154,14 +154,14 @@ export function CalendarPanel({
                     {entries.slice(0, 2).map((e) => (
                       <div
                         key={e.id}
-                        className={`mt-1 max-w-full truncate rounded px-1 py-0.5 text-[10px] ${e.type === "holiday" ? "bg-emerald-50 text-emerald-700" : e.type === "leave" ? "bg-violet-50 text-violet-700" : "bg-sky-50 text-sky-700"}`}
+                        className={`mt-1 max-w-full truncate rounded px-1 py-0.5 text-[10px] ${e.type === "holiday" ? "bg-emerald-50 text-emerald-700" : e.type === "leave" ? "bg-[#EDF2F8] text-[#355380]" : "bg-sky-50 text-sky-700"}`}
                       >
                         <span className="hidden sm:inline">{e.title}</span>
                         <span className="sm:hidden">●</span>
                       </div>
                     ))}
                     {entries.length > 2 && (
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-[#8C8073]">
                         +{entries.length - 2}
                       </span>
                     )}
@@ -170,7 +170,7 @@ export function CalendarPanel({
               );
             })}
           </div>
-          <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500">
+          <div className="mt-4 flex flex-wrap gap-4 text-xs text-[#62584E]">
             <span>🟢 Holiday</span>
             <span>🟣 Leave</span>
             <span>🔵 Event</span>
@@ -312,17 +312,17 @@ export function CalendarPanel({
         </Card>
         <Card title="This month" subtitle={`${events.length} events planned`}>
           {events.length ? (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-[#EFE8DC]">
               {events.map((e) => (
                 <li key={e.id} className="flex gap-3 py-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-sm font-semibold text-slate-600">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F3EDE3] text-sm font-semibold text-[#62584E]">
                     {e.date.slice(8)}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="break-words text-sm font-medium text-slate-700">
+                    <p className="break-words text-sm font-medium text-[#3B342E]">
                       {e.title}
                     </p>
-                    <p className="mt-1 text-xs capitalize text-slate-400">
+                    <p className="mt-1 text-xs capitalize text-[#8C8073]">
                       {e.type}
                       {e.note && ` · ${e.note}`}
                     </p>

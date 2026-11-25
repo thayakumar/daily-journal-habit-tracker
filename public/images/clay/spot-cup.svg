@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+<defs>
+
+  <filter id="softShadow" x="-25%" y="-25%" width="150%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" result="blur"/>
+    <feOffset dx="0" dy="5" result="offset"/>
+    <feFlood flood-color="#4A3728" flood-opacity="0.16" result="color"/>
+    <feComposite in="color" in2="offset" operator="in" result="shadow"/>
+    <feMerge>
+      <feMergeNode in="shadow"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <filter id="groundBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="4"/>
+  </filter>
+  <filter id="sheenBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="2.2"/>
+  </filter>
+
+
+    <radialGradient id="mugClay" cx="30%" cy="26%" r="74%">
+      <stop offset="0%" stop-color="#F28C6B"/>
+      <stop offset="55%" stop-color="#D95D39"/>
+      <stop offset="100%" stop-color="#9A381D"/>
+    </radialGradient>
+    <radialGradient id="saucerClay" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#FFFDF9"/>
+      <stop offset="60%" stop-color="#EFE6D8"/>
+      <stop offset="100%" stop-color="#CBBAA3"/>
+    </radialGradient>
+    <radialGradient id="coffeeTop" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#8B5A3C"/>
+      <stop offset="100%" stop-color="#4A2E1D"/>
+    </radialGradient>
+  
+</defs>
+
+    <ellipse cx="64" cy="107" rx="44" ry="9" fill="#4A3728" fill-opacity="0.14" filter="url(#groundBlur)"/>
+    <!-- Gentle steam -->
+    <path d="M51 36 C48 28 55 23 52 15" stroke="#D1C3B0" stroke-width="4" stroke-linecap="round" opacity="0.85"/>
+    <path d="M68 32 C65 24 72 19 69 11" stroke="#D1C3B0" stroke-width="4" stroke-linecap="round" opacity="0.85"/>
+    <g filter="url(#softShadow)">
+      <!-- Cream saucer -->
+      <ellipse cx="62" cy="96" rx="42" ry="13" fill="url(#saucerClay)"/>
+      <ellipse cx="62" cy="94" rx="28" ry="7.5" fill="#E3D6C4"/>
+      <!-- Mug handle -->
+      <path d="M84 56 C100 56 101 82 84 82" stroke="#C84E2C" stroke-width="9" stroke-linecap="round" fill="none"/>
+      <path d="M86 58 C95 59 96 66 95 72" stroke="#F49D7F" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+      <!-- Mug body -->
+      <path d="M34 48 C34 44 46 41 60 41 C74 41 86 44 86 48 L84 84 C83 92 74 96 60 96 C46 96 37 92 36 84 Z" fill="url(#mugClay)"/>
+      <!-- Rim & coffee -->
+      <ellipse cx="60" cy="48" rx="26" ry="8.5" fill="#F8ECE5"/>
+      <ellipse cx="60" cy="49" rx="21" ry="6.2" fill="url(#coffeeTop)"/>
+      <!-- Latte heart dot -->
+      <ellipse cx="56" cy="48.5" rx="5" ry="2.2" fill="#EFE2D0" opacity="0.7"/>
+      <!-- Ceramic highlight -->
+      <path d="M43 60 L44 82" stroke="#F9BCA8" stroke-width="5" stroke-linecap="round" opacity="0.5" filter="url(#sheenBlur)"/>
+    </g>
+  
+</svg>

@@ -71,10 +71,10 @@ function Photo({
   return (
     <div
       ref={ref}
-      className="flex aspect-[3/4] min-w-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+      className="flex aspect-[3/4] min-w-0 items-center justify-center overflow-hidden rounded-xl border border-[#EAE2D6] bg-[#FAF7F2]"
     >
       {!photo ? (
-        <div className="p-3 text-center text-xs text-slate-400">
+        <div className="p-3 text-center text-xs text-[#8C8073]">
           <Camera className="mx-auto mb-2 h-6 w-6" />
           No photo
         </div>
@@ -93,7 +93,7 @@ function Photo({
         </button>
       ) : failed ? (
         <div className="p-3 text-center">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-[#62584E]">
             Photo could not load. It may still be syncing.
           </p>
           <button
@@ -107,7 +107,7 @@ function Photo({
           </button>
         </div>
       ) : (
-        <p role="status" className="text-xs text-slate-400">
+        <p role="status" className="text-xs text-[#8C8073]">
           Loading photo…
         </p>
       )}
@@ -188,7 +188,7 @@ function ProductEditor({
           Currently using this product
         </label>
         {error && (
-          <p role="alert" className="text-sm text-rose-700">
+          <p role="alert" className="text-sm text-[#A83E20]">
             {error}
           </p>
         )}
@@ -257,7 +257,7 @@ function HabitEditor({
           Active routine step
         </label>
         {error && (
-          <p role="alert" className="text-sm text-rose-700">
+          <p role="alert" className="text-sm text-[#A83E20]">
             {error}
           </p>
         )}
@@ -383,7 +383,7 @@ export default function Skincare({
               aria-controls={`skincare-${t}`}
               id={`skin-tab-${t}`}
               key={t}
-              className={`${tab === t ? "bg-rose-600 text-white" : "bg-slate-50 text-slate-600"} min-h-11 rounded-xl px-4 py-2.5 text-sm font-semibold`}
+              className={`${tab === t ? "bg-[#D95D39] text-white" : "bg-[#FAF7F2] text-[#62584E]"} min-h-11 rounded-xl px-4 py-2.5 text-sm font-semibold`}
               onClick={() => {
                 setTab(t);
                 setError("");
@@ -418,7 +418,7 @@ export default function Skincare({
       {error && (
         <p
           role="alert"
-          className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700"
+          className="rounded-xl bg-[#FBECE7] p-3 text-sm text-[#A83E20]"
         >
           {error}
         </p>
@@ -501,7 +501,7 @@ export default function Skincare({
                   {products.map((pr) => (
                     <label
                       key={pr.id}
-                      className="flex min-h-11 items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm"
+                      className="flex min-h-11 items-center gap-3 rounded-xl border border-[#EAE2D6] p-3 text-sm"
                     >
                       <input
                         type="checkbox"
@@ -525,7 +525,7 @@ export default function Skincare({
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-[#62584E]">
                   Add your products to choose what you used each day.
                 </p>
               )}
@@ -590,7 +590,7 @@ export default function Skincare({
                 {(["AM", "PM", "Anytime"] as const).map((period) => (
                   <div
                     key={period}
-                    className="min-w-0 rounded-2xl bg-slate-50 p-3"
+                    className="min-w-0 rounded-2xl bg-[#FAF7F2] p-3"
                   >
                     <h3 className="mb-3 font-semibold">
                       {period === "AM"
@@ -604,7 +604,7 @@ export default function Skincare({
                       .map((h) => (
                         <div
                           key={h.id}
-                          className="mb-2 flex items-center gap-2 rounded-xl border border-slate-100 bg-white p-2"
+                          className="mb-2 flex items-center gap-2 rounded-xl border border-[#EFE8DC] bg-white p-2"
                         >
                           <label className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-sm">
                             <input
@@ -644,7 +644,7 @@ export default function Skincare({
                           </label>
                           <button
                             aria-label={`Edit skincare habit ${h.name} ${h.period}`}
-                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-500"
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#62584E]"
                             onClick={() => setHabit(h)}
                           >
                             <Pencil className="h-4 w-4" />
@@ -657,7 +657,7 @@ export default function Skincare({
             )}
             {p.habits.some((h) => !h.active) && (
               <details className="mt-4">
-                <summary className="cursor-pointer text-sm text-slate-500">
+                <summary className="cursor-pointer text-sm text-[#62584E]">
                   Archived routine steps
                 </summary>
                 {p.habits
@@ -678,7 +678,7 @@ export default function Skincare({
             title="Daily progress photos"
             subtitle={`Front, left and right views for ${date}. Photos are resized for the gallery and saved privately in your Skincare Drive folder.`}
           >
-            <p className="mb-4 text-xs text-slate-500">
+            <p className="mb-4 text-xs text-[#62584E]">
               Use similar lighting, distance and angles so your photos are
               easier to compare. Uploading a replacement changes this day’s
               journal photo; original files stay in Drive.
@@ -702,7 +702,7 @@ export default function Skincare({
                     <h3 className="mb-2 font-semibold capitalize">{side}</h3>
                     <Photo photo={photo} onOpen={setViewPhoto} />
                     <label
-                      className={`mt-3 flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold ${!photoReady || busy ? "cursor-not-allowed bg-slate-100 text-slate-400" : "text-slate-600 hover:bg-slate-50"}`}
+                      className={`mt-3 flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-[#EAE2D6] px-3 py-2 text-sm font-semibold ${!photoReady || busy ? "cursor-not-allowed bg-[#F3EDE3] text-[#8C8073]" : "text-[#62584E] hover:bg-[#FAF7F2]"}`}
                     >
                       <input
                         aria-label={`Upload ${side} skincare photo`}
@@ -724,7 +724,7 @@ export default function Skincare({
                     </label>
                     {photo && (
                       <button
-                        className="mt-2 min-h-11 w-full rounded-xl text-sm text-rose-600"
+                        className="mt-2 min-h-11 w-full rounded-xl text-sm text-[#D95D39]"
                         disabled={!!busy}
                         onClick={() => {
                           if (
@@ -821,14 +821,14 @@ export default function Skincare({
                 .map((pr) => (
                   <article
                     key={pr.id}
-                    className="min-w-0 rounded-2xl border border-slate-200 p-4"
+                    className="min-w-0 rounded-2xl border border-[#EAE2D6] p-4"
                   >
                     <div className="flex gap-3">
                       <div className="min-w-0 flex-1">
                         <h3 className="break-words text-lg font-semibold">
                           {pr.name}
                         </h3>
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="mt-1 text-sm text-[#62584E]">
                           {[pr.brand, pr.type].filter(Boolean).join(" · ")}
                         </p>
                       </div>
@@ -839,10 +839,10 @@ export default function Skincare({
                         Edit
                       </button>
                     </div>
-                    <p className="my-3 whitespace-pre-wrap break-words text-sm text-slate-600">
+                    <p className="my-3 whitespace-pre-wrap break-words text-sm text-[#62584E]">
                       {pr.notes}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-[#8C8073]">
                       {pr.started && `Started ${pr.started}`}
                       {pr.stopped && ` · Stopped ${pr.stopped}`}
                     </p>
@@ -882,7 +882,7 @@ export default function Skincare({
             subtitle="Browse daily notes, products and photos side by side. Photos show your records; the app does not diagnose skin conditions."
           >
             <div className="mb-4 flex flex-wrap gap-3 text-sm">
-              <span className="rounded-xl bg-rose-50 px-4 py-3 font-semibold text-rose-700">
+              <span className="rounded-xl bg-[#FBECE7] px-4 py-3 font-semibold text-[#A83E20]">
                 {p.entries.length} tracked days
               </span>
               <span className="rounded-xl bg-sky-50 px-4 py-3 font-semibold text-sky-700">
@@ -928,7 +928,7 @@ export default function Skincare({
                 </select>
               </Field>
             </div>
-            <p className="mt-3 text-xs text-slate-500">
+            <p className="mt-3 text-xs text-[#62584E]">
               Newest days first. Select one angle to compare a consistent view
               across dates.
             </p>
@@ -970,7 +970,7 @@ export default function Skincare({
                 >
                   {(angle === "all" ? ANGLES : [angle]).map((a) => (
                     <div key={a} className="min-w-0">
-                      <p className="mb-2 text-center text-xs font-semibold capitalize text-slate-500">
+                      <p className="mb-2 text-center text-xs font-semibold capitalize text-[#62584E]">
                         {a}
                       </p>
                       <Photo
@@ -983,19 +983,19 @@ export default function Skincare({
                   ))}
                 </div>
                 {entry.notes && (
-                  <p className="mt-4 whitespace-pre-wrap break-words text-sm text-slate-600">
+                  <p className="mt-4 whitespace-pre-wrap break-words text-sm text-[#62584E]">
                     <strong>Routine: </strong>
                     {entry.notes}
                   </p>
                 )}
                 {entry.reaction && (
-                  <p className="mt-3 whitespace-pre-wrap break-words text-sm text-slate-600">
+                  <p className="mt-3 whitespace-pre-wrap break-words text-sm text-[#62584E]">
                     <strong>Reaction: </strong>
                     {entry.reaction}
                   </p>
                 )}
                 {entry.productIds.length > 0 && (
-                  <p className="mt-3 break-words text-xs text-slate-500">
+                  <p className="mt-3 break-words text-xs text-[#62584E]">
                     Products:{" "}
                     {entry.productIds
                       .map(

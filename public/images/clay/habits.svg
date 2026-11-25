@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+<defs>
+
+  <filter id="softShadow" x="-25%" y="-25%" width="150%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" result="blur"/>
+    <feOffset dx="0" dy="5" result="offset"/>
+    <feFlood flood-color="#4A3728" flood-opacity="0.16" result="color"/>
+    <feComposite in="color" in2="offset" operator="in" result="shadow"/>
+    <feMerge>
+      <feMergeNode in="shadow"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <filter id="groundBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="4"/>
+  </filter>
+  <filter id="sheenBlur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="2.2"/>
+  </filter>
+
+
+    <radialGradient id="carafeBody" cx="32%" cy="26%" r="72%">
+      <stop offset="0%" stop-color="#D9ECF5"/>
+      <stop offset="52%" stop-color="#9AC1D9"/>
+      <stop offset="100%" stop-color="#608CA8"/>
+    </radialGradient>
+    <radialGradient id="waterFill" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#87B8D4"/>
+      <stop offset="65%" stop-color="#4A7CA5"/>
+      <stop offset="100%" stop-color="#31587A"/>
+    </radialGradient>
+    <linearGradient id="cork" x1="20%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="#EED1A7"/>
+      <stop offset="55%" stop-color="#CEA06B"/>
+      <stop offset="100%" stop-color="#9A6D3E"/>
+    </linearGradient>
+    <radialGradient id="leafMain" cx="28%" cy="25%" r="75%">
+      <stop offset="0%" stop-color="#96C9B2"/>
+      <stop offset="55%" stop-color="#5C8D78"/>
+      <stop offset="100%" stop-color="#3B6453"/>
+    </radialGradient>
+    <radialGradient id="leafSmall" cx="30%" cy="25%" r="75%">
+      <stop offset="0%" stop-color="#A8D6C0"/>
+      <stop offset="60%" stop-color="#699C85"/>
+      <stop offset="100%" stop-color="#416C5A"/>
+    </radialGradient>
+    <radialGradient id="pot" cx="30%" cy="25%" r="75%">
+      <stop offset="0%" stop-color="#F29472"/>
+      <stop offset="55%" stop-color="#D95D39"/>
+      <stop offset="100%" stop-color="#9E3B1F"/>
+    </radialGradient>
+  
+</defs>
+
+    <ellipse cx="64" cy="108" rx="40" ry="9" fill="#4A3728" fill-opacity="0.13" filter="url(#groundBlur)"/>
+    <g filter="url(#softShadow)">
+      <!-- Rounded ceramic carafe -->
+      <path d="M40 34 C40 28 45 25 51 25 L61 25 C67 25 72 28 72 34 L70 48 C81 55 86 68 85 83 C84 97 74 106 56 106 C38 106 28 97 27 83 C26 68 31 55 42 48 Z" fill="url(#carafeBody)"/>
+      <!-- Inner water level -->
+      <path d="M31 74 C31 70 43 68 56 68 C69 68 81 70 81 74 C82 91 74 102 56 102 C38 102 30 91 31 74 Z" fill="url(#waterFill)" opacity="0.88"/>
+      <ellipse cx="56" cy="73" rx="24.5" ry="5.5" fill="#AED5EB" opacity="0.72"/>
+      <!-- Cork stopper -->
+      <path d="M44 17 C44 13 49 11 56 11 C63 11 68 13 68 17 L66 30 C66 32 61 34 56 34 C51 34 46 32 46 30 Z" fill="url(#cork)"/>
+      <ellipse cx="56" cy="16" rx="11.5" ry="4" fill="#F5DFBC"/>
+      <!-- Matte sheen -->
+      <path d="M36 62 C33 71 34 83 39 91" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" opacity="0.48" filter="url(#sheenBlur)"/>
+      <ellipse cx="47" cy="40" rx="3" ry="7" fill="#FFFFFF" opacity="0.4" filter="url(#sheenBlur)"/>
+    </g>
+    <!-- Little terracotta pot with sprout beside carafe -->
+    <g filter="url(#softShadow)">
+      <path d="M77 83 C77 80 82 78 90 78 C98 78 103 80 103 83 L100 102 C99 105 95 107 90 107 C85 107 81 105 80 102 Z" fill="url(#pot)"/>
+      <ellipse cx="90" cy="82" rx="13" ry="4.5" fill="#F29E7F"/>
+      <ellipse cx="90" cy="82.5" rx="9.5" ry="2.8" fill="#6E4A35"/>
+      <!-- Sprout stem -->
+      <path d="M90 82 C90 71 91 64 93 58" stroke="#477360" stroke-width="4.2" stroke-linecap="round"/>
+      <!-- Left clay leaf -->
+      <path d="M90 67 C80 65 73 57 76 49 C83 47 91 53 91 65 Z" fill="url(#leafSmall)"/>
+      <!-- Right clay leaf -->
+      <path d="M92 61 C95 49 105 44 111 49 C112 58 104 65 92 63 Z" fill="url(#leafMain)"/>
+      <ellipse cx="101" cy="53" rx="4" ry="2" transform="rotate(-24 101 53)" fill="#D6F0E3" opacity="0.45"/>
+    </g>
+  
+</svg>

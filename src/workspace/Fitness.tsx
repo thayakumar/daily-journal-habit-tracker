@@ -142,16 +142,16 @@ export function Fitness({
                 ) / 100,
             },
           ].map((m) => (
-            <div key={m.label} className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs text-slate-400">{m.label}</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-800">
+            <div key={m.label} className="rounded-xl bg-[#FAF7F2] p-4">
+              <p className="text-xs text-[#8C8073]">{m.label}</p>
+              <p className="mt-1 text-2xl font-semibold text-[#24201D]">
                 {m.value}
               </p>
             </div>
           ))}
         </div>
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-[#62584E]">
             {daysThisWeek} training {daysThisWeek === 1 ? "day" : "days"} this
             week · target {data.fitness.target}
           </p>
@@ -339,17 +339,17 @@ export function Fitness({
               return (
                 <article
                   key={first.exerciseId}
-                  className="min-w-0 rounded-2xl border border-slate-200 p-4"
+                  className="min-w-0 rounded-2xl border border-[#EAE2D6] p-4"
                 >
                   <div className="mb-4 flex items-center gap-3">
-                    <span className="rounded-xl bg-rose-50 p-2 text-rose-500">
+                    <span className="rounded-xl bg-[#FBECE7] p-2 text-[#D95D39]">
                       <Dumbbell className="h-5 w-5" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <h3 className="break-words text-sm font-semibold text-slate-800">
+                      <h3 className="break-words text-sm font-semibold text-[#24201D]">
                         {first.exercise}
                       </h3>
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 text-xs text-[#8C8073]">
                         {first.type === "strength"
                           ? `${group.length} sets`
                           : "Cardio"}{" "}
@@ -375,9 +375,9 @@ export function Fitness({
                   </div>
                   <div className="space-y-3">
                     {group.map((row) => (
-                      <div key={row.id} className="rounded-xl bg-slate-50 p-3">
+                      <div key={row.id} className="rounded-xl bg-[#FAF7F2] p-3">
                         <div className="mb-2 flex items-center justify-between">
-                          <span className="text-xs font-semibold text-slate-500">
+                          <span className="text-xs font-semibold text-[#62584E]">
                             {row.type === "strength"
                               ? `Set ${row.setNumber}`
                               : "Cardio session"}
@@ -488,7 +488,7 @@ export function Fitness({
                     ))}
                   </div>
                   {first.notes && (
-                    <p className="mt-3 whitespace-pre-wrap break-words text-xs text-slate-500">
+                    <p className="mt-3 whitespace-pre-wrap break-words text-xs text-[#62584E]">
                       {first.notes}
                     </p>
                   )}
@@ -546,7 +546,7 @@ export function Fitness({
                 </button>
               ))
           ) : (
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-[#8C8073]">
               Your recorded workout days will appear here.
             </p>
           )}
