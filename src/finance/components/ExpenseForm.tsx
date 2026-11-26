@@ -64,17 +64,17 @@ const CATEGORY_META = [
   },
 ];
 
+const EN_CA_DATE_FORMATTER = new Intl.DateTimeFormat("en-CA");
+
 export const ExpenseForm: React.FC<ExpenseFormProps> = ({
   receiptReady,
   cycle,
   onSave,
 }) => {
-  const [date, setDate] = useState<string>(() =>
-    (() => {
-      const today = new Intl.DateTimeFormat("en-CA").format(new Date());
-      return today >= cycle.start && today <= cycle.end ? today : "";
-    })(),
-  );
+  const [date, setDate] = useState<string>(() => {
+    const today = EN_CA_DATE_FORMATTER.format(new Date());
+    return today >= cycle.start && today <= cycle.end ? today : "";
+  });
   const [item, setItem] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>(
@@ -237,7 +237,10 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
       >
         {/* Date Row */}
         <div id="input-group-date">
-          <label className="block text-xs font-bold text-[#8C8073] uppercase tracking-widest mb-1.5">
+          <label
+            htmlFor="expense-date-input"
+            className="block text-xs font-bold text-[#8C8073] uppercase tracking-widest mb-1.5"
+          >
             Date of Expense <span className="text-[#D95D39] font-bold">*</span>
           </label>
           <div className="relative">
@@ -245,6 +248,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               <Calendar className="h-4 w-4" />
             </span>
             <input
+              id="expense-date-input"
               type="date"
               aria-label="Expense date"
               min={cycle.start}
@@ -252,14 +256,17 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="min-w-0 w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#EAE2D6] bg-[#FAF7F2] text-[#24201D] text-sm focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] transition-all outline-none"
+              className="min-w-0 w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#EAE2D6] bg-[#FAF7F2] text-[#24201D] text-sm focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] transition-colors outline-none"
             />
           </div>
         </div>
 
         {/* Item Row */}
         <div id="input-group-item">
-          <label className="block text-xs font-bold text-[#8C8073] uppercase tracking-widest mb-1.5">
+          <label
+            htmlFor="expense-item-input"
+            className="block text-xs font-bold text-[#8C8073] uppercase tracking-widest mb-1.5"
+          >
             Item / Description{" "}
             <span className="text-[#D95D39] font-bold">*</span>
           </label>
@@ -268,20 +275,24 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               <Tag className="h-4 w-4" />
             </span>
             <input
+              id="expense-item-input"
               type="text"
               aria-label="Expense description"
               required
               placeholder="e.g., Office broadband subscription"
               value={item}
               onChange={(e) => setItem(e.target.value)}
-              className="min-w-0 w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#EAE2D6] bg-[#FAF7F2] text-[#24201D] text-sm placeholder:text-[#9D9083] focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] transition-all outline-none"
+              className="min-w-0 w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#EAE2D6] bg-[#FAF7F2] text-[#24201D] text-sm placeholder:text-[#9D9083] focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] transition-colors outline-none"
             />
           </div>
         </div>
 
         {/* Amount Row */}
         <div id="input-group-amount">
-          <label className="block text-xs font-bold text-[#8C8073] uppercase tracking-widest mb-1.5">
+          <label
+            htmlFor="expense-amount-input"
+            className="block text-xs font-bold text-[#8C8073] uppercase tracking-widest mb-1.5"
+          >
             Amount (RM) <span className="text-[#D95D39] font-bold">*</span>
           </label>
           <div className="relative">
@@ -289,6 +300,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               <Coins className="h-4 w-4" />
             </span>
             <input
+              id="expense-amount-input"
               type="number"
               aria-label="Expense amount"
               step="0.01"
@@ -297,17 +309,24 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="min-w-0 w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#EAE2D6] bg-[#FAF7F2] text-[#24201D] text-sm placeholder:text-[#9D9083] focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] transition-all outline-none"
+              className="min-w-0 w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#EAE2D6] bg-[#FAF7F2] text-[#24201D] text-sm placeholder:text-[#9D9083] focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] transition-colors outline-none"
             />
           </div>
         </div>
 
         {/* Category Row with Rich Selector */}
         <div id="input-group-category">
-          <label className="block text-xs font-bold text-[#8C8073] uppercase tracking-widest mb-2.5">
+          <span
+            id="expense-category-label"
+            className="block text-xs font-bold text-[#8C8073] uppercase tracking-widest mb-2.5"
+          >
             Category <span className="text-[#D95D39] font-bold">*</span>
-          </label>
-          <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-2">
+          </span>
+          <div
+            role="group"
+            aria-labelledby="expense-category-label"
+            className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-2"
+          >
             {CATEGORY_META.map((meta) => {
               const Icon = meta.icon;
               const isSelected = selectedCategory === meta.name;
@@ -316,7 +335,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
                   key={meta.name}
                   type="button"
                   onClick={() => setSelectedCategory(meta.name)}
-                  className={`flex min-h-[44px] items-center gap-2 px-3 py-2.5 rounded-lg border text-xs text-left cursor-pointer transition-all duration-150 ${
+                  className={`flex min-h-[44px] items-center gap-2 px-3 py-2.5 rounded-lg border text-xs text-left cursor-pointer transition-colors duration-150 ${
                     isSelected
                       ? `border-[#D95D39] bg-[#FBECE7] text-[#A83E20] font-semibold shadow-xs`
                       : "bg-[#FAF7F2] border-[#EAE2D6] text-[#62584E] hover:bg-[#F3EDE3]"
@@ -332,7 +351,10 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
         {/* Receipt Upload Row */}
         <div id="input-group-receipt">
-          <label className="block text-xs font-bold text-[#8C8073] uppercase tracking-widest mb-1.5">
+          <label
+            htmlFor="expense-receipt-input"
+            className="block text-xs font-bold text-[#8C8073] uppercase tracking-widest mb-1.5"
+          >
             Receipt File{" "}
             <span className="text-[#8C8073] font-normal normal-case">
               (Optional)
@@ -369,6 +391,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
                 Supports PDF, JPG, PNG under 10MB
               </p>
               <input
+                id="expense-receipt-input"
                 type="file"
                 aria-label="Expense receipt"
                 ref={fileInputRef}
@@ -431,7 +454,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
           id="btn-submit-expense"
           type="submit"
           disabled={isSubmitting || (!!receiptFile && !receiptReady)}
-          className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#D95D39] hover:bg-[#C04C2B] text-white font-bold rounded-lg shadow-md shadow-[#D95D39]/15 hover:shadow-lg hover:shadow-[#D95D39]/25 transition-all cursor-pointer disabled:bg-[#D5C9B9] text-sm"
+          className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#D95D39] hover:bg-[#C04C2B] text-white font-bold rounded-lg shadow-md shadow-[#D95D39]/15 hover:shadow-lg hover:shadow-[#D95D39]/25 transition-colors cursor-pointer disabled:bg-[#D5C9B9] text-sm"
         >
           {isSubmitting ? (
             <>

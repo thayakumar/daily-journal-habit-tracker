@@ -112,6 +112,7 @@ export function BrainDump({
             onChange={(e) => setText(e.target.value)}
           />
           <button
+            type="submit"
             aria-label="Add thought"
             className={primaryClass}
             disabled={!text.trim()}
@@ -159,6 +160,7 @@ export function Ideas({ data, update }: { data: Workspace; update: Update }) {
         >
           <Field label="Idea">
             <input
+              aria-label="Idea"
               className={inputClass}
               required
               maxLength={300}
@@ -169,6 +171,7 @@ export function Ideas({ data, update }: { data: Workspace; update: Update }) {
           </Field>
           <Field label="Link (optional)">
             <input
+              aria-label="Link (optional)"
               type="url"
               className={inputClass}
               placeholder="https://…"
@@ -181,6 +184,7 @@ export function Ideas({ data, update }: { data: Workspace; update: Update }) {
           </Field>
           <Field label="Notes">
             <textarea
+              aria-label="Notes"
               rows={4}
               className={inputClass}
               value={note}
@@ -193,7 +197,7 @@ export function Ideas({ data, update }: { data: Workspace; update: Update }) {
               {error}
             </p>
           )}
-          <button className={primaryClass}>
+          <button type="submit" className={primaryClass}>
             <Plus className="h-4 w-4" />
             Save idea
           </button>
@@ -242,6 +246,7 @@ export function Ideas({ data, update }: { data: Workspace; update: Update }) {
                 )}
                 <div className="mt-3">
                   <button
+                    type="button"
                     className={secondaryClass}
                     onClick={() =>
                       update((s) => ({

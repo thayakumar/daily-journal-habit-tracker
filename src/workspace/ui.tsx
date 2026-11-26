@@ -1,5 +1,5 @@
-import { Plus, Trash2, Check } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { Plus, Trash2, Check, RefreshCw } from "lucide-react";
+import { Component, useState, type ErrorInfo, type ReactNode } from "react";
 import { ClayObject, type ClayAssetName } from "./clayAssets";
 import {
   localDate,
@@ -9,6 +9,48 @@ import {
   type Workspace,
 } from "./model";
 export type Update = (change: (previous: Workspace) => Workspace) => void;
+export function parseNumberInput(raw: string, fallback = 0): number {
+  if (raw.trim() === "") return fallback;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+export class RoomErrorBoundary extends Component<
+  { roomName: string; children: ReactNode },
+  { hasError: boolean; message: string }
+> {
+  state = { hasError: false, message: "" };
+  static getDerivedStateFromError(error: Error) {
+    return {
+      hasError: true,
+      message: error?.message || "Something went wrong rendering this room.",
+    };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error(`[RoomErrorBoundary:${this.props.roomName}]`, error, info);
+  }
+  render() {
+    if (!this.state.hasError) return this.props.children;
+    return (
+      <section className="clay-card rounded-2xl p-6 text-center">
+        <h2 className="font-display text-lg font-semibold text-[#24201D]">
+          {this.props.roomName} ran into a display error
+        </h2>
+        <p className="mt-2 text-sm text-[#62584E]">{this.state.message}</p>
+        <p className="mt-1 text-xs text-[#8C8073]">
+          Your saved data is safe. Try reloading this room or switching tabs.
+        </p>
+        <button
+          type="button"
+          onClick={() => this.setState({ hasError: false, message: "" })}
+          className={`${primaryClass} mt-4`}
+        >
+          <RefreshCw className="h-4 w-4" />
+          Retry {this.props.roomName}
+        </button>
+      </section>
+    );
+  }
+}
 export const inputClass =
   "w-full rounded-xl border border-[#E4DBCE] bg-white px-3.5 py-2.5 text-sm text-[#24201D] placeholder:text-[#9D9083] outline-none transition focus:border-[#D95D39] focus:ring-4 focus:ring-[#FBECE7]";
 export const primaryClass =
@@ -218,7 +260,7 @@ export function ListPanel({
             className={`${inputClass} !w-auto`}
           />
         )}
-        <button className={primaryClass} disabled={!text.trim()}>
+        <button type="submit" className={primaryClass} disabled={!text.trim()}>
           <Plus className="h-4 w-4" />
           Add
         </button>

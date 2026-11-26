@@ -70,8 +70,9 @@ const stamp = (v: unknown) =>
 export function isSkincare(value: unknown): value is SkincareData {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const p = value as SkincareData,
-    keys = Object.keys(emptySkincare());
-  if (Object.keys(p).some((k) => !keys.includes(k))) return false;
+    keys = Object.keys(emptySkincare()),
+    keySet = new Set(keys);
+  if (Object.keys(p).some((k) => !keySet.has(k))) return false;
   for (const k of keys as (keyof SkincareData)[]) {
     if (
       !Array.isArray(p[k]) ||

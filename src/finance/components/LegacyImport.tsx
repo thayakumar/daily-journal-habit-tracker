@@ -244,7 +244,7 @@ export function LegacyImport({
                         <h4 className="text-sm font-semibold">{label}</h4>
                         {entries.map((r, i) => (
                           <p
-                            key={i}
+                            key={`${r.name}:${r.amount}:${i}`}
                             className="break-words text-sm text-[#62584E]"
                           >
                             {r.name} · RM {r.amount.toFixed(2)}
@@ -389,6 +389,7 @@ export function LegacyImport({
             </p>
           )}
           <button
+            type="button"
             className={primaryClass}
             disabled={!preview || !choices.some((c) => c.selected)}
             onClick={() => {

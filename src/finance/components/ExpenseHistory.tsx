@@ -207,7 +207,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
               placeholder="Search expenses by item or tag..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="min-w-0 w-full pl-9 pr-4 py-2.5 bg-[#FAF7F2] border border-[#EAE2D6] rounded-lg text-xs focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] outline-none transition-all"
+              className="min-w-0 w-full pl-9 pr-4 py-2.5 bg-[#FAF7F2] border border-[#EAE2D6] rounded-lg text-xs focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] outline-none transition-colors"
             />
           </div>
 
@@ -216,7 +216,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
             aria-label="Filter expense category"
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="w-full px-3 py-2.5 bg-[#FAF7F2] border border-[#EAE2D6] rounded-lg text-xs text-[#3B342E] focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] outline-none transition-all"
+            className="w-full px-3 py-2.5 bg-[#FAF7F2] border border-[#EAE2D6] rounded-lg text-xs text-[#3B342E] focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] outline-none transition-colors"
           >
             <option value="All">All Categories</option>
             {Object.values(Category).map((cat) => (
@@ -488,7 +488,9 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
             )}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap gap-3">
-                <button className={primaryClass}>Save changes</button>
+                <button type="submit" className={primaryClass}>
+                  Save changes
+                </button>
                 <button
                   type="button"
                   className={secondaryClass}
@@ -550,6 +552,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                 src={previewUrl}
                 onLoad={() => setPreviewLoading(false)}
                 className="h-[60dvh] min-h-64 w-full rounded-xl border border-[#EAE2D6]"
+                sandbox="allow-scripts allow-same-origin allow-popups"
                 allow="fullscreen"
               />
               <p className="mt-3 text-xs leading-relaxed text-[#62584E]">

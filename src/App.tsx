@@ -185,7 +185,7 @@ function isOfflineError(error: unknown): boolean {
   return false;
 }
 
-export default function Journal({ onReady }: JournalProps) {
+export function useJournal(): JournalBridge & { isLoaded: boolean } {
   const [cached] = useState(() => readJournal());
   const [isLoaded, setIsLoaded] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string>(
@@ -214,10 +214,14 @@ export default function Journal({ onReady }: JournalProps) {
   const atomicJournal = useRef(false);
   const journalRevision = useRef("");
   const [fastPoll, setFastPoll] = useState(false);
-  const baseRef = useRef<JournalSnapshot | null>(readJournalBase());
+  const [initialBase] = useState(readJournalBase);
+  const baseRef = useRef<JournalSnapshot | null>(initialBase);
   const latest = useRef<JournalSnapshot>({ rows, habits, showTasksColumn });
-  latest.current = { rows, habits, showTasksColumn };
   const configured = isConfigured();
+
+  useEffect(() => {
+    latest.current = { rows, habits, showTasksColumn };
+  }, [rows, habits, showTasksColumn]);
 
   const applySnapshot = useCallback((snap: JournalSnapshot) => {
     latest.current = snap;
@@ -476,22 +480,23 @@ export default function Journal({ onReady }: JournalProps) {
     await pullJournal("manual");
   }, [configured, syncLocal, pullJournal]);
 
+  const refresh = useCallback(() => pullJournal("manual"), [pullJournal]);
+
   const toggleDay = useCallback(
     (date: string, habitId: string) => {
       markDirty();
-      setRows((prev) => {
-        const existing = prev.find((row) => row.dateStr === date);
-        const entry = existing ?? blankRow(date);
-        const updated = {
-          ...entry,
-          habits: { ...entry.habits, [habitId]: !entry.habits[habitId] },
-        };
-        const next = existing
-          ? prev.map((row) => (row.id === existing.id ? updated : row))
-          : [...prev, updated].sort((a, b) => a.dateStr.localeCompare(b.dateStr));
-        latest.current = { ...latest.current, rows: next };
-        return next;
-      });
+      const prev = latest.current.rows;
+      const existing = prev.find((row) => row.dateStr === date);
+      const entry = existing ?? blankRow(date);
+      const updated = {
+        ...entry,
+        habits: { ...entry.habits, [habitId]: !entry.habits[habitId] },
+      };
+      const next = existing
+        ? prev.map((row) => (row.id === existing.id ? updated : row))
+        : [...prev, updated].sort((a, b) => a.dateStr.localeCompare(b.dateStr));
+      latest.current = { ...latest.current, rows: next };
+      setRows(next);
     },
     [markDirty],
   );
@@ -502,20 +507,18 @@ export default function Journal({ onReady }: JournalProps) {
       if (!trimmed) return;
       const colorTheme = COLOR_OPTIONS[colorIndex % COLOR_OPTIONS.length];
       markDirty();
-      setHabits((previous) => {
-        const next = [
-          ...previous,
-          {
-            id: crypto.randomUUID(),
-            name: trimmed,
-            color: colorTheme.color,
-            lightBg: colorTheme.lightBg,
-            ringColor: colorTheme.ringColor,
-          },
-        ];
-        latest.current = { ...latest.current, habits: next };
-        return next;
-      });
+      const next = [
+        ...latest.current.habits,
+        {
+          id: crypto.randomUUID(),
+          name: trimmed,
+          color: colorTheme.color,
+          lightBg: colorTheme.lightBg,
+          ringColor: colorTheme.ringColor,
+        },
+      ];
+      latest.current = { ...latest.current, habits: next };
+      setHabits(next);
     },
     [markDirty],
   );
@@ -526,21 +529,19 @@ export default function Journal({ onReady }: JournalProps) {
       if (!trimmed) return;
       const colorTheme = COLOR_OPTIONS[colorIndex % COLOR_OPTIONS.length];
       markDirty();
-      setHabits((previous) => {
-        const next = previous.map((h) =>
-          h.id === id
-            ? {
-                ...h,
-                name: trimmed,
-                color: colorTheme.color,
-                lightBg: colorTheme.lightBg,
-                ringColor: colorTheme.ringColor,
-              }
-            : h,
-        );
-        latest.current = { ...latest.current, habits: next };
-        return next;
-      });
+      const next = latest.current.habits.map((h) =>
+        h.id === id
+          ? {
+              ...h,
+              name: trimmed,
+              color: colorTheme.color,
+              lightBg: colorTheme.lightBg,
+              ringColor: colorTheme.ringColor,
+            }
+          : h,
+      );
+      latest.current = { ...latest.current, habits: next };
+      setHabits(next);
     },
     [markDirty],
   );
@@ -548,45 +549,12 @@ export default function Journal({ onReady }: JournalProps) {
   const handleRemoveHabit = useCallback(
     (habitId: string, _habitName: string) => {
       markDirty();
-      setHabits((previous) => {
-        const next = previous.filter((h) => h.id !== habitId);
-        latest.current = { ...latest.current, habits: next };
-        return next;
-      });
+      const next = latest.current.habits.filter((h) => h.id !== habitId);
+      latest.current = { ...latest.current, habits: next };
+      setHabits(next);
     },
     [markDirty],
   );
-
-  useEffect(() => {
-    if (isLoaded)
-      onReady({
-        rows,
-        habits,
-        showTasksColumn,
-        toggleDay,
-        addHabit,
-        editHabit,
-        removeHabit: handleRemoveHabit,
-        sync: handleRefresh,
-        refresh: () => pullJournal("manual"),
-        saveStatus,
-        syncState,
-      });
-  }, [
-    rows,
-    habits,
-    showTasksColumn,
-    isLoaded,
-    saveStatus,
-    syncState,
-    onReady,
-    toggleDay,
-    addHabit,
-    editHabit,
-    handleRemoveHabit,
-    handleRefresh,
-    pullJournal,
-  ]);
 
   useEffect(() => {
     try {
@@ -625,6 +593,70 @@ export default function Journal({ onReady }: JournalProps) {
     window.addEventListener("journal-restored", restore);
     return () => window.removeEventListener("journal-restored", restore);
   }, [applySnapshot]);
+
+  return {
+    rows,
+    habits,
+    showTasksColumn,
+    toggleDay,
+    addHabit,
+    editHabit,
+    removeHabit: handleRemoveHabit,
+    sync: handleRefresh,
+    refresh,
+    saveStatus,
+    syncState,
+    isLoaded,
+  };
+}
+
+export default function Journal({ onReady }: JournalProps) {
+  const { isLoaded, ...bridge } = useJournal();
+  const {
+    rows,
+    habits,
+    showTasksColumn,
+    toggleDay,
+    addHabit,
+    editHabit,
+    removeHabit,
+    sync,
+    refresh,
+    saveStatus,
+    syncState,
+  } = bridge;
+
+  useEffect(() => {
+    if (isLoaded) {
+      onReady({
+        rows,
+        habits,
+        showTasksColumn,
+        toggleDay,
+        addHabit,
+        editHabit,
+        removeHabit,
+        sync,
+        refresh,
+        saveStatus,
+        syncState,
+      });
+    }
+  }, [
+    isLoaded,
+    onReady,
+    rows,
+    habits,
+    showTasksColumn,
+    toggleDay,
+    addHabit,
+    editHabit,
+    removeHabit,
+    sync,
+    refresh,
+    saveStatus,
+    syncState,
+  ]);
 
   return null;
 }

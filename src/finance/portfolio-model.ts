@@ -374,8 +374,9 @@ export function portfolioCycleError(
   cycles: FinanceCycle[],
   today?: string,
 ): string {
+  const cycleById = new Map(cycles.map((c) => [c.id, c]));
   for (const s of [...p.snapshots, ...p.debtSnapshots]) {
-    const c = cycles.find((c) => c.id === s.cycleId);
+    const c = cycleById.get(s.cycleId);
     if (
       !(s.cycleId === "" && s.phase === "current") &&
       (!c ||
@@ -389,7 +390,7 @@ export function portfolioCycleError(
       return "Future balances are forecasts. Record a current balance now and close the cycle after it ends.";
   }
   for (const f of p.flows) {
-    const c = cycles.find((c) => c.id === f.cycleId);
+    const c = cycleById.get(f.cycleId);
     if (
       (f.cycleId !== "" && (!c || f.date < c.start || f.date > c.end)) ||
       (today && f.date > today)

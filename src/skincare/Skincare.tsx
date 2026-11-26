@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Plus, ChevronLeft, ChevronRight, Camera, Pencil } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Plus, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import {
   Card,
   Empty,
@@ -22,250 +22,12 @@ import {
   type SkinProduct,
   type SkinHabit,
 } from "./model";
-import { cachedSkinPhoto, loadSkinPhoto, uploadSkinPhoto } from "./photos";
+import { uploadSkinPhoto } from "./photos";
+import { SkinPhotoTile } from "./SkinPhotoTile";
+import { HabitEditor, ProductEditor } from "./SkinEditors";
+import { SkinProductsTab } from "./SkinProductsTab";
+import { SkinOverviewTab } from "./SkinOverviewTab";
 
-function Photo({
-  photo,
-  onOpen,
-}: {
-  photo?: SkinPhoto;
-  onOpen?: (p: SkinPhoto) => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null),
-    [loaded, setLoaded] = useState<{ id: string; url: string } | null>(null),
-    [failed, setFailed] = useState(""),
-    [attempt, setAttempt] = useState(0);
-  const url = photo
-    ? cachedSkinPhoto(photo.fileId) ||
-      (loaded?.id === photo.fileId ? loaded.url : "")
-    : "";
-  useEffect(() => {
-    if (!photo) return;
-    let cancelled = false;
-    setFailed("");
-    const run = () => {
-      void loadSkinPhoto(photo.fileId)
-        .then((value) => {
-          if (!cancelled) setLoaded({ id: photo.fileId, url: value });
-        })
-        .catch((e) => {
-          if (!cancelled)
-            setFailed(e instanceof Error ? e.message : "Photo unavailable");
-        });
-    };
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          observer.disconnect();
-          run();
-        }
-      },
-      { rootMargin: "150px" },
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => {
-      cancelled = true;
-      observer.disconnect();
-    };
-  }, [photo?.fileId, attempt]);
-  return (
-    <div
-      ref={ref}
-      className="flex aspect-[3/4] min-w-0 items-center justify-center overflow-hidden rounded-xl border border-[#EAE2D6] bg-[#FAF7F2]"
-    >
-      {!photo ? (
-        <div className="p-3 text-center text-xs text-[#8C8073]">
-          <Camera className="mx-auto mb-2 h-6 w-6" />
-          No photo
-        </div>
-      ) : url ? (
-        <button
-          type="button"
-          aria-label={`View ${photo.angle} photo for ${photo.date}`}
-          className="h-full w-full"
-          onClick={() => onOpen?.(photo)}
-        >
-          <img
-            src={url}
-            alt={`${photo.angle} view · ${photo.date}`}
-            className="h-full w-full object-contain"
-          />
-        </button>
-      ) : failed ? (
-        <div className="p-3 text-center">
-          <p className="text-xs text-[#62584E]">
-            Photo could not load. It may still be syncing.
-          </p>
-          <button
-            className={`${secondaryClass} mt-2`}
-            onClick={() => {
-              setFailed("");
-              setAttempt((n) => n + 1);
-            }}
-          >
-            Retry photo
-          </button>
-        </div>
-      ) : (
-        <p role="status" className="text-xs text-[#8C8073]">
-          Loading photo…
-        </p>
-      )}
-    </div>
-  );
-}
-function ProductEditor({
-  product,
-  onSave,
-  onClose,
-}: {
-  product: SkinProduct;
-  onSave: (p: SkinProduct) => void;
-  onClose: () => void;
-}) {
-  const [p, setP] = useState(product),
-    [error, setError] = useState("");
-  return (
-    <Dialog
-      title={product.name ? "Edit skincare product" : "Add skincare product"}
-      onClose={onClose}
-    >
-      <form
-        className="space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!p.name.trim()) {
-            setError("Enter a product name.");
-            return;
-          }
-          if (p.started && p.stopped && p.stopped < p.started) {
-            setError("The stop date must be on or after the start date.");
-            return;
-          }
-          onSave({ ...p, name: p.name.trim() });
-        }}
-      >
-        {(["name", "brand", "type", "started", "stopped"] as const).map((k) => (
-          <Field
-            key={k}
-            label={
-              {
-                name: "Product name",
-                brand: "Brand",
-                type: "Product type",
-                started: "Started using (optional)",
-                stopped: "Stopped using (optional)",
-              }[k]
-            }
-          >
-            <input
-              className={inputClass}
-              required={k === "name"}
-              maxLength={k === "type" ? 100 : 200}
-              type={k === "started" || k === "stopped" ? "date" : "text"}
-              value={p[k]}
-              onChange={(e) => setP({ ...p, [k]: e.target.value })}
-            />
-          </Field>
-        ))}
-        <Field label="Product notes">
-          <textarea
-            aria-label="Product notes"
-            className={inputClass}
-            maxLength={10000}
-            rows={4}
-            placeholder="Ingredients, how you use it, or anything to remember…"
-            value={p.notes}
-            onChange={(e) => setP({ ...p, notes: e.target.value })}
-          />
-        </Field>
-        <label className="flex min-h-11 items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={p.active}
-            onChange={(e) => setP({ ...p, active: e.target.checked })}
-          />
-          Currently using this product
-        </label>
-        {error && (
-          <p role="alert" className="text-sm text-[#A83E20]">
-            {error}
-          </p>
-        )}
-        <button className={primaryClass}>Save product</button>
-      </form>
-    </Dialog>
-  );
-}
-function HabitEditor({
-  habit,
-  onSave,
-  onClose,
-}: {
-  habit: SkinHabit;
-  onSave: (h: SkinHabit) => void;
-  onClose: () => void;
-}) {
-  const [h, setH] = useState(habit),
-    [error, setError] = useState("");
-  return (
-    <Dialog
-      title={habit.name ? "Edit skincare habit" : "Add skincare habit"}
-      onClose={onClose}
-    >
-      <form
-        className="space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!h.name.trim()) {
-            setError("Enter a skincare habit name.");
-            return;
-          }
-          onSave({ ...h, name: h.name.trim() });
-        }}
-      >
-        <Field label="Skincare habit name">
-          <input
-            required
-            maxLength={200}
-            className={inputClass}
-            value={h.name}
-            onChange={(e) => setH({ ...h, name: e.target.value })}
-            placeholder="Moisturiser, cleanser, treatment…"
-          />
-        </Field>
-        <Field label="Routine time">
-          <select
-            aria-label="Routine time"
-            className={inputClass}
-            value={h.period}
-            onChange={(e) =>
-              setH({ ...h, period: e.target.value as SkinHabit["period"] })
-            }
-          >
-            {["AM", "PM", "Anytime"].map((p) => (
-              <option key={p}>{p}</option>
-            ))}
-          </select>
-        </Field>
-        <label className="flex min-h-11 items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={h.active}
-            onChange={(e) => setH({ ...h, active: e.target.checked })}
-          />
-          Active routine step
-        </label>
-        {error && (
-          <p role="alert" className="text-sm text-[#A83E20]">
-            {error}
-          </p>
-        )}
-        <button className={primaryClass}>Save habit</button>
-      </form>
-    </Dialog>
-  );
-}
 export default function Skincare({
   data,
   update,
@@ -281,21 +43,18 @@ export default function Skincare({
   photoReady?: boolean;
   onSync?: () => void;
 }) {
-  const p = data.skincare ?? emptySkincare(),
-    [tab, setTab] = useState<"tracker" | "products" | "overview">("tracker"),
-    [date, setDate] = useState(today),
-    [product, setProduct] = useState<SkinProduct | null>(null),
-    [habit, setHabit] = useState<SkinHabit | null>(null),
-    [viewPhoto, setViewPhoto] = useState<SkinPhoto | null>(null),
-    [busy, setBusy] = useState(""),
-    [notice, setNotice] = useState(""),
-    [error, setError] = useState(""),
-    [angle, setAngle] = useState<Angle | "all">("all"),
-    [from, setFrom] = useState(""),
-    [to, setTo] = useState(""),
-    [limit, setLimit] = useState(9),
-    [query, setQuery] = useState(""),
-    [archived, setArchived] = useState(false);
+  const p = data.skincare ?? emptySkincare();
+  const [tab, setTab] = useState<"tracker" | "products" | "overview">(
+    "tracker",
+  );
+  const [date, setDate] = useState(today);
+  const [product, setProduct] = useState<SkinProduct | null>(null);
+  const [habit, setHabit] = useState<SkinHabit | null>(null);
+  const [viewPhoto, setViewPhoto] = useState<SkinPhoto | null>(null);
+  const [busy, setBusy] = useState("");
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+
   const mounted = useRef(true);
   const prevToday = useRef(today);
   useEffect(() => {
@@ -310,19 +69,48 @@ export default function Skincare({
       mounted.current = false;
     };
   }, []);
+
   function change(fn: (s: SkincareData) => SkincareData) {
     update((w) => ({ ...w, skincare: fn(w.skincare ?? emptySkincare()) }));
   }
-  const day = p.entries.find((e) => e.date === date),
-    dayChecks = p.checks.filter((c) => c.date === date),
-    visibleHabits = p.habits.filter(
-      (h) =>
-        (h.active && h.createdAt.slice(0, 10) <= date) ||
-        dayChecks.some((c) => c.habitId === h.id),
-    ),
-    products = p.products.filter(
-      (pr) => pr.active || day?.productIds.includes(pr.id),
-    );
+
+  const day = p.entries.find((e) => e.date === date);
+  const dayProductIds = useMemo(
+    () => new Set(day?.productIds ?? []),
+    [day?.productIds],
+  );
+  const dayChecks = useMemo(
+    () => p.checks.filter((c) => c.date === date),
+    [p.checks, date],
+  );
+  const dayCheckHabitIds = useMemo(
+    () => new Set(dayChecks.map((c) => c.habitId)),
+    [dayChecks],
+  );
+  const doneHabitIds = useMemo(
+    () => new Set(dayChecks.filter((c) => c.done).map((c) => c.habitId)),
+    [dayChecks],
+  );
+  const visibleHabits = useMemo(
+    () =>
+      p.habits.filter(
+        (h) =>
+          (h.active && h.createdAt.slice(0, 10) <= date) ||
+          dayCheckHabitIds.has(h.id),
+      ),
+    [p.habits, date, dayCheckHabitIds],
+  );
+  const products = useMemo(
+    () => p.products.filter((pr) => pr.active || dayProductIds.has(pr.id)),
+    [p.products, dayProductIds],
+  );
+  const dayPhotoByAngle = useMemo(() => {
+    const map = new Map<Angle, SkinPhoto>();
+    for (const ph of p.photos) {
+      if (ph.date === date) map.set(ph.angle, ph);
+    }
+    return map;
+  }, [p.photos, date]);
 
   const [notesDraft, setNotesDraft] = useState(day?.notes ?? "");
   const [reactionDraft, setReactionDraft] = useState(day?.reaction ?? "");
@@ -342,7 +130,10 @@ export default function Skincare({
     [],
   );
 
-  function patchDay(patch: Parameters<typeof putSkinDay>[2], targetDate = date) {
+  function patchDay(
+    patch: Parameters<typeof putSkinDay>[2],
+    targetDate = date,
+  ) {
     change((s) => putSkinDay(s, targetDate, patch));
     setNotice(
       "Saved on this device · notes and routine changes sync automatically.",
@@ -409,9 +200,7 @@ export default function Skincare({
       if (mounted.current) setBusy("");
     }
   }
-  const tracked = [...p.entries]
-    .filter((e) => (!from || e.date >= from) && (!to || e.date <= to))
-    .sort((a, b) => b.date.localeCompare(a.date));
+
   return (
     <div className="min-w-0 space-y-5 break-words">
       <Card
@@ -601,7 +390,7 @@ export default function Skincare({
                     >
                       <input
                         type="checkbox"
-                        checked={day?.productIds.includes(pr.id) ?? false}
+                        checked={dayProductIds.has(pr.id)}
                         onChange={(e) => {
                           const checked = e.target.checked;
                           change((s) => {
@@ -647,6 +436,7 @@ export default function Skincare({
             subtitle="Your skincare habits are separate from the general Habits page. Add, edit or archive steps whenever you need."
             action={
               <button
+                type="button"
                 className={primaryClass}
                 onClick={() =>
                   setHabit({
@@ -670,6 +460,7 @@ export default function Skincare({
                   your own steps.
                 </span>
                 <button
+                  type="button"
                   className={`${secondaryClass} mt-2`}
                   onClick={() =>
                     change((s) => ({
@@ -708,9 +499,7 @@ export default function Skincare({
                           <label className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-sm">
                             <input
                               type="checkbox"
-                              checked={dayChecks.some(
-                                (c) => c.habitId === h.id && c.done,
-                              )}
+                              checked={doneHabitIds.has(h.id)}
                               onChange={(e) => {
                                 const done = e.target.checked;
                                 change((s) => {
@@ -742,6 +531,7 @@ export default function Skincare({
                             </span>
                           </label>
                           <button
+                            type="button"
                             aria-label={`Edit skincare habit ${h.name} ${h.period}`}
                             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#62584E]"
                             onClick={() => setHabit(h)}
@@ -763,6 +553,7 @@ export default function Skincare({
                   .filter((h) => !h.active)
                   .map((h) => (
                     <button
+                      type="button"
                       key={h.id}
                       className={`${secondaryClass} mr-2 mt-2`}
                       onClick={() => setHabit(h)}
@@ -793,13 +584,11 @@ export default function Skincare({
             )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               {ANGLES.map((side) => {
-                const photo = p.photos.find(
-                  (ph) => ph.date === date && ph.angle === side,
-                );
+                const photo = dayPhotoByAngle.get(side);
                 return (
                   <div key={side} className="min-w-0">
                     <h3 className="mb-2 font-semibold capitalize">{side}</h3>
-                    <Photo photo={photo} onOpen={setViewPhoto} />
+                    <SkinPhotoTile photo={photo} onOpen={setViewPhoto} />
                     <label
                       className={`mt-3 flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-[#EAE2D6] px-3 py-2 text-sm font-semibold ${!photoReady || busy ? "cursor-not-allowed bg-[#F3EDE3] text-[#8C8073]" : "text-[#62584E] hover:bg-[#FAF7F2]"}`}
                     >
@@ -823,6 +612,7 @@ export default function Skincare({
                     </label>
                     {photo && (
                       <button
+                        type="button"
                         className="mt-2 min-h-11 w-full rounded-xl text-sm text-[#D95D39]"
                         disabled={!!busy}
                         onClick={() => {
@@ -849,6 +639,7 @@ export default function Skincare({
           </Card>
           {day && (
             <button
+              type="button"
               className={secondaryClass}
               disabled={!!busy}
               onClick={() => {
@@ -875,248 +666,30 @@ export default function Skincare({
         </div>
       )}
       {tab === "products" && (
-        <div
-          role="tabpanel"
-          id="skincare-products"
-          aria-labelledby="skin-tab-products"
-        >
-          <Card
-            title="Products I’m using"
-            subtitle="Keep product details and dates together. Archiving preserves products on your past journal entries."
-            action={
-              <button className={primaryClass} onClick={newProduct}>
-                <Plus className="h-4 w-4" />
-                Add product
-              </button>
-            }
-          >
-            <div className="mb-5 flex flex-wrap items-end gap-3">
-              <Field label="Search skincare products">
-                <input
-                  className={inputClass}
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Name, brand or type…"
-                />
-              </Field>
-              <label className="flex min-h-11 items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={archived}
-                  onChange={(e) => setArchived(e.target.checked)}
-                />
-                Show archived products
-              </label>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {p.products
-                .filter(
-                  (pr) =>
-                    (archived || pr.active) &&
-                    `${pr.name} ${pr.brand} ${pr.type}`
-                      .toLowerCase()
-                      .includes(query.toLowerCase()),
-                )
-                .map((pr) => (
-                  <article
-                    key={pr.id}
-                    className="min-w-0 rounded-2xl border border-[#EAE2D6] p-4"
-                  >
-                    <div className="flex gap-3">
-                      <div className="min-w-0 flex-1">
-                        <h3 className="break-words text-lg font-semibold">
-                          {pr.name}
-                        </h3>
-                        <p className="mt-1 text-sm text-[#62584E]">
-                          {[pr.brand, pr.type].filter(Boolean).join(" · ")}
-                        </p>
-                      </div>
-                      <button
-                        className={secondaryClass}
-                        onClick={() => setProduct(pr)}
-                      >
-                        Edit
-                      </button>
-                    </div>
-                    <p className="my-3 whitespace-pre-wrap break-words text-sm text-[#62584E]">
-                      {pr.notes}
-                    </p>
-                    <p className="text-xs text-[#8C8073]">
-                      {pr.started && `Started ${pr.started}`}
-                      {pr.stopped && ` · Stopped ${pr.stopped}`}
-                    </p>
-                    <button
-                      className={`${secondaryClass} mt-4`}
-                      onClick={() =>
-                        change((s) => ({
-                          ...s,
-                          products: s.products.map((x) =>
-                            x.id === pr.id ? { ...x, active: !x.active } : x,
-                          ),
-                        }))
-                      }
-                    >
-                      {pr.active ? "Archive product" : "Use again"}
-                    </button>
-                  </article>
-                ))}
-            </div>
-            {!p.products.length && (
-              <Empty>
-                Add your cleanser, moisturiser, sunscreen and other products.
-              </Empty>
-            )}
-          </Card>
-        </div>
+        <SkinProductsTab
+          products={p.products}
+          onNewProduct={newProduct}
+          onEditProduct={setProduct}
+          onToggleArchive={(id) =>
+            change((s) => ({
+              ...s,
+              products: s.products.map((x) =>
+                x.id === id ? { ...x, active: !x.active } : x,
+              ),
+            }))
+          }
+        />
       )}
       {tab === "overview" && (
-        <div
-          role="tabpanel"
-          id="skincare-overview"
-          aria-labelledby="skin-tab-overview"
-          className="space-y-5"
-        >
-          <Card
-            title="My skin over time"
-            subtitle="Browse daily notes, products and photos side by side. Photos show your records; the app does not diagnose skin conditions."
-          >
-            <div className="mb-4 flex flex-wrap gap-3 text-sm">
-              <span className="rounded-xl bg-[#FBECE7] px-4 py-3 font-semibold text-[#A83E20]">
-                {p.entries.length} tracked days
-              </span>
-              <span className="rounded-xl bg-sky-50 px-4 py-3 font-semibold text-sky-700">
-                {p.photos.length} photos
-              </span>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Field label="Photos from">
-                <input
-                  className={inputClass}
-                  type="date"
-                  value={from}
-                  onChange={(e) => {
-                    setFrom(e.target.value);
-                    setLimit(9);
-                  }}
-                />
-              </Field>
-              <Field label="Photos to">
-                <input
-                  className={inputClass}
-                  type="date"
-                  value={to}
-                  onChange={(e) => {
-                    setTo(e.target.value);
-                    setLimit(9);
-                  }}
-                />
-              </Field>
-              <Field label="Photo angle">
-                <select
-                  aria-label="Photo angle"
-                  className={inputClass}
-                  value={angle}
-                  onChange={(e) => setAngle(e.target.value as Angle | "all")}
-                >
-                  <option value="all">All angles</option>
-                  {ANGLES.map((a) => (
-                    <option key={a} value={a}>
-                      {a[0].toUpperCase() + a.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            </div>
-            <p className="mt-3 text-xs text-[#62584E]">
-              Newest days first. Select one angle to compare a consistent view
-              across dates.
-            </p>
-          </Card>
-          {!tracked.length ? (
-            <Empty>
-              No tracked days in this range yet. Start with a journal entry or
-              routine check.
-            </Empty>
-          ) : (
-            tracked.slice(0, limit).map((entry) => (
-              <Card
-                key={entry.id}
-                title={new Date(entry.date + "T12:00").toLocaleDateString(
-                  "en-MY",
-                  {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  },
-                )}
-                subtitle={`${p.checks.filter((c) => c.date === entry.date && c.done).length} routine steps completed · ${p.photos.filter((ph) => ph.date === entry.date).length}/3 photos`}
-                action={
-                  <button
-                    className={secondaryClass}
-                    onClick={() => {
-                      setDate(entry.date);
-                      setTab("tracker");
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                  >
-                    Open day
-                  </button>
-                }
-              >
-                <div
-                  className={`grid gap-3 ${angle === "all" ? "grid-cols-1 sm:grid-cols-3" : "mx-auto max-w-sm grid-cols-1"}`}
-                >
-                  {(angle === "all" ? ANGLES : [angle]).map((a) => (
-                    <div key={a} className="min-w-0">
-                      <p className="mb-2 text-center text-xs font-semibold capitalize text-[#62584E]">
-                        {a}
-                      </p>
-                      <Photo
-                        photo={p.photos.find(
-                          (ph) => ph.date === entry.date && ph.angle === a,
-                        )}
-                        onOpen={setViewPhoto}
-                      />
-                    </div>
-                  ))}
-                </div>
-                {entry.notes && (
-                  <p className="mt-4 whitespace-pre-wrap break-words text-sm text-[#62584E]">
-                    <strong>Routine: </strong>
-                    {entry.notes}
-                  </p>
-                )}
-                {entry.reaction && (
-                  <p className="mt-3 whitespace-pre-wrap break-words text-sm text-[#62584E]">
-                    <strong>Reaction: </strong>
-                    {entry.reaction}
-                  </p>
-                )}
-                {entry.productIds.length > 0 && (
-                  <p className="mt-3 break-words text-xs text-[#62584E]">
-                    Products:{" "}
-                    {entry.productIds
-                      .map(
-                        (id) =>
-                          p.products.find((pr) => pr.id === id)?.name ??
-                          "Product",
-                      )
-                      .join(" · ")}
-                  </p>
-                )}
-              </Card>
-            ))
-          )}
-          {tracked.length > limit && (
-            <button
-              className={secondaryClass}
-              onClick={() => setLimit((n) => n + 9)}
-            >
-              Show more days
-            </button>
-          )}
-        </div>
+        <SkinOverviewTab
+          data={p}
+          onOpenDay={(entryDate) => {
+            setDate(entryDate);
+            setTab("tracker");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          onViewPhoto={setViewPhoto}
+        />
       )}
       {product && (
         <ProductEditor
@@ -1155,7 +728,7 @@ export default function Skincare({
           onClose={() => setViewPhoto(null)}
         >
           <div className="mx-auto max-w-md">
-            <Photo photo={viewPhoto} />
+            <SkinPhotoTile photo={viewPhoto} />
           </div>
         </Dialog>
       )}

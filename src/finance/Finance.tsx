@@ -104,6 +104,7 @@ export default function Finance({
         >
           {(["expenses", "monthly", "portfolio"] as const).map((tab) => (
             <button
+              type="button"
               key={tab}
               role="tab"
               aria-selected={view === tab}
