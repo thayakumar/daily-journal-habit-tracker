@@ -40,7 +40,11 @@ try {
     await new Promise((r) => setTimeout(r, 100));
   }
   browser = await chromium.launch({
-    executablePath: "/usr/bin/chromium",
+    executablePath:
+      process.env.CHROMIUM_PATH ||
+      (fs.existsSync("/usr/bin/chromium")
+        ? "/usr/bin/chromium"
+        : "/usr/bin/google-chrome"),
     headless: true,
     args: ["--no-sandbox", "--disable-dev-shm-usage"],
   });
@@ -381,7 +385,7 @@ try {
       await fill("Goal deadline", addMonths(today, 6));
       await fill("Planned monthly contribution (RM)", 100);
       await save("goal");
-      const goalCard = page.locator("div.rounded-xl.border-slate-200").filter({
+      const goalCard = page.locator("div.rounded-xl.border").filter({
         has: page.getByRole("heading", { name: "QA Goal", exact: true }),
       });
       await goalCard

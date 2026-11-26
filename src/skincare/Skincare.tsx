@@ -272,12 +272,14 @@ export default function Skincare({
   today,
   storageReady,
   photoReady = false,
+  onSync,
 }: {
   data: Workspace;
   update: Update;
   today: string;
   storageReady: boolean;
   photoReady?: boolean;
+  onSync?: () => void;
 }) {
   const p = data.skincare ?? emptySkincare(),
     [tab, setTab] = useState<"tracker" | "products" | "overview">("tracker"),
@@ -295,6 +297,13 @@ export default function Skincare({
     [query, setQuery] = useState(""),
     [archived, setArchived] = useState(false);
   const mounted = useRef(true);
+  const prevToday = useRef(today);
+  useEffect(() => {
+    if (prevToday.current !== today) {
+      if (date === prevToday.current) setDate(today);
+      prevToday.current = today;
+    }
+  }, [today, date]);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -314,11 +323,48 @@ export default function Skincare({
     products = p.products.filter(
       (pr) => pr.active || day?.productIds.includes(pr.id),
     );
-  function patchDay(patch: Parameters<typeof putSkinDay>[2]) {
-    change((s) => putSkinDay(s, date, patch));
+
+  const [notesDraft, setNotesDraft] = useState(day?.notes ?? "");
+  const [reactionDraft, setReactionDraft] = useState(day?.reaction ?? "");
+  const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reactionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!notesTimer.current) setNotesDraft(day?.notes ?? "");
+  }, [date, day?.notes]);
+  useEffect(() => {
+    if (!reactionTimer.current) setReactionDraft(day?.reaction ?? "");
+  }, [date, day?.reaction]);
+  useEffect(
+    () => () => {
+      if (notesTimer.current) clearTimeout(notesTimer.current);
+      if (reactionTimer.current) clearTimeout(reactionTimer.current);
+    },
+    [],
+  );
+
+  function patchDay(patch: Parameters<typeof putSkinDay>[2], targetDate = date) {
+    change((s) => putSkinDay(s, targetDate, patch));
     setNotice(
       "Saved on this device · notes and routine changes sync automatically.",
     );
+  }
+  function flushTextDrafts() {
+    if (notesTimer.current) {
+      clearTimeout(notesTimer.current);
+      notesTimer.current = null;
+      if (notesDraft !== (day?.notes ?? "")) patchDay({ notes: notesDraft });
+    }
+    if (reactionTimer.current) {
+      clearTimeout(reactionTimer.current);
+      reactionTimer.current = null;
+      if (reactionDraft !== (day?.reaction ?? ""))
+        patchDay({ reaction: reactionDraft });
+    }
+  }
+  function switchDate(nextDate: string) {
+    flushTextDrafts();
+    setDate(nextDate);
+    setNotice("");
   }
   function newProduct() {
     setProduct({
@@ -351,9 +397,10 @@ export default function Skincare({
           ],
         };
       });
+      onSync?.();
       if (mounted.current)
         setNotice(
-          `Uploaded ${side} photo for ${uploadDate}. It will appear across devices after the planner sync finishes.`,
+          `Uploaded ${side} photo for ${uploadDate} and started Sheet sync.`,
         );
     } catch (e) {
       if (mounted.current)
@@ -378,6 +425,7 @@ export default function Skincare({
         >
           {(["tracker", "products", "overview"] as const).map((t) => (
             <button
+              type="button"
               role="tab"
               aria-selected={tab === t}
               aria-controls={`skincare-${t}`}
@@ -385,6 +433,7 @@ export default function Skincare({
               key={t}
               className={`${tab === t ? "bg-[#D95D39] text-white" : "bg-[#FAF7F2] text-[#62584E]"} min-h-11 rounded-xl px-4 py-2.5 text-sm font-semibold`}
               onClick={() => {
+                flushTextDrafts();
                 setTab(t);
                 setError("");
               }}
@@ -430,15 +479,13 @@ export default function Skincare({
           aria-labelledby="skin-tab-tracker"
           className="space-y-5"
         >
-          <Card
-            title="Daily face journal"
-            subtitle="Write what you applied and how your skin reacted. Changes save automatically as you type."
-          >
-            <div className="mb-5 flex flex-wrap items-end gap-2">
+          <div className="clay-card flex flex-wrap items-end justify-between gap-3 rounded-2xl p-4 sm:px-6">
+            <div className="flex flex-wrap items-end gap-2">
               <button
+                type="button"
                 className={secondaryClass}
                 aria-label="Previous skincare day"
-                onClick={() => setDate(addDays(date, -1))}
+                onClick={() => switchDate(addDays(date, -1))}
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -451,23 +498,35 @@ export default function Skincare({
                   value={date}
                   onChange={(e) => {
                     if (e.target.value && e.target.value <= today)
-                      setDate(e.target.value);
-                    setNotice("");
+                      switchDate(e.target.value);
                   }}
                 />
               </Field>
               <button
+                type="button"
                 disabled={date >= today}
                 className={secondaryClass}
                 aria-label="Next skincare day"
-                onClick={() => setDate(addDays(date, 1))}
+                onClick={() => switchDate(addDays(date, 1))}
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
-              <button className={secondaryClass} onClick={() => setDate(today)}>
+              <button
+                type="button"
+                className={secondaryClass}
+                onClick={() => switchDate(today)}
+              >
                 Today
               </button>
             </div>
+            <p className="text-xs text-[#8C8073]">
+              Applies to journal, routine &amp; photos below · auto-saves
+            </p>
+          </div>
+          <Card
+            title="Daily face journal"
+            subtitle="Write what you applied and how your skin reacted. Changes save automatically."
+          >
             <div className="grid gap-4 lg:grid-cols-2">
               <Field label="What I applied / daily notes">
                 <textarea
@@ -475,9 +534,27 @@ export default function Skincare({
                   className={inputClass}
                   rows={6}
                   maxLength={10000}
-                  value={day?.notes ?? ""}
+                  value={notesDraft}
                   placeholder="Morning and evening routine, changes, or anything you want to remember…"
-                  onChange={(e) => patchDay({ notes: e.target.value })}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    const targetDate = date;
+                    setNotesDraft(next);
+                    if (notesTimer.current) clearTimeout(notesTimer.current);
+                    notesTimer.current = setTimeout(() => {
+                      notesTimer.current = null;
+                      patchDay({ notes: next }, targetDate);
+                    }, 250);
+                  }}
+                  onBlur={() => {
+                    if (notesTimer.current) {
+                      clearTimeout(notesTimer.current);
+                      notesTimer.current = null;
+                    }
+                    if (notesDraft !== (day?.notes ?? "")) {
+                      patchDay({ notes: notesDraft });
+                    }
+                  }}
                 />
               </Field>
               <Field label="How my skin reacted">
@@ -486,9 +563,28 @@ export default function Skincare({
                   className={inputClass}
                   rows={6}
                   maxLength={10000}
-                  value={day?.reaction ?? ""}
+                  value={reactionDraft}
                   placeholder="Dryness, oiliness, redness, irritation, breakouts, or feeling comfortable…"
-                  onChange={(e) => patchDay({ reaction: e.target.value })}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    const targetDate = date;
+                    setReactionDraft(next);
+                    if (reactionTimer.current)
+                      clearTimeout(reactionTimer.current);
+                    reactionTimer.current = setTimeout(() => {
+                      reactionTimer.current = null;
+                      patchDay({ reaction: next }, targetDate);
+                    }, 250);
+                  }}
+                  onBlur={() => {
+                    if (reactionTimer.current) {
+                      clearTimeout(reactionTimer.current);
+                      reactionTimer.current = null;
+                    }
+                    if (reactionDraft !== (day?.reaction ?? "")) {
+                      patchDay({ reaction: reactionDraft });
+                    }
+                  }}
                 />
               </Field>
             </div>
@@ -506,15 +602,22 @@ export default function Skincare({
                       <input
                         type="checkbox"
                         checked={day?.productIds.includes(pr.id) ?? false}
-                        onChange={(e) =>
-                          patchDay({
-                            productIds: e.target.checked
-                              ? [...(day?.productIds ?? []), pr.id]
-                              : (day?.productIds ?? []).filter(
-                                  (id) => id !== pr.id,
-                                ),
-                          })
-                        }
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          change((s) => {
+                            const current = s.entries.find(
+                              (entry) => entry.date === date,
+                            );
+                            const existing = current?.productIds ?? [];
+                            const nextIds = checked
+                              ? [...new Set([...existing, pr.id])]
+                              : existing.filter((id) => id !== pr.id);
+                            return putSkinDay(s, date, { productIds: nextIds });
+                          });
+                          setNotice(
+                            "Saved on this device · notes and routine changes sync automatically.",
+                          );
+                        }}
                       />
                       <span>
                         {pr.name}
@@ -529,19 +632,15 @@ export default function Skincare({
                   Add your products to choose what you used each day.
                 </p>
               )}
-              <button className={`${secondaryClass} mt-3`} onClick={newProduct}>
+              <button
+                type="button"
+                className={`${secondaryClass} mt-3`}
+                onClick={newProduct}
+              >
                 <Plus className="h-4 w-4" />
                 Add product
               </button>
             </div>
-            {!day && (
-              <button
-                className={`${primaryClass} mt-5`}
-                onClick={() => patchDay({})}
-              >
-                Save this day
-              </button>
-            )}
           </Card>
           <Card
             title="My skincare routine"
@@ -966,7 +1065,7 @@ export default function Skincare({
                 }
               >
                 <div
-                  className={`grid gap-3 ${angle === "all" ? "grid-cols-3" : "mx-auto max-w-sm grid-cols-1"}`}
+                  className={`grid gap-3 ${angle === "all" ? "grid-cols-1 sm:grid-cols-3" : "mx-auto max-w-sm grid-cols-1"}`}
                 >
                   {(angle === "all" ? ANGLES : [angle]).map((a) => (
                     <div key={a} className="min-w-0">

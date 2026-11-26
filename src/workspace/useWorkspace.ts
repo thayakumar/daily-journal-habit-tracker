@@ -7,14 +7,20 @@ import {
   isConfigured,
   saveSetting,
   saveWorkspace,
+  ScriptError,
   type SheetData,
 } from "../lib/sheets-api";
 import {
+  diagnoseWorkspace,
   isWorkspace,
   readWorkspace,
+  repairWorkspace,
   WORKSPACE_KEY,
   type Workspace,
 } from "./model";
+import { mergeWorkspaces, workspaceContentEqual } from "./merge";
+
+export type SyncState = "local" | "syncing" | "synced" | "offline" | "error";
 
 const VEHICLE_PENDING_KEY = "personal-workspace.vehicles-pending.v1";
 const SKIN_PENDING_KEY = "personal-workspace.skincare-pending.v1";
@@ -25,20 +31,28 @@ const FINANCE_PENDING_KEY = "personal-workspace.finance-pending.v1";
 const VOCAB_PENDING_KEY = "personal-workspace.vocabulary-pending.v1";
 const LOG_PENDING_KEY = "personal-workspace.logs-pending.v1";
 const ACK_KEY = "personal-workspace.cloud-ack.v2";
-function remoteWorkspace(remote: SheetData): Workspace | null {
+const BASE_KEY = "personal-workspace.base.v1";
+
+function remoteWorkspace(remote: SheetData): {
+  workspace: Workspace | null;
+  warnings: string[];
+} {
   const data: unknown =
     remote.storageSchemaVersion === 2
       ? remote.workspace
       : remote.settings[CLOUD_KEY]
         ? JSON.parse(remote.settings[CLOUD_KEY])
         : null;
-  if (data === null) return null;
-  if (!isWorkspace(data))
-    throw new Error(
-      "Saved planner has invalid data. Check the spreadsheet before syncing.",
-    );
-  return data;
+  if (data === null) return { workspace: null, warnings: [] };
+  if (isWorkspace(data)) return { workspace: data, warnings: [] };
+  const repaired = repairWorkspace(data);
+  if (repaired) return repaired;
+  const issues = diagnoseWorkspace(data);
+  throw new Error(
+    `Saved planner has invalid data (${issues.join(", ")}). Check the spreadsheet before syncing.`,
+  );
 }
+
 function readAck(): { timestamp: number; revision: string } {
   try {
     return JSON.parse(
@@ -48,10 +62,54 @@ function readAck(): { timestamp: number; revision: string } {
     return { timestamp: 0, revision: "" };
   }
 }
+
+function readBase(): Workspace | null {
+  try {
+    const raw = localStorage.getItem(BASE_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return isWorkspace(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeBase(workspace: Workspace) {
+  try {
+    localStorage.setItem(BASE_KEY, JSON.stringify(workspace));
+  } catch {
+    /* Non-critical if storage is near quota. */
+  }
+}
+
+function isConflictError(error: unknown): boolean {
+  if (error instanceof ScriptError && error.code === "CONFLICT") return true;
+  if (error instanceof Error) {
+    return /CONFLICT|Sheet data changed/i.test(error.message);
+  }
+  return false;
+}
+
+function isOfflineError(error: unknown): boolean {
+  if (typeof navigator !== "undefined" && navigator.onLine === false)
+    return true;
+  if (error instanceof Error) {
+    return /Failed to fetch|NetworkError|Load failed|offline|network/i.test(
+      error.message,
+    );
+  }
+  return false;
+}
+
 export function useWorkspace() {
   const [data, setData] = useState(readWorkspace);
   const [initialLoading, setInitialLoading] = useState(isConfigured());
   const [status, setStatus] = useState("Saved on this device");
+  const [syncState, setSyncState] = useState<SyncState>(
+    isConfigured() ? "syncing" : "local",
+  );
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<number>(0);
   const [ready, setReady] = useState(!isConfigured());
   const [tableStorage, setTableStorage] = useState(false);
   const [logStorageReady, setLogStorageReady] = useState(false);
@@ -73,61 +131,58 @@ export function useWorkspace() {
   const [vocabularyStorageReady, setVocabularyStorageReady] = useState(false);
   const latest = useRef(data);
   latest.current = data;
+  const baseRef = useRef<Workspace | null>(readBase());
   const ack = useRef(readAck());
   const cloudTimestamp = useRef(0);
   const cloudRevision = useRef("");
   const tableMode = useRef(false);
   const saving = useRef(false);
-  function acknowledge(timestamp: number, revision: string) {
+  const pulling = useRef(false);
+  const lastPullAt = useRef(0);
+
+  function acknowledge(
+    timestamp: number,
+    revision: string,
+    syncedSnapshot?: Workspace,
+  ) {
     ack.current = { timestamp, revision };
-    localStorage.setItem(ACK_KEY, JSON.stringify(ack.current));
+    try {
+      localStorage.setItem(ACK_KEY, JSON.stringify(ack.current));
+    } catch {
+      /* Ignore storage quota errors for metadata. */
+    }
+    if (syncedSnapshot) {
+      baseRef.current = syncedSnapshot;
+      writeBase(syncedSnapshot);
+    }
+    setLastSyncedAt(Date.now());
   }
-  function acceptRemote(remote: SheetData, force = false) {
-    tableMode.current = remote.storageSchemaVersion === 2;
-    setTableStorage(tableMode.current);
-    cloudRevision.current = remote.workspaceRevision || "";
-    logSupport.current =
-      remote.features?.workoutSets === true &&
-      remote.features?.recurringChecks === true;
-    setLogStorageReady(logSupport.current);
-    portfolioSupport.current = remote.features?.financePortfolio === true;
-    timelineSupport.current = remote.features?.portfolioTimeline === true;
-    setPortfolioStorageReady(
-      portfolioSupport.current && timelineSupport.current,
-    );
-    planningSupport.current = remote.features?.financePlanning === true;
-    setPlanningStorageReady(planningSupport.current);
-    financeSupport.current = remote.features?.finance === true;
-    setFinanceStorageReady(financeSupport.current);
-    vocabularySupport.current = remote.features?.vocabulary === true;
-    setVocabularyStorageReady(vocabularySupport.current);
-    setMigrationReady(remote.features?.legacyBudgetImport === true);
-    vehicleSupport.current = remote.features?.vehicles === true;
-    setVehicleStorageReady(vehicleSupport.current);
-    skinSupport.current = remote.features?.skincare === true;
-    setSkincareStorageReady(skinSupport.current);
-    setSkincarePhotosReady(remote.features?.skincareDirectPhotos === true);
-    let parsed = remoteWorkspace(remote);
+
+  function applyFeatureDefaults(
+    parsed: Workspace,
+    force: boolean,
+  ): {
+    workspace: Workspace;
+    hasFeatureUpgradeMerge: boolean;
+  } {
     const pendingSkin = localStorage.getItem(SKIN_PENDING_KEY) === "true";
-    if (parsed && !skinSupport.current && !force)
+    if (!skinSupport.current && !force)
       parsed = {
         ...parsed,
         skincare: latest.current.skincare ?? emptySkincare(),
       };
     const pendingVehicles =
       localStorage.getItem(VEHICLE_PENDING_KEY) === "true";
-    if (parsed && !vehicleSupport.current && !force)
+    if (!vehicleSupport.current && !force)
       parsed = {
         ...parsed,
         vehicles: latest.current.vehicles ?? [],
         vehicleServices: latest.current.vehicleServices ?? [],
       };
-    const cloudDate = parsed?.updatedAt ?? 0;
     const pendingLogs = localStorage.getItem(LOG_PENDING_KEY) === "true";
     const pendingPortfolio =
       localStorage.getItem(PORTFOLIO_PENDING_KEY) === "true";
     if (
-      parsed &&
       (!portfolioSupport.current ||
         (!timelineSupport.current && pendingPortfolio)) &&
       !force
@@ -137,30 +192,31 @@ export function useWorkspace() {
         financePortfolio: latest.current.financePortfolio ?? emptyPortfolio(),
       };
     const pendingPlan = localStorage.getItem(PLAN_PENDING_KEY) === "true";
-    if (parsed && !planningSupport.current && !force)
+    if (!planningSupport.current && !force)
       parsed = {
         ...parsed,
         financePlanning: latest.current.financePlanning ?? emptyPlanning(),
       };
     const pendingFinance = localStorage.getItem(FINANCE_PENDING_KEY) === "true";
-    if (parsed && !financeSupport.current && !force)
+    if (!financeSupport.current && !force)
       parsed = {
         ...parsed,
         financeExpenses: latest.current.financeExpenses ?? [],
       };
     const pendingVocabulary =
       localStorage.getItem(VOCAB_PENDING_KEY) === "true";
-    if (parsed && !vocabularySupport.current && !force)
+    if (!vocabularySupport.current && !force)
       parsed = { ...parsed, vocabulary: latest.current.vocabulary ?? [] };
-    if (parsed && !logSupport.current && !force) {
+    if (!logSupport.current && !force) {
       parsed = {
         ...parsed,
         workoutSets: latest.current.workoutSets ?? [],
         recurringChecks: latest.current.recurringChecks ?? [],
       };
     }
-    if (
-      parsed &&
+
+    const hasFeatureUpgradeMerge =
+      !force &&
       ((skinSupport.current && pendingSkin) ||
         (vehicleSupport.current && pendingVehicles) ||
         (logSupport.current && pendingLogs) ||
@@ -169,9 +225,9 @@ export function useWorkspace() {
         (planningSupport.current && pendingPlan) ||
         (portfolioSupport.current &&
           timelineSupport.current &&
-          pendingPortfolio)) &&
-      !force
-    ) {
+          pendingPortfolio));
+
+    if (hasFeatureUpgradeMerge) {
       const merge = <T extends { id: string }>(
         remoteRows: T[],
         localRows: T[],
@@ -188,7 +244,7 @@ export function useWorkspace() {
                 Object.keys(emptySkincare()).map((key) => [
                   key,
                   merge<{ id: string }>(
-                    (parsed!.skincare ?? emptySkincare())[
+                    (parsed.skincare ?? emptySkincare())[
                       key as keyof ReturnType<typeof emptySkincare>
                     ],
                     (latest.current.skincare ?? emptySkincare())[
@@ -217,7 +273,7 @@ export function useWorkspace() {
                 Object.keys(emptyPortfolio()).map((key) => [
                   key,
                   merge<{ id: string }>(
-                    (parsed!.financePortfolio ?? emptyPortfolio())[
+                    (parsed.financePortfolio ?? emptyPortfolio())[
                       key as keyof ReturnType<typeof emptyPortfolio>
                     ],
                     (latest.current.financePortfolio ?? emptyPortfolio())[
@@ -267,7 +323,7 @@ export function useWorkspace() {
         updatedAt: Math.max(
           Date.now(),
           latest.current.updatedAt + 1,
-          cloudDate + 1,
+          (parsed.updatedAt ?? 0) + 1,
         ),
       };
       if (!isWorkspace(parsed))
@@ -285,30 +341,107 @@ export function useWorkspace() {
         throw new Error(
           "Monthly plans conflict with the Sheet. Export a backup before loading the latest tables.",
         );
-      cloudTimestamp.current = cloudDate;
-      setData(parsed);
-      setReady(true);
-      setStatus("Uploading device records…");
-      return;
     }
-    if (parsed) {
+    return { workspace: parsed, hasFeatureUpgradeMerge };
+  }
+
+  function acceptRemote(remote: SheetData, force = false) {
+    tableMode.current = remote.storageSchemaVersion === 2;
+    setTableStorage(tableMode.current);
+    cloudRevision.current = remote.workspaceRevision || "";
+    logSupport.current =
+      remote.features?.workoutSets === true &&
+      remote.features?.recurringChecks === true;
+    setLogStorageReady(logSupport.current);
+    portfolioSupport.current = remote.features?.financePortfolio === true;
+    timelineSupport.current = remote.features?.portfolioTimeline === true;
+    setPortfolioStorageReady(
+      portfolioSupport.current && timelineSupport.current,
+    );
+    planningSupport.current = remote.features?.financePlanning === true;
+    setPlanningStorageReady(planningSupport.current);
+    financeSupport.current = remote.features?.finance === true;
+    setFinanceStorageReady(financeSupport.current);
+    vocabularySupport.current = remote.features?.vocabulary === true;
+    setVocabularyStorageReady(vocabularySupport.current);
+    setMigrationReady(remote.features?.legacyBudgetImport === true);
+    vehicleSupport.current = remote.features?.vehicles === true;
+    setVehicleStorageReady(vehicleSupport.current);
+    skinSupport.current = remote.features?.skincare === true;
+    setSkincareStorageReady(skinSupport.current);
+    setSkincarePhotosReady(remote.features?.skincareDirectPhotos === true);
+
+    const { workspace: rawParsed, warnings } = remoteWorkspace(remote);
+    if (rawParsed) {
+      const cloudDate = rawParsed.updatedAt ?? 0;
+      const { workspace: parsed, hasFeatureUpgradeMerge } = applyFeatureDefaults(
+        rawParsed,
+        force,
+      );
+      if (hasFeatureUpgradeMerge) {
+        cloudTimestamp.current = cloudDate;
+        baseRef.current = rawParsed;
+        writeBase(rawParsed);
+        latest.current = parsed;
+        setData(parsed);
+        setReady(true);
+        setSyncState("syncing");
+        setSyncError(null);
+        setStatus("Uploading device records…");
+        return;
+      }
+
       cloudTimestamp.current = cloudDate;
       const dirty = latest.current.updatedAt > ack.current.timestamp;
-      if (
-        tableMode.current &&
-        dirty &&
-        ack.current.revision &&
-        ack.current.revision !== cloudRevision.current &&
-        !force
-      )
-        throw new Error(
-          "Sheet data changed while this device had unsynced edits. Export a backup, then load the latest Sheet tables.",
-        );
-      if (force || !dirty || parsed.updatedAt > latest.current.updatedAt) {
+      if (force || !dirty) {
+        latest.current = parsed;
         setData(parsed);
-        acknowledge(parsed.updatedAt, cloudRevision.current);
+        acknowledge(parsed.updatedAt, cloudRevision.current, rawParsed);
+        setSyncState("synced");
+        setSyncError(null);
+        setStatus(
+          warnings.length
+            ? `Connected · repaired ${warnings.join(", ")} rows`
+            : tableMode.current
+              ? "Connected to per-page Sheet tables"
+              : "Legacy cloud storage · update Apps Script for per-page tables",
+        );
+        setReady(true);
+        return;
       }
+
+      // Device has unsynced edits: perform a 3-way merge against the last synced base so neither device loses edits.
+      const merged = mergeWorkspaces(baseRef.current, latest.current, parsed);
+      const safeMerged = isWorkspace(merged)
+        ? merged
+        : (repairWorkspace(merged)?.workspace ?? merged);
+      baseRef.current = rawParsed;
+      writeBase(rawParsed);
+
+      if (workspaceContentEqual(safeMerged, parsed)) {
+        latest.current = parsed;
+        setData(parsed);
+        acknowledge(parsed.updatedAt, cloudRevision.current, rawParsed);
+        setSyncState("synced");
+        setSyncError(null);
+        setStatus(
+          tableMode.current
+            ? "Connected to per-page Sheet tables"
+            : "Legacy cloud storage · update Apps Script for per-page tables",
+        );
+      } else {
+        latest.current = safeMerged;
+        setData(safeMerged);
+        setSyncState("syncing");
+        setSyncError(null);
+        setStatus("Merged changes from both devices · syncing…");
+      }
+      setReady(true);
+      return;
     }
+
+    setSyncState("synced");
+    setSyncError(null);
     setStatus(
       tableMode.current
         ? "Connected to per-page Sheet tables"
@@ -316,33 +449,94 @@ export function useWorkspace() {
     );
     setReady(true);
   }
+
   const update = useCallback((change: (previous: Workspace) => Workspace) => {
-    setData((previous) => ({
-      ...change(previous),
-      updatedAt: Math.max(Date.now(), previous.updatedAt + 1),
-    }));
+    setData((previous) => {
+      const next = {
+        ...change(previous),
+        updatedAt: Math.max(Date.now(), previous.updatedAt + 1),
+      };
+      latest.current = next;
+      return next;
+    });
   }, []);
+
+  const pullCloud = useCallback(
+    async (reason: "mount" | "visible" | "focus" | "online" | "manual") => {
+      if (!isConfigured() || saving.current || pulling.current) return;
+      if (
+        (reason === "visible" || reason === "focus") &&
+        Date.now() - lastPullAt.current < 8000
+      ) {
+        return;
+      }
+      pulling.current = true;
+      lastPullAt.current = Date.now();
+      if (reason === "mount") {
+        setStatus("Checking saved planner…");
+        setSyncState("syncing");
+      }
+      try {
+        const remote = await fetchAllData();
+        acceptRemote(remote, false);
+      } catch (error) {
+        const offline = isOfflineError(error);
+        const msg =
+          error instanceof Error ? error.message : "cloud unavailable";
+        setSyncState(offline ? "offline" : "error");
+        setSyncError(offline ? "Offline · saved on this device" : msg);
+        setStatus(`Device saved · ${msg}`);
+      } finally {
+        pulling.current = false;
+        if (reason === "mount") setInitialLoading(false);
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
     if (!isConfigured()) return;
-    let cancelled = false;
-    setStatus("Checking saved planner…");
-    fetchAllData()
-      .then((remote) => {
-        if (!cancelled) acceptRemote(remote);
-      })
-      .catch((error) => {
-        if (!cancelled)
-          setStatus(
-            `Device saved · ${error instanceof Error ? error.message : "cloud unavailable"}`,
-          );
-      })
-      .finally(() => {
-        if (!cancelled) setInitialLoading(false);
-      });
-    return () => {
-      cancelled = true;
+    void pullCloud("mount");
+  }, [pullCloud]);
+
+  useEffect(() => {
+    if (!isConfigured() || typeof window === "undefined") return;
+    const onVisible = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        void pullCloud("visible");
+      }
     };
-  }, []);
+    const onFocus = () => {
+      void pullCloud("focus");
+    };
+    const onOnline = () => {
+      void pullCloud("online");
+    };
+    const onOffline = () => {
+      setSyncState("offline");
+      setSyncError("Offline · changes are saved on this device");
+      setStatus("Offline · saved on this device");
+    };
+    const canDoc =
+      typeof document !== "undefined" &&
+      typeof document.addEventListener === "function";
+    const canWin = typeof window.addEventListener === "function";
+    if (canDoc) document.addEventListener("visibilitychange", onVisible);
+    if (canWin) {
+      window.addEventListener("focus", onFocus);
+      window.addEventListener("online", onOnline);
+      window.addEventListener("offline", onOffline);
+    }
+    return () => {
+      if (canDoc) document.removeEventListener("visibilitychange", onVisible);
+      if (canWin) {
+        window.removeEventListener("focus", onFocus);
+        window.removeEventListener("online", onOnline);
+        window.removeEventListener("offline", onOffline);
+      }
+    };
+  }, [pullCloud]);
+
   useEffect(() => {
     if (!data.updatedAt) return;
     try {
@@ -383,38 +577,100 @@ export function useWorkspace() {
       )
         localStorage.setItem(LOG_PENDING_KEY, "true");
     } catch {
+      setSyncState("error");
+      setSyncError("Device storage full · export a backup");
       setStatus("Device storage full · export a backup");
       return;
     }
     if (!isConfigured()) {
+      setSyncState("local");
+      setSyncError(null);
       setStatus("Saved on this device");
       return;
     }
     if (!ready || data.updatedAt <= cloudTimestamp.current) return;
+    setSyncState("syncing");
     setStatus("Device saved · syncing planner…");
     const timer = setTimeout(() => {
       void sync();
-    }, 1200);
+    }, 900);
     return () => clearTimeout(timer);
   }, [data, ready]);
+
   async function sync() {
     if (saving.current || !isConfigured()) return;
     saving.current = true;
+    setSyncState("syncing");
     try {
       if (!ready) {
-        acceptRemote(await fetchAllData());
-        return;
+        acceptRemote(await fetchAllData(), false);
+        if (!ready && latest.current.updatedAt <= cloudTimestamp.current) {
+          return;
+        }
       }
       let next = latest.current;
+      let conflictAttempts = 0;
       while (next.updatedAt > cloudTimestamp.current) {
         if (tableMode.current) {
           const supported = { ...next };
           if (!timelineSupport.current) delete supported.financePortfolio;
           if (!skinSupport.current) delete supported.skincare;
-          cloudRevision.current = await saveWorkspace(
-            supported,
-            cloudRevision.current,
-          );
+          try {
+            cloudRevision.current = await saveWorkspace(
+              supported,
+              cloudRevision.current,
+            );
+            conflictAttempts = 0;
+          } catch (error) {
+            if (isConflictError(error) && conflictAttempts < 3) {
+              conflictAttempts++;
+              setStatus("Merging updates from another device…");
+              const fresh = await fetchAllData();
+              cloudRevision.current = fresh.workspaceRevision || "";
+              const { workspace: remoteW } = remoteWorkspace(fresh);
+              if (remoteW) {
+                const { workspace: adjustedRemote } = applyFeatureDefaults(
+                  remoteW,
+                  false,
+                );
+                const merged = mergeWorkspaces(
+                  baseRef.current,
+                  latest.current,
+                  adjustedRemote,
+                );
+                const safeMerged = isWorkspace(merged)
+                  ? merged
+                  : (repairWorkspace(merged)?.workspace ?? merged);
+                baseRef.current = remoteW;
+                writeBase(remoteW);
+                if (workspaceContentEqual(safeMerged, adjustedRemote)) {
+                  latest.current = adjustedRemote;
+                  setData(adjustedRemote);
+                  cloudTimestamp.current = adjustedRemote.updatedAt;
+                  acknowledge(
+                    adjustedRemote.updatedAt,
+                    cloudRevision.current,
+                    remoteW,
+                  );
+                  next = latest.current;
+                  continue;
+                }
+                latest.current = safeMerged;
+                setData(safeMerged);
+                try {
+                  localStorage.setItem(
+                    WORKSPACE_KEY,
+                    JSON.stringify(safeMerged),
+                  );
+                } catch {
+                  /* Ignore storage quota errors. */
+                }
+                next = safeMerged;
+                continue;
+              }
+            }
+            throw error;
+          }
         } else {
           const payload = JSON.stringify(next);
           if (payload.length > 45000)
@@ -424,7 +680,7 @@ export function useWorkspace() {
           await saveSetting(CLOUD_KEY, payload);
         }
         cloudTimestamp.current = next.updatedAt;
-        acknowledge(next.updatedAt, cloudRevision.current);
+        acknowledge(next.updatedAt, cloudRevision.current, next);
         if (skinSupport.current) localStorage.removeItem(SKIN_PENDING_KEY);
         if (vehicleSupport.current)
           localStorage.removeItem(VEHICLE_PENDING_KEY);
@@ -438,6 +694,8 @@ export function useWorkspace() {
           localStorage.removeItem(VOCAB_PENDING_KEY);
         next = latest.current;
       }
+      setSyncState("synced");
+      setSyncError(null);
       setStatus(
         !skinSupport.current &&
           localStorage.getItem(SKIN_PENDING_KEY) === "true"
@@ -468,28 +726,41 @@ export function useWorkspace() {
                       : "Saved to legacy JSON · update Apps Script for per-page tables",
       );
     } catch (error) {
-      setStatus(
-        `Device saved · ${error instanceof Error ? error.message : "cloud sync failed; retry"}`,
-      );
+      const offline = isOfflineError(error);
+      const msg =
+        error instanceof Error ? error.message : "cloud sync failed; retry";
+      setSyncState(offline ? "offline" : "error");
+      setSyncError(offline ? "Offline · changes saved on this device" : msg);
+      setStatus(`Device saved · ${msg}`);
     } finally {
       saving.current = false;
     }
   }
+
   async function reloadCloud() {
+    setSyncState("syncing");
     try {
       acceptRemote(await fetchAllData(), true);
     } catch (error) {
-      setStatus(
-        error instanceof Error ? error.message : "Could not load Sheet tables",
-      );
+      const msg =
+        error instanceof Error ? error.message : "Could not load Sheet tables";
+      setSyncState(isOfflineError(error) ? "offline" : "error");
+      setSyncError(msg);
+      setStatus(msg);
     }
   }
+
   return {
     data,
     initialLoading,
     update,
     status,
+    syncState,
+    syncError,
+    lastSyncedAt,
     retrySync: sync,
+    flushSync: sync,
+    pullCloud: () => pullCloud("manual"),
     reloadCloud,
     tableStorage,
     logStorageReady,

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog } from "../../workspace/Dialog";
 import {
   Card,
@@ -34,6 +34,16 @@ export function StatementImport({
   const generation = useRef(0);
   const alive = useRef(true),
     worker = useRef<{ terminate: () => Promise<unknown> } | null>(null);
+  const existingKeys = useMemo(
+    () =>
+      new Set(
+        existing.map(
+          (e) =>
+            `${e.date}|${Math.round(e.amount * 100)}|${e.item.trim().toLowerCase()}`,
+        ),
+      ),
+    [existing],
+  );
   useEffect(() => {
     alive.current = true;
     return () => {
@@ -51,6 +61,7 @@ export function StatementImport({
     setError("");
     setStatus("Loading OCR engine…");
     setRows([]);
+    let activeWorker: { terminate: () => Promise<unknown> } | null = null;
     try {
       const { createWorker } = await import("tesseract.js");
       const w = await createWorker("eng", 1, {
@@ -59,9 +70,9 @@ export function StatementImport({
             setStatus(`${m.status} ${Math.round((m.progress ?? 0) * 100)}%`);
         },
       });
+      activeWorker = w;
       worker.current = w;
       if (!alive.current || generation.current !== request) {
-        await w.terminate();
         return;
       }
       const result = await w.recognize(file);
@@ -70,8 +81,6 @@ export function StatementImport({
         setRows(parseStatement(result.data.text, year));
         setStatus("Text extracted. Review every row before importing.");
       }
-      await w.terminate();
-      if (generation.current === request) worker.current = null;
     } catch (e) {
       if (alive.current && generation.current === request)
         setError(
@@ -80,6 +89,14 @@ export function StatementImport({
             : "OCR failed. Try pasting the transaction text instead.",
         );
     } finally {
+      if (activeWorker) {
+        try {
+          await activeWorker.terminate();
+        } catch {
+          /* Ignore worker teardown errors. */
+        }
+        if (worker.current === activeWorker) worker.current = null;
+      }
       if (alive.current && generation.current === request) setBusy(false);
     }
   }
@@ -290,7 +307,9 @@ export function StatementImport({
                 </div>
                 <p className="mt-2 text-xs text-amber-700">
                   {r.warning}
-                  {duplicateExpense(r, existing)
+                  {existingKeys.has(
+                    `${r.date}|${Math.round(Number(r.amount || 0) * 100)}|${r.item.trim().toLowerCase()}`,
+                  )
                     ? " · Possible existing duplicate"
                     : ""}
                 </p>

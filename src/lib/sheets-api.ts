@@ -44,9 +44,19 @@ export interface SheetData {
     skincare?: boolean;
     skincareDirectPhotos?: boolean;
     legacyBudgetImport?: boolean;
+    atomicJournal?: boolean;
   };
   workspace?: Workspace;
   workspaceRevision?: string;
+}
+
+export class ScriptError extends Error {
+  code?: string;
+  constructor(message: string, code?: string) {
+    super(message);
+    this.name = "ScriptError";
+    this.code = code;
+  }
 }
 
 function getScriptUrl(): string {
@@ -78,7 +88,11 @@ async function postToScript(payload: Record<string, unknown>): Promise<{
       result && typeof result === "object" && "error" in result
         ? String(result.error)
         : "Google Sheet did not confirm the save";
-    throw new Error(error);
+    const code =
+      result && typeof result === "object" && "code" in result && result.code
+        ? String(result.code)
+        : undefined;
+    throw new ScriptError(error, code);
   }
   return result as {
     workspaceRevision?: string;
@@ -107,7 +121,10 @@ export async function fetchAllData(): Promise<SheetData> {
   const url = getScriptUrl();
   if (!url) throw new Error("Google Script URL not configured");
   const request = (async () => {
-    const response = await fetch(`${url}?action=getAll`);
+    const sep = url.includes("?") ? "&" : "?";
+    const response = await fetch(`${url}${sep}action=getAll&_ts=${Date.now()}`, {
+      cache: "no-store",
+    });
     if (!response.ok)
       throw new Error(`Fetch failed with status ${response.status}`);
     const data = await response.json();
@@ -125,6 +142,19 @@ export async function fetchAllData(): Promise<SheetData> {
   } finally {
     if (pendingRead === request) pendingRead = null;
   }
+}
+
+export async function saveJournal(payload: {
+  entries: Row[];
+  habits: Habit[];
+  showTasksColumn: boolean;
+}): Promise<void> {
+  await postToScript({
+    action: "saveJournal",
+    entries: payload.entries,
+    habits: payload.habits,
+    showTasksColumn: payload.showTasksColumn,
+  });
 }
 
 export async function saveEntries(entries: Row[]): Promise<void> {
@@ -194,7 +224,11 @@ export async function fetchLegacyBudget(): Promise<
 > {
   const url = getScriptUrl();
   if (!url) throw new Error("Planner connection is not configured");
-  const response = await fetch(`${url}?action=previewBudgetImport`);
+  const sep = url.includes("?") ? "&" : "?";
+  const response = await fetch(
+    `${url}${sep}action=previewBudgetImport&_ts=${Date.now()}`,
+    { cache: "no-store" },
+  );
   const result = await response.json();
   if (!response.ok || !Array.isArray(result.tabs))
     throw new Error(

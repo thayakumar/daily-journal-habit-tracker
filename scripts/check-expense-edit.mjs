@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 import assert from "node:assert/strict";
 import { createBackend } from "../tests/apps-script-mock.mjs";
 import { createWorkspace } from "../src/workspace/model.ts";
@@ -69,13 +70,18 @@ try {
   ];
   const backend = createBackend(w);
   browser = await chromium.launch({
-    executablePath: "/usr/bin/chromium",
+    executablePath:
+      process.env.CHROMIUM_PATH ||
+      (fs.existsSync("/usr/bin/chromium")
+        ? "/usr/bin/chromium"
+        : "/usr/bin/google-chrome"),
     headless: true,
     args: ["--no-sandbox", "--disable-dev-shm-usage"],
   });
   const page = await browser.newPage({
       viewport: { width: 390, height: 844 },
       serviceWorkers: "block",
+      timezoneId: "Asia/Kuala_Lumpur",
     }),
     errors = [];
   page.on("pageerror", (e) => errors.push(e.message));

@@ -12,6 +12,7 @@ export function Dialog({
   wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const pointerStartedOutside = useRef(false);
   const id = useId();
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
@@ -25,22 +26,29 @@ export function Dialog({
       previous?.focus();
     };
   }, []);
+  function isOutside(e: React.MouseEvent<HTMLDialogElement>) {
+    if (e.target !== e.currentTarget) return false;
+    const r = e.currentTarget.getBoundingClientRect();
+    return (
+      e.clientX < r.left ||
+      e.clientX > r.right ||
+      e.clientY < r.top ||
+      e.clientY > r.bottom
+    );
+  }
   return (
     <dialog
       ref={ref}
       aria-labelledby={id}
       onCancel={onClose}
+      onMouseDown={(e) => {
+        pointerStartedOutside.current = isOutside(e);
+      }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          const r = e.currentTarget.getBoundingClientRect();
-          if (
-            e.clientX < r.left ||
-            e.clientX > r.right ||
-            e.clientY < r.top ||
-            e.clientY > r.bottom
-          )
-            onClose();
+        if (pointerStartedOutside.current && isOutside(e)) {
+          onClose();
         }
+        pointerStartedOutside.current = false;
       }}
       className={`fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] ${wide ? "max-w-5xl" : "max-w-xl"} overflow-y-auto rounded-2xl border border-[#EAE2D6] bg-white p-6 shadow-xl backdrop:bg-[#24201D]/35 sm:p-8`}
     >

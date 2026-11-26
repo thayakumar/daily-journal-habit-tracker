@@ -6,7 +6,7 @@ A personal workspace built around the original daily food, wellness and habit gr
 
 Overview navigation buttons · Habits (daily/recurring) · Personal lists · Fitness daily workout log · Finance expenses, receipts, monthly budgets and Portfolio · Skincare daily journal, routine and photo overview · Calendar · Vehicles · Meals · Brain dump · Ideas · Vocabulary · Settings & backup.
 
-Overview contains only large page-navigation buttons. Habit/routine management is collapsed by default, with top-level add buttons opening dialogs. Meals shows all seven days in an editable table, with local horizontal scrolling on phones.
+Overview contains large page-navigation cards. Habit/routine management is collapsed by default, with top-level add buttons opening dialogs. Meals shows responsive day cards on phones and an editable seven-day table on desktop.
 
 Finance includes configurable salary cycles, date-filtered monthly summaries, income, commitments, spending budgets, account snapshots and category charts. See [Finance storage and activation](docs/FINANCE.md) and [Portfolio setup and calculations](docs/PORTFOLIO.md).
 
@@ -31,7 +31,7 @@ The production base path is `/daily-journal-habit-tracker/`. Local browser stora
 
 The original Entries, Habits and Settings tabs are retained. Added tabs include Overview, HabitChecks, RecurringHabits, HabitReminders, Calendar, PersonalTasks, ShoppingWishlist, Groceries, WatchRead, FitnessPlan, FitnessSchedule, FitnessSessions, Meals, BrainDump and Ideas.
 
-Browser copies use `daily-journal.v1` and `personal-workspace.v1`. Full JSON backup/restore is available in Settings. Clearing browser storage removes the local copies.
+Browser copies use `daily-journal.v1` and `personal-workspace.v1` (along with last-synced base snapshots for 3-way cross-device merging). Full JSON backup/restore is available in Settings. Clearing browser storage removes the local copies.
 
 ## Activate per-page sync (new deployments)
 
@@ -42,20 +42,20 @@ The current production backend is active on v2 and has passed live Sheet write/r
 3. Deploy → Manage deployments → Edit the existing Web app → New version → Deploy.
 4. Keep the existing URL and execution/access settings. Refresh the app; Settings should show **Connected to per-page Sheet tables**.
 
-Until this is done, the app remains compatible with the old backend and explicitly reports legacy JSON storage. Prepared tabs are a migration snapshot until activation. The first v2 request migrates the latest legacy snapshot automatically and retains the old JSON as a backup.
+Until this is done, the app remains compatible with older v2/legacy deployments. Redeploying the latest `Code.gs` activates dirty-table-only writes, atomic single-request journal saves (`saveJournal`), and `+1 day` cross-timezone date validation tolerance.
 
-For a new installation, create Entries, Habits and Settings with the original headers documented in `docs/SHEETS_STORAGE.md`/Code.gs, deploy the bound script as a Web app, and set its `/exec` URL as `VITE_GOOGLE_SCRIPT_URL` in `.env` for local development. The current production Web app URL is declared as VITE_GOOGLE_SCRIPT_URL in .github/workflows/deploy.yml; update it there when changing deployments. This URL is a public endpoint, not an authentication secret.
+For a new installation, create Entries, Habits and Settings with the original headers documented in `docs/SHEETS_STORAGE.md`/Code.gs, deploy the bound script as a Web app, and set its `/exec` URL as `VITE_GOOGLE_SCRIPT_URL` in `.env` for local development. For GitHub Pages deployments, configure `VITE_GOOGLE_SCRIPT_URL` under repository **Settings → Secrets and variables → Actions** (secret or variable) rather than committing the live endpoint URL to git.
 
 ## Behaviour and limits
 
-- Planner writes use a content revision to detect stale saves. Direct spreadsheet edits are loaded on the next normal app reload or through **Load latest Sheet tables**. Export unsynced local edits before replacing the local copy.
-- Journal writes are serialized and retain pending local changes after failures. HabitChecks stores checkmarks as readable dated records; Entries keeps its original habits_json compatibility column.
+- Planner writes use a content revision to detect concurrent edits across devices. On startup, tab focus/resume, network reconnect, or a `CONFLICT` response, the app automatically pulls the latest Sheet tables, performs a 3-way merge of local and remote changes, and saves the merged result back without clobbering edits from other devices.
+- Journal writes are serialized and merge per-habit checkmarks across devices before saving, using the single-request atomic `saveJournal` endpoint when supported (falling back automatically on older deployments). `HabitChecks` stores checkmarks as readable dated records; `Entries` keeps its original `habits_json` compatibility column.
 - Native tables have frozen headers. Keep their header names unchanged. Empty collections keep their headers ready for new records.
 - Planner data is no longer limited to one combined JSON cell in v2. Google's per-cell limits still apply to individual fields.
 - Habit notifications need browser permission and the app open. They are not background push notifications.
 - Fitness records multiple exercises per date, with individual weight/reps per strength set and cardio duration/distance. The weekly menu has been retired.
 - Due/overdue recurring habits appear alongside daily habits. Habit customization is available directly in Habits.
-- Meals use responsive day cards. Historical journal meals remain preserved in Entries and backups.
+- Meals uses responsive day cards on phones and a 7-day table on desktop. Historical journal meals remain preserved in Entries and backups.
 - Wishlist records move to a review archive after 30 days and are not permanently deleted.
 - The service worker caches only same-origin app resources, never Google Sheets responses.
 

@@ -1,5 +1,5 @@
 import { LegacyImport } from "./components/LegacyImport";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Plus,
   Pencil,
@@ -121,8 +121,18 @@ export function Portfolio({
   initialSection?: string;
   migrationReady?: boolean;
 }) {
-  const p = data.financePortfolio ?? emptyPortfolio(),
-    plan = data.financePlanning ?? emptyPlanning(),
+  const p = useMemo(
+      () => data.financePortfolio ?? emptyPortfolio(),
+      [data.financePortfolio],
+    ),
+    plan = useMemo(
+      () => data.financePlanning ?? emptyPlanning(),
+      [data.financePlanning],
+    ),
+    expenses = useMemo(
+      () => data.financeExpenses ?? [],
+      [data.financeExpenses],
+    ),
     today = localDate();
   const [tab, setTab] = useState(initialSection),
     [editor, setEditor] = useState<{ entity: Entity; draft: Draft } | null>(
@@ -143,14 +153,32 @@ export function Portfolio({
     accountId: "",
     goalId: "",
   });
-  const totals = portfolioTotals(p),
-    summary = cycle
-      ? summarizeCycle(plan, data.financeExpenses ?? [], cycle)
-      : null,
-    recon =
-      cycle && summary ? cycleReconciliation(p, cycle, summary.surplus) : null;
-  const accounts = p.accounts.map((a) => ({ value: a.id, label: a.name })),
-    loans = p.loans.map((l) => ({ value: l.id, label: l.name }));
+  const totals = useMemo(() => portfolioTotals(p), [p]);
+  const summary = useMemo(
+    () => (cycle ? summarizeCycle(plan, expenses, cycle) : null),
+    [plan, expenses, cycle],
+  );
+  const recon = useMemo(
+    () =>
+      cycle && summary ? cycleReconciliation(p, cycle, summary.surplus) : null,
+    [p, cycle, summary],
+  );
+  const sortedSnapshots = useMemo(
+    () => [...p.snapshots].sort((a, b) => b.date.localeCompare(a.date)),
+    [p.snapshots],
+  );
+  const perfRows = useMemo(
+    () => (cycle ? investmentPerformance(p, cycle) : []),
+    [p, cycle],
+  );
+  const accounts = useMemo(
+      () => p.accounts.map((a) => ({ value: a.id, label: a.name })),
+      [p.accounts],
+    ),
+    loans = useMemo(
+      () => p.loans.map((l) => ({ value: l.id, label: l.name })),
+      [p.loans],
+    );
   const emptyOption = { value: "", label: "Select…" };
   function fields(entity: Entity, d: Draft): InputField[] {
     const basicName: InputField = { key: "name", label: "Name" };
@@ -558,19 +586,28 @@ export function Portfolio({
       today,
     );
     if (message) throw new Error(message);
-    update((s) => ({
-      ...s,
-      financePortfolio: next,
-      financePlanning: (s.financePlanning?.cycles ?? []).reduce(
+    update((s) => {
+      const basePlan = s.financePlanning ?? emptyPlanning();
+      let synced = basePlan.cycles.reduce(
         (planning, c) => syncPortfolioBalances(planning, next, c.id),
-        s.financePlanning ?? emptyPlanning(),
-      ),
-    }));
+        basePlan,
+      );
+      synced = synced.cycles.reduce(
+        (planning, c) => syncPortfolioCommitments(planning, next, c, today),
+        synced,
+      );
+      return {
+        ...s,
+        financePortfolio: next,
+        financePlanning: synced,
+      };
+    });
   }
   function save() {
     if (!editor) return;
     const { entity } = editor;
     const d = { ...editor.draft };
+    const originalId = String(d.id ?? "");
     for (const key of numKeys) if (key in d) d[key] = Number(d[key]);
     if (
       (entity === "snapshots" || entity === "debtSnapshots") &&
@@ -615,7 +652,12 @@ export function Portfolio({
       if (old) d.id = old.id;
       const available = latestSnapshot(p, String(d.accountId))?.value ?? 0;
       const assigned = p.allocations
-        .filter((a) => a.accountId === d.accountId && a.id !== d.id)
+        .filter(
+          (a) =>
+            a.accountId === d.accountId &&
+            a.id !== d.id &&
+            a.id !== originalId,
+        )
         .reduce((sum, a) => sum + a.amount, 0);
       if (Number(d.amount) + assigned > available + 0.001) {
         setError(
@@ -626,7 +668,10 @@ export function Portfolio({
     }
     const next = {
       ...p,
-      [entity]: [...p[entity].filter((r) => r.id !== d.id), d],
+      [entity]: [
+        ...p[entity].filter((r) => r.id !== d.id && r.id !== originalId),
+        d,
+      ],
     } as FinancePortfolio;
     try {
       commit(next);
@@ -802,119 +847,157 @@ export function Portfolio({
       setNotice(e instanceof Error ? e.message : "Import failed.");
     }
   }
-  const simAccount =
+  const {
+    simAccount,
+    validSim,
+    scenario,
+    simGoal,
+    baselineGoal,
+    changedGoal,
+  } = useMemo(() => {
+    const sa =
       p.accounts.find((a) => a.id === sim.accountId && a.liquid) ||
-      p.accounts.find((a) => a.liquid),
-    cash = simAccount ? (latestSnapshot(p, simAccount.id)?.value ?? 0) : 0,
-    simulationSummary = cycle
+      p.accounts.find((a) => a.liquid);
+    if (tab !== "simulator") {
+      return {
+        simAccount: sa,
+        cash: 0,
+        simulationSummary: null,
+        headroom: 0,
+        validSim: false,
+        scenario: null,
+        simGoal: undefined,
+        baselineGoal: null,
+        changedGoal: null,
+      };
+    }
+    const c = sa ? (latestSnapshot(p, sa.id)?.value ?? 0) : 0;
+    const ss = cycle
       ? summarizeCycle(
           syncPortfolioCommitments(plan, p, cycle, today),
-          data.financeExpenses ?? [],
+          expenses,
           cycle,
         )
-      : null,
-    headroom = simulationSummary
-      ? Math.min(simulationSummary.expected, simulationSummary.surplus)
-      : 0;
-  const validSim =
-    Number.isFinite(sim.amount) &&
-    sim.amount >= 0 &&
-    Number.isFinite(sim.reserve) &&
-    sim.reserve >= 0 &&
-    (sim.method === "cash" ||
-      (sim.deposit >= 0 &&
-        sim.deposit <= sim.amount &&
-        sim.apr >= 0 &&
-        sim.apr <= 1000 &&
-        sim.months >= 1 &&
-        sim.months <= 600 &&
-        Number.isInteger(sim.months)));
-  const scenario = validSim
-    ? purchaseSimulation(
-        sim.amount,
-        sim.method === "cash" ? sim.amount : sim.deposit,
-        sim.method === "cash" ? 0 : sim.apr,
-        sim.method === "cash" ? 1 : sim.months,
-        sim.rateType as "flat" | "reducing",
-        cash,
-        headroom,
-        sim.reserve,
-      )
-    : null;
-  const simGoal = p.goals.find((g) => g.id === sim.goalId),
-    baselineGoal = simGoal ? goalProgress(p, simGoal, today) : null,
-    changedGoal =
-      simGoal && scenario && simAccount
+      : null;
+    const hr = ss ? Math.min(ss.expected, ss.surplus) : 0;
+    const valid =
+      Number.isFinite(sim.amount) &&
+      sim.amount >= 0 &&
+      Number.isFinite(sim.reserve) &&
+      sim.reserve >= 0 &&
+      (sim.method === "cash" ||
+        (sim.deposit >= 0 &&
+          sim.deposit <= sim.amount &&
+          sim.apr >= 0 &&
+          sim.apr <= 1000 &&
+          sim.months >= 1 &&
+          sim.months <= 600 &&
+          Number.isInteger(sim.months)));
+    const sc = valid
+      ? purchaseSimulation(
+          sim.amount,
+          sim.method === "cash" ? sim.amount : sim.deposit,
+          sim.method === "cash" ? 0 : sim.apr,
+          sim.method === "cash" ? 1 : sim.months,
+          sim.rateType as "flat" | "reducing",
+          c,
+          hr,
+          sim.reserve,
+        )
+      : null;
+    const sg = p.goals.find((g) => g.id === sim.goalId);
+    const bg = sg ? goalProgress(p, sg, today) : null;
+    const cg =
+      sg && sc && sa
         ? goalScenarioProgress(
             p,
-            simGoal,
+            sg,
             today,
-            { accountId: simAccount.id, value: scenario.cashAfter },
-            scenario.payment,
+            { accountId: sa.id, value: sc.cashAfter },
+            sc.payment,
             sim.method === "loan" ? sim.months : 0,
           )
         : null;
-  const accountBreakdown = (
-    filter: (a: FinancePortfolio["accounts"][number]) => boolean,
-  ) =>
-    totals.values
-      .filter((v) => filter(v.account))
-      .map(
-        (v) =>
-          `${v.account.name}: ${v.snapshot ? money(v.snapshot.value) : "not recorded (counts as RM 0)"}`,
-      );
-  const kpiInfo: Record<string, { text: string; items: string[] }> = {
-    "Recorded net worth": {
-      text: "What remains after recorded debts. Net worth = total assets − outstanding debt. Monthly bills are not subtracted again.",
-      items: [
-        `Assets: ${money(totals.assets)}`,
-        `Less remaining debt: ${money(totals.debt)}`,
-      ],
-    },
-    "Total assets": {
-      text: "Adds the latest recorded balance of each account once. Older snapshots, purchase costs and monthly income are not added again. Missing balances count as zero.",
-      items: accountBreakdown(() => true),
-    },
-    "Bank balances": {
-      text: "Only accounts whose type is Bank. Wallets such as Shopee Pay are excluded. This amount is already part of Total assets and Liquid funds.",
-      items: accountBreakdown((a) => a.kind === "bank"),
-    },
-    "Liquid funds": {
-      text: "Accounts marked available as liquid funds in account settings. Includes eligible bank accounts and wallets. This overlaps Bank balances; do not add these cards together.",
-      items: accountBreakdown((a) => a.liquid),
-    },
-    "Physical gold": {
-      text: "Latest value of accounts typed Physical gold, such as a gold bar. Gold investments held through providers belong under Investments. Already included in Total assets.",
-      items: accountBreakdown((a) => a.kind === "gold"),
-    },
-    Investments: {
-      text: "Latest value of accounts typed Investment, including gold investment accounts. Uses current recorded value, not purchase cost. Already included in Total assets.",
-      items: accountBreakdown((a) => a.kind === "investment"),
-    },
-    "Outstanding debt": {
-      text: "Remaining principal from Loans using each loan’s latest dated balance. Original loan amounts and monthly instalments are not added to this figure. Loans entered only as subscriptions do not count as outstanding debt.",
-      items: p.loans.map(
-        (l) => `${l.name}: ${money(loanCurrentBalance(p, l).balance)}`,
-      ),
-    },
-    "Monthly obligations": {
-      text: "Monthly loan instalments plus active recurring payments. Annual/quarterly subscriptions are converted to monthly equivalents. This is a payment estimate, not your debt balance; it is not deducted from net worth again.",
-      items: [
-        ...p.loans
-          .filter((l) => loanCurrentBalance(p, l).balance > 0)
-          .map((l) => `${l.name}: ${money(l.payment)}/month`),
-        ...p.subscriptions
-          .filter((s) => s.active)
-          .map((s) => `${s.name}: ${money(subscriptionMonthly(s))}/month`),
-      ],
-    },
-  };
+    return {
+      simAccount: sa,
+      cash: c,
+      simulationSummary: ss,
+      headroom: hr,
+      validSim: valid,
+      scenario: sc,
+      simGoal: sg,
+      baselineGoal: bg,
+      changedGoal: cg,
+    };
+  }, [tab, p, plan, expenses, cycle, today, sim]);
+  const monthlyObligations = useMemo(
+    () =>
+      p.loans
+        .filter((l) => loanCurrentBalance(p, l).balance > 0)
+        .reduce((s, l) => s + l.payment, 0) +
+      p.subscriptions.reduce((s, r) => s + subscriptionMonthly(r), 0),
+    [p],
+  );
+  const kpiInfo = useMemo(() => {
+    const accountBreakdown = (
+      filter: (a: FinancePortfolio["accounts"][number]) => boolean,
+    ) =>
+      totals.values
+        .filter((v) => filter(v.account))
+        .map(
+          (v) =>
+            `${v.account.name}: ${v.snapshot ? money(v.snapshot.value) : "not recorded (counts as RM 0)"}`,
+        );
+    return {
+      "Recorded net worth": {
+        text: "Total assets minus outstanding debt. Monthly bills are not subtracted again.",
+        items: [
+          `Assets: ${money(totals.assets)}`,
+          `Less remaining debt: ${money(totals.debt)}`,
+        ],
+      },
+      "Total assets": {
+        text: "Latest recorded balance of each account counted once.",
+        items: accountBreakdown(() => true),
+      },
+      "Bank balances": {
+        text: "Accounts typed Bank (included in Total assets and Liquid funds).",
+        items: accountBreakdown((a) => a.kind === "bank"),
+      },
+      "Liquid funds": {
+        text: "Accounts marked liquid (bank & wallets; already part of Total assets).",
+        items: accountBreakdown((a) => a.liquid),
+      },
+      "Physical gold": {
+        text: "Latest value of Physical gold accounts (included in Total assets).",
+        items: accountBreakdown((a) => a.kind === "gold"),
+      },
+      Investments: {
+        text: "Latest value of Investment accounts (included in Total assets).",
+        items: accountBreakdown((a) => a.kind === "investment"),
+      },
+      "Outstanding debt": {
+        text: "Remaining principal from Loans using each loan’s latest dated balance.",
+        items: p.loans.map(
+          (l) => `${l.name}: ${money(loanCurrentBalance(p, l).balance)}`,
+        ),
+      },
+      "Monthly obligations": {
+        text: "Monthly loan instalments plus active recurring subscriptions.",
+        items: [
+          ...p.loans
+            .filter((l) => loanCurrentBalance(p, l).balance > 0)
+            .map((l) => `${l.name}: ${money(l.payment)}/month`),
+          ...p.subscriptions
+            .filter((s) => s.active)
+            .map((s) => `${s.name}: ${money(subscriptionMonthly(s))}/month`),
+        ],
+      },
+    } as Record<string, { text: string; items: string[] }>;
+  }, [p, totals]);
   return (
     <div className="min-w-0 space-y-5 break-words [contain:paint]">
-      <Card
-        title="Your financial portfolio"
-        subtitle="Accounts, debt, investments and goals. Your ongoing financial position across all dates. Record balances whenever they change; monthly reconciliation is optional. Values are manually recorded, not live bank feeds."
-      >
+      <div className="clay-card rounded-2xl p-4 sm:p-5">
         {!storageReady && (
           <p
             role="status"
@@ -938,6 +1021,7 @@ export function Portfolio({
             "simulator",
           ].map((id) => (
             <button
+              type="button"
               role="tab"
               aria-selected={tab === id}
               key={id}
@@ -945,7 +1029,7 @@ export function Portfolio({
                 setTab(id);
                 setNotice("");
               }}
-              className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold capitalize ${tab === id ? "bg-[#24201D] text-white" : "bg-[#FAF7F2] text-[#62584E]"}`}
+              className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold capitalize ${tab === id ? "bg-[#24201D] text-white" : "bg-[#FAF7F2] text-[#62584E] hover:bg-[#F3EDE3]"}`}
             >
               {id}
             </button>
@@ -959,103 +1043,124 @@ export function Portfolio({
             {notice}
           </p>
         )}
-      </Card>
+      </div>
       {tab === "overview" && (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {[
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {(
               [
-                "Recorded net worth",
-                totals.netWorth,
-                Landmark,
-                "bg-[#EDF2F8] border-[#CFDCEB] text-[#355380]",
-              ],
-              [
-                "Total assets",
-                totals.assets,
-                Landmark,
-                "bg-[#FAF7F2] border-[#EAE2D6] text-[#24201D]",
-              ],
-              [
-                "Bank balances",
-                totals.bank,
-                Landmark,
-                "bg-[#EDF2F8] border-[#CFDCEB] text-[#355380]",
-              ],
-              [
-                "Liquid funds",
-                totals.liquid,
-                Wallet,
-                "bg-emerald-50 border-emerald-200 text-emerald-800",
-              ],
-              [
-                "Physical gold",
-                totals.gold,
-                Gem,
-                "bg-amber-50 border-amber-200 text-amber-800",
-              ],
-              [
-                "Investments",
-                totals.investments,
-                TrendingUp,
-                "bg-sky-50 border-sky-200 text-sky-800",
-              ],
-              [
-                "Outstanding debt",
-                totals.debt,
-                CreditCard,
-                "bg-[#FBECE7] border-[#F2C9BC] text-[#A83E20]",
-              ],
-              [
-                "Monthly obligations",
-                p.loans
-                  .filter((l) => loanCurrentBalance(p, l).balance > 0)
-                  .reduce((s, l) => s + l.payment, 0) +
-                  p.subscriptions.reduce(
-                    (s, r) => s + subscriptionMonthly(r),
-                    0,
-                  ),
-                CreditCard,
-                "bg-teal-50 border-teal-200 text-teal-800",
-              ],
-            ].map(([label, value, Icon, color]) => {
-              const I = Icon as typeof Wallet;
-              return (
-                <div
-                  key={String(label)}
-                  className={`min-w-0 rounded-2xl border p-5 ${color}`}
+                {
+                  label: "Recorded net worth",
+                  value: totals.netWorth,
+                  Icon: Landmark,
+                  tone:
+                    totals.netWorth < 0
+                      ? "border-[#E8B8A9] bg-[#FBECE7]/60 text-[#A83E20]"
+                      : "border-[#EAE2D6] bg-white text-[#24201D]",
+                  valueClass:
+                    totals.netWorth < 0 ? "text-[#B84727]" : "text-[#24201D]",
+                },
+                {
+                  label: "Total assets",
+                  value: totals.assets,
+                  Icon: Landmark,
+                  tone: "border-[#EAE2D6] bg-white text-[#24201D]",
+                  valueClass: "text-[#24201D]",
+                },
+                {
+                  label: "Liquid funds",
+                  value: totals.liquid,
+                  Icon: Wallet,
+                  tone: "border-[#EAE2D6] bg-white text-[#24201D]",
+                  valueClass: "text-[#356651]",
+                },
+                {
+                  label: "Outstanding debt",
+                  value: totals.debt,
+                  Icon: CreditCard,
+                  tone: "border-[#EAE2D6] bg-white text-[#24201D]",
+                  valueClass:
+                    totals.debt > 0 ? "text-[#B84727]" : "text-[#24201D]",
+                },
+              ] as const
+            ).map(({ label, value, Icon, tone, valueClass }) => (
+              <div
+                key={label}
+                className={`min-w-0 rounded-2xl border p-5 shadow-xs ${tone}`}
+              >
+                <p className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wider text-[#8C8073]">
+                  {label}
+                  <Icon className="h-4 w-4 shrink-0 text-[#8C8073]" />
+                </p>
+                <p
+                  className={`mt-2.5 break-words font-display text-2xl font-bold sm:text-3xl ${valueClass}`}
                 >
-                  <I className="mb-3 h-6 w-6" />
-                  <p className="text-lg font-bold">{String(label)}</p>
-                  <p className="mt-3 break-words text-3xl font-bold">
-                    {money(Number(value))}
+                  {money(value)}
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-[#62584E]">
+                  {kpiInfo[label].text}
+                </p>
+              </div>
+            ))}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {(
+              [
+                ["Bank balances", totals.bank, Landmark],
+                ["Investments", totals.investments, TrendingUp],
+                ["Physical gold", totals.gold, Gem],
+                ["Monthly obligations", monthlyObligations, CreditCard],
+              ] as const
+            ).map(([label, value, Icon]) => (
+              <div
+                key={label}
+                className="min-w-0 rounded-2xl border border-[#EFE8DC] bg-[#FAF7F2] p-4"
+              >
+                <p className="flex items-center justify-between gap-2 text-xs font-semibold text-[#62584E]">
+                  {label}
+                  <Icon className="h-4 w-4 shrink-0 text-[#8C8073]" />
+                </p>
+                <p className="mt-1.5 break-words font-display text-xl font-bold text-[#24201D]">
+                  {money(value)}
+                </p>
+                <p className="mt-1.5 text-xs leading-relaxed text-[#62584E]">
+                  {kpiInfo[label].text}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs leading-relaxed text-[#8C8073]">
+            Older snapshots, purchase costs and monthly income are not added
+            again.
+          </p>
+          <details className="clay-card rounded-2xl">
+            <summary className="cursor-pointer px-5 py-4 text-sm font-semibold text-[#473F38]">
+              Calculation breakdown by account &amp; loan
+            </summary>
+            <div className="grid gap-4 border-t border-[#EFE8DC] p-5 sm:grid-cols-2 xl:grid-cols-4">
+              {Object.entries(kpiInfo).map(([label, info]) => (
+                <div key={label} className="min-w-0 rounded-xl bg-[#FAF7F2] p-3.5">
+                  <p className="text-xs font-semibold text-[#24201D]">{label}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-[#62584E]">
+                    {info.text}
                   </p>
-                  <p className="mt-3 text-sm leading-relaxed opacity-90">
-                    {kpiInfo[String(label)].text}
-                  </p>
-                  {kpiInfo[String(label)].items.length ? (
-                    <ul className="mt-3 space-y-1 border-t border-current/15 pt-3 text-xs leading-relaxed">
-                      {kpiInfo[String(label)].items.map((item, i) => (
+                  {info.items.length ? (
+                    <ul className="mt-2 space-y-1 border-t border-[#EAE2D6] pt-2 text-xs text-[#473F38]">
+                      {info.items.map((item, i) => (
                         <li key={i} className="break-words">
                           {item}
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="mt-3 text-xs opacity-80">
+                    <p className="mt-2 text-xs text-[#8C8073]">
                       No matching records yet.
                     </p>
                   )}
                 </div>
-              );
-            })}
-          </div>
-          <p className="text-sm leading-relaxed text-[#62584E]">
-            Net worth = recorded assets minus recorded outstanding debt. Liquid
-            funds follow your account settings. Monthly obligations use loan
-            instalments and subscription monthly equivalents; actual cycle
-            charges are shown when syncing commitments.
-          </p>
+              ))}
+            </div>
+          </details>
           {(!p.accounts.length || totals.missing > 0) && (
             <p
               role="status"
@@ -1182,11 +1287,20 @@ export function Portfolio({
       )}
       {tab === "accounts" && (
         <>
-          <LegacyImport data={data} update={update} ready={migrationReady} />
           <Card
             title="Accounts and holdings"
             subtitle="MYR valuations only. Store masked references and password-manager links; no banking passwords, PINs or OTPs."
-            action={add("accounts")}
+            action={
+              <div className="flex flex-wrap items-center gap-2">
+                <LegacyImport
+                  compact
+                  data={data}
+                  update={update}
+                  ready={migrationReady}
+                />
+                {add("accounts")}
+              </div>
+            }
           >
             {!p.accounts.length ? (
               <Empty>
@@ -1319,10 +1433,7 @@ export function Portfolio({
                     </tr>
                   </thead>
                   <tbody>
-                    {p.snapshots
-
-                      .sort((a, b) => b.date.localeCompare(a.date))
-                      .map((s) => (
+                    {sortedSnapshots.map((s) => (
                         <tr className="border-t border-[#EFE8DC]" key={s.id}>
                           <td className="max-w-48 break-words py-3 pr-3">
                             {p.accounts.find((a) => a.id === s.accountId)?.name}
@@ -1342,7 +1453,7 @@ export function Portfolio({
             title="Investment and gold performance"
             subtitle="Opening-to-closing result after adjusting for money added and withdrawn. Fees remain part of the result."
           >
-            {!cycle || !investmentPerformance(p, cycle).length ? (
+            {!cycle || !perfRows.length ? (
               <Empty>
                 Add an investment or physical-gold account to track its result.
               </Empty>
@@ -1362,7 +1473,7 @@ export function Portfolio({
                     </tr>
                   </thead>
                   <tbody>
-                    {investmentPerformance(p, cycle).map((r) => (
+                    {perfRows.map((r) => (
                       <tr
                         key={r.account.id}
                         className="border-t border-[#EFE8DC]"
@@ -1475,8 +1586,8 @@ export function Portfolio({
                   const debt = loanCurrentBalance(p, l);
                   const balance = debt.balance,
                     terms = { ...l, asOf: debt.date },
-                    f = loanForecast(terms, 0, balance),
-                    faster = loanForecast(terms, extra, balance);
+                    f = loanForecast(terms, 0, balance, debt.date),
+                    faster = loanForecast(terms, extra, balance, debt.date);
                   return (
                     <div
                       key={l.id}
@@ -2031,7 +2142,10 @@ export function Portfolio({
                 <p className="rounded-xl bg-amber-50 p-3 text-sm font-semibold">
                   Recorded value:{" "}
                   {money(
-                    Number(editor.draft.units) * Number(editor.draft.price),
+                    Number(editor.draft.units) > 0 &&
+                      Number(editor.draft.price) > 0
+                      ? Number(editor.draft.units) * Number(editor.draft.price)
+                      : Number(editor.draft.value) || 0,
                   )}
                 </p>
               )}

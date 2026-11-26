@@ -220,11 +220,22 @@ export function Vehicles({
             className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
+              const cleanName = draft.name.trim();
+              if (!cleanName) {
+                setError("Vehicle name cannot be empty.");
+                return;
+              }
+              setError("");
               update((w) => ({
                 ...w,
                 vehicles: [
                   ...(w.vehicles ?? []).filter((v) => v.id !== draft.id),
-                  { ...draft, name: draft.name.trim() },
+                  {
+                    ...draft,
+                    name: cleanName,
+                    odometer: Number.isFinite(draft.odometer) && draft.odometer >= 0 ? draft.odometer : 0,
+                    serviceAtKm: Number.isFinite(draft.serviceAtKm) && draft.serviceAtKm >= 0 ? draft.serviceAtKm : 0,
+                  },
                 ],
               }));
               setDraft(null);
@@ -297,25 +308,49 @@ export function Vehicles({
             className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
-              const v = vehicles.find((v) => v.id === service.vehicleId);
               if (service.date > today) {
                 setError("Service history cannot be in the future.");
                 return;
               }
-              update((w) => ({
-                ...w,
-                vehicleServices: [...(w.vehicleServices ?? []), service],
-                vehicles: (w.vehicles ?? []).map((x) =>
-                  x.id === v?.id
-                    ? {
-                        ...x,
-                        odometer: Math.max(x.odometer, service.odometer),
-                        serviceDue: nextDate,
-                        serviceAtKm: nextKm,
-                      }
-                    : x,
-                ),
-              }));
+              setError("");
+              let missingVehicle = false;
+              update((w) => {
+                const target = (w.vehicles ?? []).find(
+                  (v) => v.id === service.vehicleId,
+                );
+                if (!target) {
+                  missingVehicle = true;
+                  return w;
+                }
+                const cleanService = {
+                  ...service,
+                  odometer:
+                    Number.isFinite(service.odometer) && service.odometer >= 0
+                      ? service.odometer
+                      : 0,
+                  cost:
+                    Number.isFinite(service.cost) && service.cost >= 0
+                      ? service.cost
+                      : 0,
+                };
+                return {
+                  ...w,
+                  vehicleServices: [...(w.vehicleServices ?? []), cleanService],
+                  vehicles: (w.vehicles ?? []).map((x) =>
+                    x.id === target.id
+                      ? {
+                          ...x,
+                          odometer: Math.max(x.odometer, cleanService.odometer),
+                          serviceDue: nextDate,
+                          serviceAtKm: nextKm,
+                        }
+                      : x,
+                  ),
+                };
+              });
+              if (missingVehicle) {
+                setError("That vehicle was deleted on another device.");
+              }
               setService(null);
             }}
           >

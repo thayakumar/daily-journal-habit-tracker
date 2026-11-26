@@ -497,12 +497,221 @@ export function readJournal(): JournalSnapshot | null {
     return null;
   }
 }
+export function diagnoseWorkspace(value: unknown): string[] {
+  if (!object(value)) return ["root"];
+  const issues: string[] = [];
+  if (value.version !== 1 || !Number.isFinite(value.updatedAt) || !text(value.name))
+    issues.push("metadata");
+  if (value.skincare !== undefined && !isSkincare(value.skincare))
+    issues.push("skincare");
+  if (
+    !validVehicles(
+      value.vehicles === undefined ? [] : value.vehicles,
+      value.vehicleServices === undefined ? [] : value.vehicleServices,
+    )
+  )
+    issues.push("vehicles");
+  if (value.financePlanning !== undefined && !isFinancePlanning(value.financePlanning))
+    issues.push("financePlanning");
+  if (
+    value.financePortfolio !== undefined &&
+    (!isFinancePortfolio(value.financePortfolio) ||
+      !!portfolioCycleError(
+        value.financePortfolio,
+        (
+          value.financePlanning as
+            import("../finance/planning").FinancePlanning | undefined
+        )?.cycles ?? [],
+      ))
+  )
+    issues.push("financePortfolio");
+  if (
+    value.financeExpenses !== undefined &&
+    !records(
+      value.financeExpenses,
+      (r) =>
+        [
+          "id",
+          "date",
+          "item",
+          "category",
+          "receiptName",
+          "receiptUrl",
+          "createdAt",
+        ].every((k) => text(r[k])) &&
+        Number.isFinite(r.amount) &&
+        Number(r.amount) >= 0 &&
+        Number.isFinite(Date.parse(String(r.createdAt))),
+    )
+  )
+    issues.push("financeExpenses");
+  if (
+    value.vocabulary !== undefined &&
+    !records(
+      value.vocabulary,
+      (r) =>
+        ["id", "word", "definition", "example", "createdAt", "updatedAt"].every(
+          (k) => text(r[k]),
+        ) &&
+        Number.isFinite(Date.parse(String(r.createdAt))) &&
+        Number.isFinite(Date.parse(String(r.updatedAt))),
+    )
+  )
+    issues.push("vocabulary");
+  if (!Array.isArray(value.items)) issues.push("items");
+  if (!Array.isArray(value.events)) issues.push("events");
+  if (!Array.isArray(value.recurring)) issues.push("recurring");
+  if (!Array.isArray(value.thoughts)) issues.push("thoughts");
+  if (!Array.isArray(value.ideas)) issues.push("ideas");
+  if (!object(value.meals)) issues.push("meals");
+  if (!object(value.fitness)) issues.push("fitness");
+  return issues.length ? issues : isWorkspace(value) ? [] : ["unknown"];
+}
+
+export function repairWorkspace(
+  value: unknown,
+): { workspace: Workspace; warnings: string[] } | null {
+  if (!object(value) || value.version !== 1 || !Number.isFinite(value.updatedAt))
+    return null;
+  if (isWorkspace(value)) return { workspace: value, warnings: [] };
+  const warnings: string[] = [];
+  const base = createWorkspace();
+  const candidate = structuredClone(value) as Record<string, unknown>;
+  if (!text(candidate.name)) {
+    candidate.name = base.name;
+    warnings.push("name");
+  }
+  if (Array.isArray(candidate.items)) {
+    const validItems = candidate.items.filter(
+      (r) =>
+        object(r) &&
+        text(r.id) &&
+        ["work", "personal", "grocery", "wishlist", "watch", "goal"].includes(
+          String(r.kind),
+        ) &&
+        text(r.text) &&
+        typeof r.done === "boolean" &&
+        date(r.created) &&
+        (r.due === "" || date(r.due)) &&
+        (r.month === undefined ||
+          (text(r.month) && /^\d{4}-\d{2}$/.test(r.month))),
+    );
+    if (validItems.length !== candidate.items.length) {
+      candidate.items = validItems;
+      warnings.push("items");
+    }
+  }
+  if (
+    !validVehicles(
+      candidate.vehicles === undefined ? [] : candidate.vehicles,
+      candidate.vehicleServices === undefined ? [] : candidate.vehicleServices,
+    )
+  ) {
+    const cleanVehicles = Array.isArray(candidate.vehicles)
+      ? candidate.vehicles.filter(
+          (v) =>
+            object(v) &&
+            text(v.id) &&
+            !!v.id &&
+            text(v.name) &&
+            !!v.name.trim(),
+        )
+      : [];
+    const vehicleIds = new Set(cleanVehicles.map((v) => String((v as Record<string, unknown>).id)));
+    const cleanServices = Array.isArray(candidate.vehicleServices)
+      ? candidate.vehicleServices.filter(
+          (s) =>
+            object(s) &&
+            text(s.id) &&
+            !!s.id &&
+            vehicleIds.has(String(s.vehicleId)) &&
+            date(s.date),
+        )
+      : [];
+    candidate.vehicles = validVehicles(cleanVehicles, cleanServices) ? cleanVehicles : [];
+    candidate.vehicleServices = validVehicles(cleanVehicles, cleanServices) ? cleanServices : [];
+    warnings.push("vehicles");
+  }
+  if (candidate.skincare !== undefined && !isSkincare(candidate.skincare)) {
+    candidate.skincare = emptySkincare();
+    warnings.push("skincare");
+  }
+  if (
+    candidate.financePlanning !== undefined &&
+    !isFinancePlanning(candidate.financePlanning)
+  ) {
+    candidate.financePlanning = base.financePlanning;
+    warnings.push("financePlanning");
+  }
+  if (
+    candidate.financePortfolio !== undefined &&
+    (!isFinancePortfolio(candidate.financePortfolio) ||
+      !!portfolioCycleError(
+        candidate.financePortfolio,
+        (
+          candidate.financePlanning as
+            import("../finance/planning").FinancePlanning | undefined
+        )?.cycles ?? [],
+      ))
+  ) {
+    const p = candidate.financePortfolio as Record<string, unknown>;
+    const cycles =
+      (
+        candidate.financePlanning as
+          import("../finance/planning").FinancePlanning | undefined
+      )?.cycles ?? [];
+    const cycleMap = new Map(cycles.map((c) => [c.id, c]));
+    if (isFinancePortfolio(p)) {
+      const adjusted = {
+        ...p,
+        snapshots: p.snapshots.filter((s) => {
+          if (s.cycleId === "") return s.phase === "current";
+          const c = cycleMap.get(s.cycleId);
+          return (
+            !!c &&
+            s.date >= c.start &&
+            s.date <= c.end &&
+            (s.phase !== "opening" || s.date === c.start) &&
+            (s.phase !== "closing" || s.date === c.end)
+          );
+        }),
+        debtSnapshots: p.debtSnapshots.filter((s) => {
+          if (s.cycleId === "") return s.phase === "current";
+          const c = cycleMap.get(s.cycleId);
+          return (
+            !!c &&
+            s.date >= c.start &&
+            s.date <= c.end &&
+            (s.phase !== "opening" || s.date === c.start) &&
+            (s.phase !== "closing" || s.date === c.end)
+          );
+        }),
+        flows: p.flows.filter((f) => {
+          if (f.cycleId === "") return true;
+          const c = cycleMap.get(f.cycleId);
+          return !!c && f.date >= c.start && f.date <= c.end;
+        }),
+      };
+      candidate.financePortfolio = !portfolioCycleError(adjusted, cycles)
+        ? adjusted
+        : emptyPortfolio();
+    } else {
+      candidate.financePortfolio = emptyPortfolio();
+    }
+    warnings.push("financePortfolio");
+  }
+  if (isWorkspace(candidate)) return { workspace: candidate, warnings };
+  return null;
+}
+
 export function readWorkspace(): Workspace {
   try {
     const data: unknown = JSON.parse(
       localStorage.getItem(WORKSPACE_KEY) || "null",
     );
     if (isWorkspace(data)) return data;
+    const repaired = repairWorkspace(data);
+    if (repaired) return repaired.workspace;
   } catch {
     /* Keep damaged storage untouched until a new edit. */
   }

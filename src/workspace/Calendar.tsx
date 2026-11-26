@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { addDays, uid, type CalendarEvent, type Workspace } from "./model";
 import {
@@ -22,6 +22,14 @@ export function CalendarPanel({
 }) {
   const [month, setMonth] = useState(today.slice(0, 7));
   const [selected, setSelected] = useState(today);
+  const prevToday = useRef(today);
+  useEffect(() => {
+    if (prevToday.current !== today) {
+      if (selected === prevToday.current) setSelected(today);
+      if (month === prevToday.current.slice(0, 7)) setMonth(today.slice(0, 7));
+      prevToday.current = today;
+    }
+  }, [today, selected, month]);
   const [title, setTitle] = useState("");
   const [type, setType] = useState<CalendarEvent["type"]>("event");
   const [note, setNote] = useState("");
@@ -57,6 +65,7 @@ export function CalendarPanel({
   const events = allEvents
     .filter((e) => e.date.startsWith(month))
     .sort((a, b) => a.date.localeCompare(b.date));
+  const selectedDayEvents = allEvents.filter((e) => e.date === selected);
   function shift(n: number) {
     const date = new Date(`${first}T12:00`);
     date.setMonth(date.getMonth() + n);
@@ -87,8 +96,8 @@ export function CalendarPanel({
           : [];
     });
   return (
-    <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
-      <div className="space-y-5">
+    <div className="grid items-start gap-5 xl:grid-cols-[1.5fr_1fr]">
+      <div className="xl:col-start-1 xl:row-start-1">
         <Card
           title={new Date(`${first}T12:00`).toLocaleDateString("en", {
             month: "long",
@@ -98,6 +107,7 @@ export function CalendarPanel({
           action={
             <div className="flex gap-1">
               <button
+                type="button"
                 aria-label="Previous month"
                 className={secondaryClass}
                 onClick={() => shift(-1)}
@@ -105,6 +115,7 @@ export function CalendarPanel({
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
+                type="button"
                 className={secondaryClass}
                 onClick={() => {
                   setMonth(today.slice(0, 7));
@@ -114,6 +125,7 @@ export function CalendarPanel({
                 Today
               </button>
               <button
+                type="button"
                 aria-label="Next month"
                 className={secondaryClass}
                 onClick={() => shift(1)}
@@ -136,6 +148,7 @@ export function CalendarPanel({
               const entries = allEvents.filter((e) => e.date === d);
               return (
                 <button
+                  type="button"
                   key={d}
                   aria-label={`${d}${entries.length ? `, ${entries.length} events` : ""}`}
                   aria-pressed={selected === d}
@@ -170,72 +183,40 @@ export function CalendarPanel({
               );
             })}
           </div>
-          <div className="mt-4 flex flex-wrap gap-4 text-xs text-[#62584E]">
-            <span>🟢 Holiday</span>
-            <span>🟣 Leave</span>
-            <span>🔵 Event</span>
+          <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-[#62584E]">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-600" />
+              Holiday
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#355380]" />
+              Leave
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-sky-600" />
+              Event
+            </span>
           </div>
         </Card>
-        <Card
-          title="Leave ideas"
-          subtitle="Suggestions use the holidays you add and assume a Saturday–Sunday weekend."
-        >
-          {suggestions.length ? (
-            <div className="space-y-3">
-              {suggestions.map((s) => (
-                <div
-                  key={s.holiday.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-emerald-50 p-4"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-emerald-800">
-                      {s.holiday.title} · {s.holiday.date}
-                    </p>
-                    <p className="mt-1 text-xs text-emerald-700">{s.text}</p>
-                  </div>
-                  <button
-                    className={secondaryClass}
-                    disabled={data.events.some(
-                      (e) => e.date === s.date && e.type === "leave",
-                    )}
-                    onClick={() =>
-                      update((w) => ({
-                        ...w,
-                        events: [
-                          ...w.events,
-                          {
-                            id: uid(),
-                            date: s.date,
-                            title: "Day off",
-                            type: "leave",
-                            note: `Next to ${s.holiday.title}`,
-                          },
-                        ],
-                      }))
-                    }
-                  >
-                    {data.events.some(
-                      (e) => e.date === s.date && e.type === "leave",
-                    )
-                      ? "Added"
-                      : "Plan leave"}
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Empty>
-              Add a Tuesday or Thursday public holiday to see a long-weekend
-              suggestion.
-            </Empty>
-          )}
-        </Card>
       </div>
-      <div className="space-y-5">
+      <div className="space-y-5 xl:col-start-2 xl:row-span-2 xl:row-start-1">
         <Card
           title="Add to your calendar"
-          subtitle={`Selected date: ${selected}. Add the holidays observed where you live.`}
+          subtitle={`Selected date: ${selected}${selectedDayEvents.length ? ` · ${selectedDayEvents.length} planned` : " · Nothing planned yet"}`}
         >
+          {selectedDayEvents.length > 0 && (
+            <ul className="mb-4 space-y-1.5 rounded-xl border border-[#EFE8DC] bg-[#FAF7F2] p-3 text-xs">
+              {selectedDayEvents.map((e) => (
+                <li
+                  key={e.id}
+                  className="flex items-center justify-between gap-2 text-[#3B342E]"
+                >
+                  <span className="font-medium">{e.title}</span>
+                  <span className="capitalize text-[#8C8073]">{e.type}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           <form
             className="space-y-4"
             onSubmit={(e) => {
@@ -347,6 +328,63 @@ export function CalendarPanel({
             </ul>
           ) : (
             <Empty>Your month is a blank page.</Empty>
+          )}
+        </Card>
+      </div>
+      <div className="xl:col-start-1 xl:row-start-2">
+        <Card
+          title="Leave ideas"
+          subtitle="Suggestions use the holidays you add and assume a Saturday–Sunday weekend."
+        >
+          {suggestions.length ? (
+            <div className="space-y-3">
+              {suggestions.map((s) => (
+                <div
+                  key={s.holiday.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-emerald-50 p-4"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-emerald-800">
+                      {s.holiday.title} · {s.holiday.date}
+                    </p>
+                    <p className="mt-1 text-xs text-emerald-700">{s.text}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className={secondaryClass}
+                    disabled={data.events.some(
+                      (e) => e.date === s.date && e.type === "leave",
+                    )}
+                    onClick={() =>
+                      update((w) => ({
+                        ...w,
+                        events: [
+                          ...w.events,
+                          {
+                            id: uid(),
+                            date: s.date,
+                            title: "Day off",
+                            type: "leave",
+                            note: `Next to ${s.holiday.title}`,
+                          },
+                        ],
+                      }))
+                    }
+                  >
+                    {data.events.some(
+                      (e) => e.date === s.date && e.type === "leave",
+                    )
+                      ? "Added"
+                      : "Plan leave"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty>
+              Add a Tuesday or Thursday public holiday to see a long-weekend
+              suggestion.
+            </Empty>
           )}
         </Card>
       </div>

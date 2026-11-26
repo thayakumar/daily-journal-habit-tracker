@@ -4,9 +4,9 @@ The current connection has both detailed-log features active. Live API writes an
 
 ## Current pages
 
-Overview, Habits, Personal, Fitness, Meals, Brain dump, Ideas and Settings & backup.
+Overview, Habits, Personal, Fitness, Finance, Skincare, Calendar, Vehicles, Meals, Brain dump, Ideas, Vocabulary, and Settings & backup.
 
-Calendar and Daily journal are retired from navigation and deep links. Their existing spreadsheet data is preserved. The journal's data engine continues to maintain daily habit checkmarks in Entries/HabitChecks; its grid is no longer rendered.
+The legacy Daily journal grid page is retired from navigation and deep links while its existing spreadsheet data is preserved. The journal's data engine continues to maintain daily habit checkmarks in Entries/HabitChecks.
 
 ## Habits
 

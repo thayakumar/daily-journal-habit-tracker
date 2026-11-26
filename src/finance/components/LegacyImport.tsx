@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { fetchLegacyBudget } from "../../lib/sheets-api";
 import { Dialog } from "../../workspace/Dialog";
 import { localDate, isWorkspace, type Workspace } from "../../workspace/model";
@@ -22,10 +22,12 @@ export function LegacyImport({
   data,
   update,
   ready,
+  compact = false,
 }: {
   data: Workspace;
   update: Update;
   ready: boolean;
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false),
     [months, setMonths] = useState<LegacyMonth[]>([]),
@@ -66,27 +68,40 @@ export function LegacyImport({
       setBusy(false);
     }
   }
-  let preview: ReturnType<typeof migrateLegacy> | null = null,
-    previewError = "";
-  try {
-    if (months.length)
-      preview = migrateLegacy(data, months, choices, accounts, localDate());
-  } catch (e) {
-    previewError = e instanceof Error ? e.message : "Check import settings";
+  const { preview, previewError } = useMemo(() => {
+    if (!open || !months.length) {
+      return {
+        preview: null as ReturnType<typeof migrateLegacy> | null,
+        previewError: "",
+      };
+    }
+    try {
+      return {
+        preview: migrateLegacy(data, months, choices, accounts, localDate()),
+        previewError: "",
+      };
+    } catch (e) {
+      return {
+        preview: null,
+        previewError: e instanceof Error ? e.message : "Check import settings",
+      };
+    }
+  }, [open, data, months, choices, accounts]);
+  function closeDialog() {
+    setOpen(false);
+    setMonths([]);
   }
-  return (
-    <Card
-      title="Migrate your budget Sheet"
-      subtitle="Preview historical income, commitments, budgets, dated expenses and recorded account values."
-    >
+  const trigger = (
+    <>
       <button
+        type="button"
         className={secondaryClass}
         disabled={!ready || busy}
         onClick={() => void load()}
       >
         {busy ? "Reading source Sheet…" : "Preview Sheet migration"}
       </button>
-      {!ready && (
+      {!ready && !compact && (
         <p className="mt-2 text-sm text-amber-700">
           Deploy the updated Apps Script to enable the migration preview.
         </p>
@@ -101,18 +116,20 @@ export function LegacyImport({
           {message}
         </p>
       )}
-      {open && (
-        <Dialog
-          wide
-          title="Review budget Sheet migration"
-          onClose={() => setOpen(false)}
-        >
-          <p className="mb-4 text-sm text-[#62584E]">
-            The original Sheet is read only. Existing app records stay in place.
-            Duplicate source rows are skipped. Since Savings Breakdown was
-            updated at different times, enter the actual balance date for each
-            month you want imported. Leave it blank to skip that month’s
-            balances. Undated expenses cannot be imported accurately and are
+    </>
+  );
+  const dialog = open && (
+    <Dialog
+      wide
+      title="Review budget Sheet migration"
+      onClose={closeDialog}
+    >
+      <p className="mb-4 text-sm text-[#62584E]">
+        The original Sheet is read only. Existing app records stay in place.
+        Duplicate source rows are skipped. Since Savings Breakdown was
+        updated at different times, enter the actual balance date for each
+        month you want imported. Leave it blank to skip that month’s
+        balances. Undated expenses cannot be imported accurately and are
             excluded.
           </p>
           <div className="space-y-4">
@@ -376,21 +393,39 @@ export function LegacyImport({
             disabled={!preview || !choices.some((c) => c.selected)}
             onClick={() => {
               try {
-                const result = migrateLegacy(
-                  data,
-                  months,
-                  choices,
-                  accounts,
-                  localDate(),
-                );
-                if (!isWorkspace(result.workspace))
-                  throw Error(
-                    "Import data is invalid. Check account mappings and date settings.",
-                  );
-                update(() => result.workspace);
-                setOpen(false);
+                const outcome: {
+                  report: ReturnType<typeof migrateLegacy>["report"] | null;
+                  failure: string | null;
+                } = { report: null, failure: null };
+                update((latestWorkspace) => {
+                  try {
+                    const result = migrateLegacy(
+                      latestWorkspace,
+                      months,
+                      choices,
+                      accounts,
+                      localDate(),
+                    );
+                    if (!isWorkspace(result.workspace)) {
+                      outcome.failure =
+                        "Import data is invalid. Check account mappings and date settings.";
+                      return latestWorkspace;
+                    }
+                    outcome.report = result.report;
+                    return result.workspace;
+                  } catch (e) {
+                    outcome.failure =
+                      e instanceof Error ? e.message : "Import failed";
+                    return latestWorkspace;
+                  }
+                });
+                if (outcome.failure || !outcome.report) {
+                  setError(outcome.failure || "Import failed");
+                  return;
+                }
+                closeDialog();
                 setMessage(
-                  `Migration added ${result.report.expenses} expenses, ${result.report.rows} planning rows and ${result.report.snapshots} balances. ${result.report.undated} expenses without dates were excluded.`,
+                  `Migration added ${outcome.report.expenses} expenses, ${outcome.report.rows} planning rows and ${outcome.report.snapshots} balances. ${outcome.report.undated} expenses without dates were excluded.`,
                 );
               } catch (e) {
                 setError(e instanceof Error ? e.message : "Import failed");
@@ -400,7 +435,22 @@ export function LegacyImport({
             Import reviewed records
           </button>
         </Dialog>
-      )}
+  );
+  if (compact) {
+    return (
+      <div>
+        {trigger}
+        {dialog}
+      </div>
+    );
+  }
+  return (
+    <Card
+      title="Migrate your budget Sheet"
+      subtitle="Preview historical income, commitments, budgets, dated expenses and recorded account values."
+    >
+      {trigger}
+      {dialog}
     </Card>
   );
 }
