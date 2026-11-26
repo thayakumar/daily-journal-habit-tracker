@@ -996,3 +996,76 @@ test("skincare notes and routines remain local on an older backend and upload af
   assert.equal(api.skincareStorageReady, true);
   assert.equal(b.get().workspace.skincare.entries[0].notes, "My face journal");
 });
+
+test("cold launch with already-synced finance and skincare records does not trigger redundant POST writes", async () => {
+  const { createBackend } = await import("./apps-script-mock.mjs");
+  const w = createWorkspace();
+  w.updatedAt = 500;
+  w.financeExpenses = [
+    {
+      id: "exp-1",
+      date: "2026-11-20",
+      item: "Coffee",
+      amount: 12,
+      category: "Food",
+      receiptName: "",
+      receiptUrl: "",
+      createdAt: "2026-11-20T09:00:00.000Z",
+    },
+  ];
+  w.skincare = {
+    entries: [
+      {
+        id: "skin:2026-11-20",
+        date: "2026-11-20",
+        notes: "Hydrated",
+        reaction: "",
+        productIds: [],
+        updatedAt: "2026-11-20T09:00:00.000Z",
+      },
+    ],
+    products: [],
+    habits: [],
+    checks: [],
+    photos: [],
+  };
+  const b = createBackend(w);
+  const initial = b.get();
+  // Seed localStorage as an already-synced phone would have it (plus stale pending flags from older builds)
+  store.set("personal-workspace.v1", JSON.stringify(initial.workspace));
+  store.set(
+    "personal-workspace.ack.v1",
+    JSON.stringify({
+      timestamp: initial.workspace.updatedAt,
+      revision: initial.workspaceRevision,
+    }),
+  );
+  store.set("personal-workspace.finance-pending.v1", "true");
+  store.set("personal-workspace.skincare-pending.v1", "true");
+
+  let postCount = 0;
+  globalThis.__TEST_SCRIPT_URL__ = "https://sheet.test/exec";
+  globalThis.fetch = async (_url, options) => ({
+    ok: true,
+    json: async () => {
+      if (options?.method === "POST") {
+        postCount++;
+        return b.post(JSON.parse(options.body));
+      }
+      return b.get();
+    },
+  });
+
+  let api;
+  function Harness() {
+    api = useWorkspace();
+    return null;
+  }
+  await render(React.createElement(Harness));
+  await act(async () => sleep(1200));
+  assert.equal(postCount, 0, "Cold launch with identical cloud data must not POST saveWorkspace");
+  assert.equal(api.syncState, "synced");
+  assert.equal(store.get("personal-workspace.finance-pending.v1"), undefined);
+  assert.equal(store.get("personal-workspace.skincare-pending.v1"), undefined);
+});
+
