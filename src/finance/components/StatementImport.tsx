@@ -4,6 +4,7 @@ import {
   Card,
   Field,
   inputClass,
+  parseNumberInput,
   primaryClass,
   secondaryClass,
 } from "../../workspace/ui";
@@ -159,6 +160,7 @@ export function StatementImport({
         subtitle="Extract a screenshot, review the debit rows, then add them together."
       >
         <button
+          type="button"
           className={secondaryClass}
           onClick={() => {
             setOpen(true);
@@ -219,7 +221,7 @@ export function StatementImport({
                 min={2000}
                 max={2100}
                 value={year}
-                onChange={(e) => setYear(Number(e.target.value))}
+                onChange={(e) => setYear(parseNumberInput(e.target.value, year))}
               />
             </Field>
           </div>
@@ -233,6 +235,7 @@ export function StatementImport({
             />
           </Field>
           <button
+            type="button"
             className={secondaryClass}
             disabled={busy || !text.trim()}
             onClick={() => {
@@ -322,6 +325,7 @@ export function StatementImport({
             </p>
           )}
           <button
+            type="button"
             className={primaryClass}
             disabled={busy || !rows.some((r) => r.selected)}
             onClick={save}

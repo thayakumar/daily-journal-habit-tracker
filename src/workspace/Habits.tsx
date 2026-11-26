@@ -19,6 +19,7 @@ import {
   Empty,
   Field,
   inputClass,
+  parseNumberInput,
   primaryClass,
   secondaryClass,
   type Update,
@@ -297,6 +298,7 @@ export function Habits({
                 </select>
               </Field>
               <button
+                type="submit"
                 disabled={!journal || !dailyName.trim()}
                 className={primaryClass}
               >
@@ -337,6 +339,7 @@ export function Habits({
             >
               <Field label="Habit">
                 <input
+                  aria-label="Habit"
                   required
                   placeholder="Change bedsheets"
                   className={inputClass}
@@ -352,7 +355,9 @@ export function Habits({
                   max="3650"
                   className={inputClass}
                   value={interval}
-                  onChange={(e) => setIntervalDays(Number(e.target.value))}
+                  onChange={(e) =>
+                    setIntervalDays(parseNumberInput(e.target.value, interval))
+                  }
                 />
               </Field>
               <Field label="Last completed">
@@ -365,7 +370,7 @@ export function Habits({
                   onChange={(e) => setLastDone(e.target.value)}
                 />
               </Field>
-              <button className={primaryClass}>
+              <button type="submit" className={primaryClass}>
                 <Plus className="h-4 w-4" />
                 Add routine
               </button>

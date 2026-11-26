@@ -99,7 +99,11 @@ export function Vocabulary({
         title="Your word collection"
         subtitle="Keep new words, their meanings and an example you can remember."
         action={
-          <button className={primaryClass} onClick={() => show()}>
+          <button
+            type="button"
+            className={primaryClass}
+            onClick={() => show()}
+          >
             <Plus className="h-4 w-4" />
             Add word
           </button>
@@ -197,6 +201,7 @@ export function Vocabulary({
                     <td className="block p-2 md:table-cell md:align-top">
                       <div className="flex justify-end gap-1">
                         <button
+                          type="button"
                           aria-label={`Edit ${entry.word}`}
                           title={`Edit ${entry.word}`}
                           className={secondaryClass}
@@ -268,6 +273,7 @@ export function Vocabulary({
                 </p>
               </div>
               <button
+                type="button"
                 aria-label="Close vocabulary popup"
                 className={secondaryClass}
                 onClick={close}
@@ -388,7 +394,7 @@ export function Vocabulary({
                 >
                   Cancel
                 </button>
-                <button className={primaryClass}>
+                <button type="submit" className={primaryClass}>
                   {editing ? "Save changes" : "Save word"}
                 </button>
               </div>

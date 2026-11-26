@@ -2,7 +2,6 @@ import {
   activeMonth,
   cycleDates,
   shiftMonth,
-  monthName,
 } from "../src/finance/planning.ts";
 import { chromium } from "playwright";
 import { spawn } from "node:child_process";

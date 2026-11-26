@@ -33,9 +33,11 @@ function MealInput({
   const latestDraft = useRef(draft);
   const latestValue = useRef(value);
   const commitRef = useRef(onCommit);
-  latestDraft.current = draft;
-  latestValue.current = value;
-  commitRef.current = onCommit;
+  useEffect(() => {
+    latestDraft.current = draft;
+    latestValue.current = value;
+    commitRef.current = onCommit;
+  }, [draft, value, onCommit]);
 
   useEffect(() => {
     if (!timer.current) {
@@ -278,7 +280,11 @@ export function Meals({
             placeholder={"Eggs\nSpinach\nOats"}
           />
           <div className="flex flex-wrap items-center gap-3">
-            <button className={primaryClass} disabled={!grocery.trim()}>
+            <button
+            type="submit"
+            className={primaryClass}
+            disabled={!grocery.trim()}
+          >
               <Plus className="h-4 w-4" />
               Add to grocery list
             </button>

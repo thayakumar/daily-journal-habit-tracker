@@ -20,7 +20,7 @@ export function CalendarPanel({
   update: Update;
   today: string;
 }) {
-  const [month, setMonth] = useState(today.slice(0, 7));
+  const [month, setMonth] = useState(() => today.slice(0, 7));
   const [selected, setSelected] = useState(today);
   const prevToday = useRef(today);
   useEffect(() => {
@@ -241,6 +241,7 @@ export function CalendarPanel({
           >
             <Field label="Title">
               <input
+                aria-label="Title"
                 required
                 maxLength={200}
                 className={inputClass}
@@ -278,6 +279,7 @@ export function CalendarPanel({
             </div>
             <Field label="Notes">
               <textarea
+                aria-label="Notes"
                 rows={3}
                 className={inputClass}
                 value={note}
@@ -285,7 +287,7 @@ export function CalendarPanel({
                 placeholder="Anything to remember…"
               />
             </Field>
-            <button className={primaryClass}>
+            <button type="submit" className={primaryClass}>
               <Plus className="h-4 w-4" />
               Add event
             </button>

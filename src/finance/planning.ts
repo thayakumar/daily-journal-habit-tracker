@@ -25,10 +25,11 @@ export const emptyPlanning = (): FinancePlanning => ({
   cycles: [],
   rows: [],
 });
-export const money = (value: number) =>
-  new Intl.NumberFormat("en-MY", { style: "currency", currency: "MYR" }).format(
-    value,
-  );
+const MYR_FORMATTER = new Intl.NumberFormat("en-MY", {
+  style: "currency",
+  currency: "MYR",
+});
+export const money = (value: number) => MYR_FORMATTER.format(value);
 const sum = (values: number[]) =>
   values.reduce((total, value) => total + Math.round(value * 100), 0) / 100;
 export function validDate(value: unknown): value is string {

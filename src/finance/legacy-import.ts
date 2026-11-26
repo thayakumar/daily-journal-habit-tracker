@@ -185,8 +185,11 @@ export function migrateLegacy(
     skippedCommitments: 0,
   };
   const prefix = `legacy:${LEGACY_SOURCE}:`;
+  const monthBySheetId = new Map(months.map((m) => [m.sheetId, m]));
+  const accountMappingByName = new Map(accounts.map((a) => [a.name, a]));
+  const accountById = new Map(portfolio.accounts.map((a) => [a.id, a]));
   for (const choice of choices.filter((c) => c.selected)) {
-    const source = months.find((m) => m.sheetId === choice.sheetId);
+    const source = monthBySheetId.get(choice.sheetId);
     if (!source) throw Error("Source month missing");
     let cycle = p.cycles.find((c) => c.month === source.month);
     if (cycle && (cycle.start !== choice.start || cycle.end !== choice.end))
@@ -312,15 +315,17 @@ export function migrateLegacy(
       continue;
     }
     for (const balance of source.balances) {
-      const mapping = accounts.find((a) => a.name === balance.name);
+      const mapping = accountMappingByName.get(balance.name);
       if (!mapping)
         throw Error(`Choose an account mapping for ${balance.name}`);
-      let account = portfolio.accounts.find((a) => a.id === mapping.accountId);
+      let account = mapping.accountId
+        ? accountById.get(mapping.accountId)
+        : undefined;
       if (mapping.accountId && !account)
         throw Error("Mapped account no longer exists");
       if (!account) {
         const id = `${prefix}account:${encodeURIComponent(balance.name.toLowerCase())}`;
-        account = portfolio.accounts.find((a) => a.id === id);
+        account = accountById.get(id);
         if (!account) {
           account = {
             id,
@@ -334,6 +339,7 @@ export function migrateLegacy(
             trackingFrom: choice.balanceDate,
           };
           portfolio.accounts.push(account);
+          accountById.set(id, account);
           report.accounts++;
         }
       }

@@ -6,6 +6,7 @@ import {
   Field,
   Delete,
   inputClass,
+  parseNumberInput,
   primaryClass,
   secondaryClass,
   type Update,
@@ -65,7 +66,7 @@ export function Vehicles({
         title="Your vehicles"
         subtitle="Road tax, insurance renewals and service history, together."
         action={
-          <button className={primaryClass} onClick={add}>
+          <button type="button" className={primaryClass} onClick={add}>
             Add vehicle
           </button>
         }
@@ -99,6 +100,7 @@ export function Vehicles({
                     </p>
                   </div>
                   <button
+                    type="button"
                     className={secondaryClass}
                     onClick={() => setDraft(v)}
                   >
@@ -156,7 +158,11 @@ export function Vehicles({
                 <p className="my-3 whitespace-pre-wrap break-words text-sm text-[#62584E]">
                   {v.notes}
                 </p>
-                <button className={secondaryClass} onClick={() => log(v)}>
+                <button
+                  type="button"
+                  className={secondaryClass}
+                  onClick={() => log(v)}
+                >
                   Log service
                 </button>
                 <details className="mt-4">
@@ -233,8 +239,15 @@ export function Vehicles({
                   {
                     ...draft,
                     name: cleanName,
-                    odometer: Number.isFinite(draft.odometer) && draft.odometer >= 0 ? draft.odometer : 0,
-                    serviceAtKm: Number.isFinite(draft.serviceAtKm) && draft.serviceAtKm >= 0 ? draft.serviceAtKm : 0,
+                    odometer:
+                      Number.isFinite(draft.odometer) && draft.odometer >= 0
+                        ? draft.odometer
+                        : 0,
+                    serviceAtKm:
+                      Number.isFinite(draft.serviceAtKm) &&
+                      draft.serviceAtKm >= 0
+                        ? draft.serviceAtKm
+                        : 0,
                   },
                 ],
               }));
@@ -291,14 +304,16 @@ export function Vehicles({
                       ...draft,
                       [key]:
                         key === "odometer" || key === "serviceAtKm"
-                          ? Number(e.target.value)
+                          ? parseNumberInput(e.target.value, 0)
                           : e.target.value,
                     })
                   }
                 />
               </Field>
             ))}
-            <button className={primaryClass}>Save vehicle</button>
+            <button type="submit" className={primaryClass}>
+              Save vehicle
+            </button>
           </form>
         </Dialog>
       )}
@@ -387,7 +402,7 @@ export function Vehicles({
                         ...service,
                         [key]:
                           key === "cost" || key === "odometer"
-                            ? Number(e.target.value)
+                            ? parseNumberInput(e.target.value, 0)
                             : e.target.value,
                       })
                     }
@@ -409,11 +424,15 @@ export function Vehicles({
                 type="number"
                 min={0}
                 value={nextKm}
-                onChange={(e) => setNextKm(Number(e.target.value))}
+                onChange={(e) =>
+                  setNextKm(parseNumberInput(e.target.value, 0))
+                }
               />
             </Field>
             {error && <p role="alert">{error}</p>}
-            <button className={primaryClass}>Save service</button>
+            <button type="submit" className={primaryClass}>
+              Save service
+            </button>
           </form>
         </Dialog>
       )}

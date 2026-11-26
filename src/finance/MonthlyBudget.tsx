@@ -1,17 +1,12 @@
-import {
-  emptyPortfolio,
-  syncPortfolioBalances,
-  syncPortfolioCommitments,
-} from "./portfolio-model";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pencil, Plus } from "lucide-react";
-import { Dialog } from "../workspace/Dialog";
 import {
   Card,
   Delete,
   Empty,
   Field,
   inputClass,
+  parseNumberInput,
   primaryClass,
   secondaryClass,
   type Update,
@@ -21,7 +16,6 @@ import { Category } from "./types";
 import {
   activeMonth,
   cycleDates,
-  cycleError,
   emptyPlanning,
   money,
   monthName,
@@ -30,22 +24,16 @@ import {
   type FinancePlanRow,
   type PlanKind,
 } from "./planning";
+import { CategoryDonutChart } from "./components/CategoryDonutChart";
+import { CycleEditorDialog, PlanRowDialog } from "./components/BudgetDialogs";
+
 const TITLES: Record<PlanKind, string> = {
   income: "Income",
   commitment: "Fixed commitments",
   budget: "Spending budgets",
   balance: "Account balances",
 };
-const COLORS = [
-  "#e11d48",
-  "#f59e0b",
-  "#0d9488",
-  "#6366f1",
-  "#0ea5e9",
-  "#a855f7",
-  "#84cc16",
-  "#f97316",
-];
+
 export function MonthlyBudget({
   data,
   update,
@@ -63,24 +51,36 @@ export function MonthlyBudget({
 }) {
   const plan = data.financePlanning ?? emptyPlanning();
   const cycle = plan.cycles.find((c) => c.id === selectedId);
-  const [cycleDialog, setCycleDialog] = useState<FinanceCycle | null>(null),
-    [editingCycle, setEditingCycle] = useState(false),
-    [copyFrom, setCopyFrom] = useState("");
-  const [rowDialog, setRowDialog] = useState<FinancePlanRow | null>(null),
-    [error, setError] = useState(""),
-    [cycleNotice, setCycleNotice] = useState(""),
-    [showAllExpenses, setShowAllExpenses] = useState(false);
-  const categories = [
-    ...new Set([
-      ...Object.values(Category),
-      ...(data.financeExpenses ?? []).map((e) => e.category),
-      ...plan.rows.flatMap((r) => r.categories),
-    ]),
-  ].sort();
-  const rows = plan.rows.filter((r) => r.cycleId === selectedId);
-  const summary = cycle
-    ? summarizeCycle(plan, data.financeExpenses ?? [], cycle)
-    : null;
+  const [cycleDialog, setCycleDialog] = useState<FinanceCycle | null>(null);
+  const [editingCycle, setEditingCycle] = useState(false);
+  const [rowDialog, setRowDialog] = useState<FinancePlanRow | null>(null);
+  const [cycleNotice, setCycleNotice] = useState("");
+  const [showAllExpenses, setShowAllExpenses] = useState(false);
+
+  const categories = useMemo(
+    () =>
+      [
+        ...new Set([
+          ...Object.values(Category),
+          ...(data.financeExpenses ?? []).map((e) => e.category),
+          ...plan.rows.flatMap((r) => r.categories),
+        ]),
+      ].sort(),
+    [data.financeExpenses, plan.rows],
+  );
+  const rows = useMemo(
+    () => plan.rows.filter((r) => r.cycleId === selectedId),
+    [plan.rows, selectedId],
+  );
+  const summary = useMemo(
+    () => (cycle ? summarizeCycle(plan, data.financeExpenses ?? [], cycle) : null),
+    [cycle, plan, data.financeExpenses],
+  );
+  const budgetById = useMemo(
+    () => new Map((summary?.budgets ?? []).map((b) => [b.id, b])),
+    [summary],
+  );
+
   function openCycle(edit = false) {
     const month = activeMonth(localDate(), plan.defaultStartDay);
     setCycleDialog(
@@ -89,11 +89,9 @@ export function MonthlyBudget({
         : { id: uid(), month, ...cycleDates(month, plan.defaultStartDay) },
     );
     setEditingCycle(edit);
-    setCopyFrom("");
-    setError("");
   }
+
   function openRow(kind: PlanKind, row?: FinancePlanRow) {
-    setError("");
     setRowDialog(
       row
         ? { ...row, categories: [...row.categories] }
@@ -108,6 +106,7 @@ export function MonthlyBudget({
           },
     );
   }
+
   function removeRow(row: FinancePlanRow) {
     if (confirm(`Remove ${row.name} from this cycle?`))
       update((s) => ({
@@ -118,6 +117,7 @@ export function MonthlyBudget({
         },
       }));
   }
+
   return (
     <div className="min-w-0 space-y-5 [contain:paint]">
       <Card
@@ -188,7 +188,10 @@ export function MonthlyBudget({
                   className={inputClass}
                   value={plan.defaultStartDay}
                   onChange={(e) => {
-                    const day = Number(e.target.value);
+                    const day = parseNumberInput(
+                      e.target.value,
+                      plan.defaultStartDay,
+                    );
                     update((s) => ({
                       ...s,
                       financePlanning: {
@@ -287,108 +290,11 @@ export function MonthlyBudget({
               );
             })}
           </div>
-          <Card
-            title="Expenses by category"
-            subtitle="Every category is included automatically, including Entertainment and new categories."
-          >
-            {!summary.categories.length ? (
-              <Empty>
-                No expenses in this cycle yet. Add them in Expense Tracker.
-              </Empty>
-            ) : (
-              <div className="grid items-center gap-6 md:grid-cols-[220px_1fr]">
-                <svg
-                  viewBox="0 0 120 120"
-                  role="img"
-                  aria-label={`Expense categories for ${monthName(cycle.month)}. Total ${money(summary.spent)}.`}
-                  className="mx-auto h-52 w-52 max-w-full"
-                >
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="44"
-                    fill="none"
-                    stroke="#f1f5f9"
-                    strokeWidth="20"
-                  />
-                  {summary.categories.map((c, i) => {
-                    const before = summary.categories
-                      .slice(0, i)
-                      .reduce((n, r) => n + r.amount, 0);
-                    const fraction = summary.spent
-                      ? c.amount / summary.spent
-                      : 0;
-                    return (
-                      <circle
-                        key={c.name}
-                        cx="60"
-                        cy="60"
-                        r="44"
-                        pathLength="100"
-                        fill="none"
-                        stroke={COLORS[i % COLORS.length]}
-                        strokeWidth="20"
-                        strokeDasharray={`${fraction * 100} ${100 - fraction * 100}`}
-                        strokeDashoffset={
-                          summary.spent ? (-before / summary.spent) * 100 : 0
-                        }
-                        transform="rotate(-90 60 60)"
-                      >
-                        <title>
-                          {c.name}: {money(c.amount)}
-                        </title>
-                      </circle>
-                    );
-                  })}
-                  <text
-                    x="60"
-                    y="58"
-                    textAnchor="middle"
-                    className="fill-[#8C8073]"
-                    fontSize="7"
-                  >
-                    TOTAL EXPENSES
-                  </text>
-                  <text
-                    x="60"
-                    y="70"
-                    textAnchor="middle"
-                    className="fill-[#24201D]"
-                    fontSize="9"
-                    fontWeight="600"
-                  >
-                    {money(summary.spent)}
-                  </text>
-                </svg>
-                <ul aria-label="Category breakdown" className="space-y-3">
-                  {summary.categories.map((c, i) => (
-                    <li
-                      key={c.name}
-                      className="flex min-w-0 flex-wrap items-center gap-2 text-sm"
-                    >
-                      <span
-                        className="h-3 w-3 shrink-0 rounded-full"
-                        style={{ background: COLORS[i % COLORS.length] }}
-                      />
-                      <span className="min-w-0 flex-1 break-words text-[#62584E]">
-                        {c.name}
-                      </span>
-                      <span className="font-medium text-[#24201D]">
-                        {money(c.amount)}
-                      </span>
-                      <span className="text-xs text-[#8C8073]">
-                        (
-                        {summary.spent
-                          ? ((c.amount / summary.spent) * 100).toFixed(1)
-                          : "0"}
-                        %)
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </Card>
+          <CategoryDonutChart
+            month={cycle.month}
+            spent={summary.spent}
+            categories={summary.categories}
+          />
           <div className="grid min-w-0 items-start gap-5 xl:grid-cols-2">
             {(["income", "commitment", "budget", "balance"] as const).map(
               (kind) => (
@@ -405,6 +311,7 @@ export function MonthlyBudget({
                   }
                   action={
                     <button
+                      type="button"
                       className={secondaryClass}
                       onClick={() =>
                         kind === "balance" &&
@@ -456,9 +363,7 @@ export function MonthlyBudget({
                           {rows
                             .filter((r) => r.kind === kind)
                             .map((row) => {
-                              const budget = summary.budgets.find(
-                                (b) => b.id === row.id,
-                              );
+                              const budget = budgetById.get(row.id);
                               return (
                                 <tr
                                   key={row.id}
@@ -632,399 +537,28 @@ export function MonthlyBudget({
         </>
       )}
       {cycleDialog && (
-        <Dialog
-          title={editingCycle ? "Edit salary cycle" : "New salary cycle"}
+        <CycleEditorDialog
+          key={cycleDialog.id}
+          initialCycle={cycleDialog}
+          editingCycle={editingCycle}
+          plan={plan}
+          data={data}
+          update={update}
+          onSelect={onSelect}
+          onNotice={setCycleNotice}
           onClose={() => setCycleDialog(null)}
-        >
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const message = cycleError(cycleDialog, plan.cycles);
-              if (message) {
-                setError(message);
-                return;
-              }
-              const saved = cycleDialog;
-              const today = localDate();
-              if (editingCycle) {
-                const curPortfolio = data.financePortfolio ?? emptyPortfolio();
-                const hasOpening =
-                  curPortfolio.snapshots.some(
-                    (r) => r.cycleId === saved.id && r.phase === "opening",
-                  ) ||
-                  curPortfolio.debtSnapshots.some(
-                    (r) => r.cycleId === saved.id && r.phase === "opening",
-                  );
-                const hasClosing =
-                  curPortfolio.snapshots.some(
-                    (r) => r.cycleId === saved.id && r.phase === "closing",
-                  ) ||
-                  curPortfolio.debtSnapshots.some(
-                    (r) => r.cycleId === saved.id && r.phase === "closing",
-                  );
-                if (hasOpening && saved.start > today) {
-                  setError(
-                    "Linked Portfolio opening balances cannot be moved into a future date.",
-                  );
-                  return;
-                }
-                if (hasClosing && saved.end > today) {
-                  setError(
-                    "Linked Portfolio closing balances cannot be moved into a future date.",
-                  );
-                  return;
-                }
-              }
-              let shiftedCount = 0;
-              let detachedCount = 0;
-              update((s) => {
-                const p = s.financePlanning ?? emptyPlanning();
-                const source = p.rows.filter(
-                  (r) =>
-                    r.cycleId === copyFrom && !r.id.startsWith("portfolio:"),
-                );
-                const copied = source.map((r) => ({
-                  ...r,
-                  id: uid(),
-                  cycleId: saved.id,
-                  amount: r.kind === "balance" ? 0 : r.amount,
-                }));
-                const defaults: FinancePlanRow[] =
-                  !editingCycle && !copyFrom
-                    ? [
-                        { name: "Groceries", categories: [Category.Groceries] },
-                        {
-                          name: "General expenses",
-                          categories: Object.values(Category).filter(
-                            (c) =>
-                              c !== Category.Groceries &&
-                              c !== Category.Unknown,
-                          ),
-                        },
-                        {
-                          name: "Unexpected / buffer",
-                          categories: [Category.Unknown],
-                        },
-                      ].map((r) => ({
-                        ...r,
-                        id: uid(),
-                        cycleId: saved.id,
-                        kind: "budget",
-                        amount: 300,
-                        liquid: false,
-                      }))
-                    : [];
-                let nextPortfolio = s.financePortfolio ?? emptyPortfolio();
-                if (editingCycle) {
-                  nextPortfolio = {
-                    ...nextPortfolio,
-                    snapshots: nextPortfolio.snapshots.map((snap) => {
-                      if (snap.cycleId !== saved.id) return snap;
-                      if (snap.phase === "opening" && snap.date !== saved.start) {
-                        shiftedCount++;
-                        return { ...snap, date: saved.start };
-                      }
-                      if (snap.phase === "closing" && snap.date !== saved.end) {
-                        shiftedCount++;
-                        return { ...snap, date: saved.end };
-                      }
-                      if (
-                        snap.phase === "current" &&
-                        (snap.date < saved.start || snap.date > saved.end)
-                      ) {
-                        detachedCount++;
-                        return { ...snap, cycleId: "" };
-                      }
-                      return snap;
-                    }),
-                    debtSnapshots: nextPortfolio.debtSnapshots.map((snap) => {
-                      if (snap.cycleId !== saved.id) return snap;
-                      if (snap.phase === "opening" && snap.date !== saved.start) {
-                        shiftedCount++;
-                        return { ...snap, date: saved.start };
-                      }
-                      if (snap.phase === "closing" && snap.date !== saved.end) {
-                        shiftedCount++;
-                        return { ...snap, date: saved.end };
-                      }
-                      if (
-                        snap.phase === "current" &&
-                        (snap.date < saved.start || snap.date > saved.end)
-                      ) {
-                        detachedCount++;
-                        return { ...snap, cycleId: "" };
-                      }
-                      return snap;
-                    }),
-                    flows: nextPortfolio.flows.map((flow) => {
-                      if (
-                        flow.cycleId === saved.id &&
-                        (flow.date < saved.start || flow.date > saved.end)
-                      ) {
-                        detachedCount++;
-                        return { ...flow, cycleId: "" };
-                      }
-                      return flow;
-                    }),
-                  };
-                }
-                let nextPlan = {
-                  ...p,
-                  cycles: editingCycle
-                    ? p.cycles.map((c) => (c.id === saved.id ? saved : c))
-                    : [...p.cycles, saved],
-                  rows: [
-                    ...p.rows,
-                    ...(editingCycle ? [] : copyFrom ? copied : defaults),
-                  ],
-                };
-                if (nextPortfolio.accounts.length)
-                  nextPlan = syncPortfolioBalances(
-                    nextPlan,
-                    nextPortfolio,
-                    saved.id,
-                  );
-                if (
-                  nextPortfolio.loans.length ||
-                  nextPortfolio.subscriptions.length
-                )
-                  nextPlan = syncPortfolioCommitments(
-                    nextPlan,
-                    nextPortfolio,
-                    saved,
-                    today,
-                  );
-                return {
-                  ...s,
-                  financePlanning: nextPlan,
-                  financePortfolio: nextPortfolio,
-                };
-              });
-              if (shiftedCount || detachedCount) {
-                const parts: string[] = [];
-                if (shiftedCount)
-                  parts.push(
-                    `shifted ${shiftedCount} opening/closing Portfolio snapshot${shiftedCount === 1 ? "" : "s"} to match the new dates`,
-                  );
-                if (detachedCount)
-                  parts.push(
-                    `${detachedCount} mid-cycle Portfolio record${detachedCount === 1 ? "" : "s"} fell outside the new dates and were moved to ongoing dated history`,
-                  );
-                setCycleNotice(`Cycle updated: ${parts.join("; ")}.`);
-              } else {
-                setCycleNotice("");
-              }
-              onSelect(saved.id);
-              setCycleDialog(null);
-            }}
-          >
-            <Field label="Cycle month">
-              <input
-                aria-label="Cycle month"
-                type="month"
-                required
-                className={inputClass}
-                value={cycleDialog.month}
-                onChange={(e) => {
-                  const month = e.target.value;
-                  setCycleDialog({
-                    ...cycleDialog,
-                    month,
-                    ...(/^\d{4}-\d{2}$/.test(month)
-                      ? cycleDates(month, plan.defaultStartDay)
-                      : {}),
-                  });
-                  setError("");
-                }}
-              />
-            </Field>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Cycle start">
-                <input
-                  aria-label="Cycle start"
-                  type="date"
-                  required
-                  className={inputClass}
-                  value={cycleDialog.start}
-                  onChange={(e) =>
-                    setCycleDialog({ ...cycleDialog, start: e.target.value })
-                  }
-                />
-              </Field>
-              <Field label="Cycle end">
-                <input
-                  aria-label="Cycle end"
-                  type="date"
-                  required
-                  className={inputClass}
-                  min={cycleDialog.start}
-                  value={cycleDialog.end}
-                  onChange={(e) =>
-                    setCycleDialog({ ...cycleDialog, end: e.target.value })
-                  }
-                />
-              </Field>
-            </div>
-            {!editingCycle && (
-              <Field label="Starting setup">
-                <select
-                  aria-label="Starting setup"
-                  className={inputClass}
-                  value={copyFrom}
-                  onChange={(e) => setCopyFrom(e.target.value)}
-                >
-                  <option value="">
-                    New setup · three RM300 budget groups
-                  </option>
-                  {[...plan.cycles]
-                    .sort((a, b) => b.month.localeCompare(a.month))
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        Copy {monthName(c.month)}
-                      </option>
-                    ))}
-                </select>
-                <p className="mt-2 text-xs text-[#8C8073]">
-                  Copying carries income, commitments and budgets forward.
-                  Account names copy with zero balances. Expenses always come
-                  from their dates.
-                </p>
-              </Field>
-            )}
-            {error && (
-              <p role="alert" className="text-sm text-[#D95D39]">
-                {error}
-              </p>
-            )}
-            <button className={primaryClass}>
-              {editingCycle ? "Save cycle dates" : "Create cycle"}
-            </button>
-          </form>
-        </Dialog>
+        />
       )}
       {rowDialog && (
-        <Dialog
-          title={`${plan.rows.some((r) => r.id === rowDialog.id) ? "Edit" : "Add"} ${rowDialog.kind}`}
+        <PlanRowDialog
+          key={rowDialog.id}
+          initialRow={rowDialog}
+          selectedId={selectedId}
+          plan={plan}
+          categories={categories}
+          update={update}
           onClose={() => setRowDialog(null)}
-        >
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (
-                !rowDialog.name.trim() ||
-                !Number.isFinite(rowDialog.amount) ||
-                rowDialog.amount < 0
-              )
-                return;
-              if (
-                rowDialog.kind === "budget" &&
-                plan.rows.some(
-                  (r) =>
-                    r.kind === "budget" &&
-                    r.cycleId === selectedId &&
-                    r.id !== rowDialog.id &&
-                    r.categories.some((c) => rowDialog.categories.includes(c)),
-                )
-              ) {
-                setError(
-                  "A category can belong to only one budget group in this cycle.",
-                );
-                return;
-              }
-              const saved = { ...rowDialog, name: rowDialog.name.trim() };
-              update((s) => {
-                const p = s.financePlanning ?? emptyPlanning();
-                return {
-                  ...s,
-                  financePlanning: {
-                    ...p,
-                    rows: [...p.rows.filter((r) => r.id !== saved.id), saved],
-                  },
-                };
-              });
-              setRowDialog(null);
-            }}
-          >
-            <Field label="Name">
-              <input
-                autoFocus
-                required
-                aria-label="Plan row name"
-                maxLength={200}
-                className={inputClass}
-                value={rowDialog.name}
-                onChange={(e) =>
-                  setRowDialog({ ...rowDialog, name: e.target.value })
-                }
-              />
-            </Field>
-            <Field label="Amount (RM)">
-              <input
-                aria-label="Plan row amount"
-                required
-                type="number"
-                min="0"
-                step="0.01"
-                className={inputClass}
-                value={rowDialog.amount}
-                onChange={(e) =>
-                  setRowDialog({ ...rowDialog, amount: Number(e.target.value) })
-                }
-              />
-            </Field>
-            {rowDialog.kind === "budget" && (
-              <fieldset>
-                <legend className="mb-2 text-xs font-medium text-[#62584E]">
-                  Expense categories
-                </legend>
-                <div className="space-y-2">
-                  {categories.map((category) => (
-                    <label
-                      key={category}
-                      className="flex items-center gap-3 rounded-xl border border-[#EFE8DC] p-3 text-sm text-[#62584E]"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={rowDialog.categories.includes(category)}
-                        onChange={(e) =>
-                          setRowDialog({
-                            ...rowDialog,
-                            categories: e.target.checked
-                              ? [...rowDialog.categories, category]
-                              : rowDialog.categories.filter(
-                                  (c) => c !== category,
-                                ),
-                          })
-                        }
-                      />
-                      <span className="break-words">{category}</span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            )}
-            {rowDialog.kind === "balance" && (
-              <label className="flex items-center gap-3 text-sm text-[#62584E]">
-                <input
-                  type="checkbox"
-                  checked={rowDialog.liquid}
-                  onChange={(e) =>
-                    setRowDialog({ ...rowDialog, liquid: e.target.checked })
-                  }
-                />
-                Include in liquid accounts
-              </label>
-            )}
-            {error && (
-              <p role="alert" className="text-sm text-[#D95D39]">
-                {error}
-              </p>
-            )}
-            <button className={primaryClass}>Save {rowDialog.kind}</button>
-          </form>
-        </Dialog>
+        />
       )}
     </div>
   );

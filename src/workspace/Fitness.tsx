@@ -15,6 +15,7 @@ import {
   Empty,
   Field,
   inputClass,
+  parseNumberInput,
   primaryClass,
   secondaryClass,
   type Update,
@@ -100,7 +101,10 @@ export function Fitness({
     setTargetDraft(String(data.fitness.target));
   }, [data.fitness.target]);
 
-  const workoutSets = data.workoutSets ?? [];
+  const workoutSets = useMemo(
+    () => data.workoutSets ?? [],
+    [data.workoutSets],
+  );
   const sets = useMemo(
     () => workoutSets.filter((s) => s.date === date),
     [workoutSets, date],
@@ -122,11 +126,11 @@ export function Fitness({
     return counts;
   }, [workoutSets]);
 
-  const week = useMemo(() => weekDates(date), [date]);
+  const weekSet = useMemo(() => new Set(weekDates(date)), [date]);
   const days = useMemo(() => workoutDates(data).sort().reverse(), [data]);
   const daysThisWeek = useMemo(
-    () => days.filter((d) => week.includes(d)).length,
-    [days, week],
+    () => days.filter((d) => weekSet.has(d)).length,
+    [days, weekSet],
   );
 
   function patch(id: string, fields: Partial<WorkoutSet>) {
@@ -533,7 +537,9 @@ export function Fitness({
                   step="1"
                   className={inputClass}
                   value={count}
-                  onChange={(e) => setCount(Number(e.target.value))}
+                  onChange={(e) =>
+                    setCount(parseNumberInput(e.target.value, count))
+                  }
                 />
               </Field>
               <Field label="Reps per set">
@@ -610,7 +616,7 @@ export function Fitness({
               onChange={(e) => setNotes(e.target.value)}
             />
           </Field>
-          <button className={primaryClass}>
+          <button type="submit" className={primaryClass}>
             <Plus className="h-4 w-4" />
             Log exercise
           </button>
