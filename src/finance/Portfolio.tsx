@@ -427,7 +427,7 @@ export function Portfolio({
         <div
           role="tablist"
           aria-label="Portfolio sections"
-          className="flex flex-wrap gap-2"
+          className="clay-segmented inline-flex flex-wrap gap-1 rounded-2xl p-1"
         >
           {[
             "overview",
@@ -446,7 +446,11 @@ export function Portfolio({
                 setTab(id);
                 setNotice("");
               }}
-              className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold capitalize ${tab === id ? "bg-[#24201D] text-white" : "bg-[#FAF7F2] text-[#62584E] hover:bg-[#F3EDE3]"}`}
+              className={`min-h-10 rounded-xl px-4 py-2 text-sm font-semibold capitalize transition-colors duration-150 ${
+                tab === id
+                  ? "bg-[#24201D] text-white shadow-xs"
+                  : "text-[#5C5248] hover:bg-white/70 hover:text-[#24201D]"
+              }`}
             >
               {id}
             </button>

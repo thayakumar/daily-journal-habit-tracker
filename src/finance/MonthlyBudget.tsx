@@ -266,14 +266,14 @@ export function MonthlyBudget({
                   className={`min-w-0 rounded-2xl border p-5 shadow-xs ${
                     negative
                       ? "border-[#E8B8A9] bg-[#FBECE7]/60"
-                      : "border-[#EAE2D6] bg-white"
+                      : "clay-card"
                   }`}
                 >
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[#8C8073]">
+                  <p className="text-xs font-semibold text-[#6E6358]">
                     {label}
                   </p>
                   <p
-                    className={`mt-2 break-words font-display text-2xl font-bold sm:text-3xl ${
+                    className={`mt-2 break-words font-display text-2xl font-bold tabular-nums sm:text-3xl ${
                       negative
                         ? "text-[#B84727]"
                         : semantic && value > 0
@@ -283,7 +283,7 @@ export function MonthlyBudget({
                   >
                     {money(value)}
                   </p>
-                  <p className="mt-2 text-xs leading-relaxed text-[#62584E]">
+                  <p className="mt-2 text-xs leading-relaxed text-[#5C5248]">
                     {hint}
                   </p>
                 </div>

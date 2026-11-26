@@ -8,6 +8,8 @@ import {
   type Workspace,
 } from "./model";
 
+export type NavGroupId = "daily" | "wellbeing" | "life" | "mind" | "system";
+
 export interface NavEntry {
   id:
     | "overview"
@@ -24,85 +26,106 @@ export interface NavEntry {
     | "vocabulary"
     | "settings";
   label: string;
+  group: NavGroupId;
   asset?: ClayAssetName;
   description: string;
 }
+
+export const NAV_GROUPS: readonly { id: NavGroupId; label: string }[] = [
+  { id: "daily", label: "Daily" },
+  { id: "wellbeing", label: "Wellbeing" },
+  { id: "life", label: "Life & money" },
+  { id: "mind", label: "Mind" },
+] as const;
 
 export const NAV: readonly NavEntry[] = [
   {
     id: "overview",
     label: "Overview",
+    group: "daily",
     description: "Every room on your daily shelf.",
   },
   {
     id: "habits",
     label: "Habits",
+    group: "daily",
     asset: "habits",
     description: "Daily check-ins and recurring routines.",
   },
   {
     id: "personal",
     label: "Personal",
+    group: "daily",
     asset: "personal",
     description: "Errands, groceries, wishlist, and watch list.",
   },
   {
     id: "skincare",
     label: "Skincare",
+    group: "wellbeing",
     asset: "skincare",
     description: "Morning and night shelf, products, and notes.",
   },
   {
     id: "fitness",
     label: "Fitness",
+    group: "wellbeing",
     asset: "fitness",
     description: "Workouts, dated sets, and cardio sessions.",
   },
   {
     id: "finance",
     label: "Finance",
+    group: "life",
     asset: "finance",
     description: "Expenses, monthly cycles, receipts, and net worth.",
   },
   {
     id: "calendar",
     label: "Calendar",
+    group: "life",
     asset: "calendar",
     description: "Upcoming dates, holidays, and time off.",
   },
   {
     id: "vehicles",
     label: "Vehicles",
+    group: "life",
     asset: "vehicles",
     description: "Renewals, mileage, and service logs.",
   },
   {
     id: "meals",
     label: "Meals",
+    group: "daily",
     asset: "meals",
     description: "Weekly breakfast, lunch, dinner, and snacks.",
   },
   {
     id: "dump",
     label: "Brain dump",
+    group: "mind",
     asset: "dump",
     description: "Unfiltered notes whenever something crosses your mind.",
   },
   {
     id: "ideas",
     label: "Ideas",
+    group: "mind",
     asset: "ideas",
     description: "Saved links, references, and notes for later.",
   },
   {
     id: "vocabulary",
     label: "Vocabulary",
+    group: "mind",
     asset: "vocabulary",
     description: "New words, meanings, and examples to keep.",
   },
   {
     id: "settings",
     label: "Settings & backup",
+    group: "system",
     asset: "settings",
     description: "Workspace name, sync status, and JSON backups.",
   },
@@ -163,52 +186,76 @@ export function roomMeta(
   data: Workspace,
   journal: JournalBridge | null,
   today: string,
-): string | null {
+): { label: string; tone: "neutral" | "accent" | "sage" } | null {
   switch (id) {
     case "habits": {
       const { done, total } = countTodayHabits(data, journal, today);
-      return total ? `${done}/${total} today` : "No habits yet";
+      if (!total) return { label: "No habits yet", tone: "neutral" };
+      return {
+        label: `${done}/${total} today`,
+        tone: done === total ? "sage" : "accent",
+      };
     }
     case "personal": {
       const open = countOpenPersonalItems(data, today);
-      return open ? `${open} open` : "All clear";
+      return open
+        ? { label: `${open} open`, tone: "accent" }
+        : { label: "All clear", tone: "sage" };
     }
     case "skincare": {
       const count = data.skincare?.products.filter((p) => p.active).length ?? 0;
-      return count ? `${count} active` : "Routine & shelf";
+      return count
+        ? { label: `${count} active`, tone: "sage" }
+        : { label: "Routine & shelf", tone: "neutral" };
     }
     case "fitness": {
       const count = data.workoutSets?.length ?? 0;
-      return count ? `${count} logged sets` : "Log a session";
+      return count
+        ? { label: `${count} logged sets`, tone: "sage" }
+        : { label: "Log a session", tone: "neutral" };
     }
     case "finance": {
       const count = data.financeExpenses?.length ?? 0;
-      return count ? `${count} expenses` : "Budget & receipts";
+      return count
+        ? { label: `${count} expenses`, tone: "neutral" }
+        : { label: "Budget & receipts", tone: "neutral" };
     }
     case "calendar": {
       const upcoming = countUpcomingCalendarItems(data, today);
-      return upcoming ? `${upcoming} upcoming` : "Open calendar";
+      return upcoming
+        ? { label: `${upcoming} upcoming`, tone: "accent" }
+        : { label: "Open calendar", tone: "neutral" };
     }
     case "vehicles": {
       const count = data.vehicles?.length ?? 0;
-      return count ? `${count} tracked` : "Service & renewals";
+      return count
+        ? { label: `${count} tracked`, tone: "neutral" }
+        : { label: "Service & renewals", tone: "neutral" };
     }
     case "meals":
-      return "7-day plan";
+      return { label: "7-day plan", tone: "neutral" };
     case "dump": {
       const count = data.thoughts.length;
-      return count ? `${count} notes` : "Clear mind";
+      return count
+        ? { label: `${count} notes`, tone: "neutral" }
+        : { label: "Clear mind", tone: "sage" };
     }
     case "ideas": {
       const count = data.ideas.length;
-      return count ? `${count} saved` : "Shelf for later";
+      return count
+        ? { label: `${count} saved`, tone: "neutral" }
+        : { label: "Shelf for later", tone: "neutral" };
     }
     case "vocabulary": {
       const count = data.vocabulary?.length ?? 0;
-      return count ? `${count} words` : "Pocket lexicon";
+      return count
+        ? { label: `${count} words`, tone: "neutral" }
+        : { label: "Pocket lexicon", tone: "neutral" };
     }
     case "settings":
-      return isConfigured() ? "Sheets sync" : "Local device";
+      return isConfigured()
+        ? { label: "Cloud sync", tone: "sage" }
+        : { label: "Local device", tone: "neutral" };
     default:
       return null;
   }
