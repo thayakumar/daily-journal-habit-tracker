@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchAllData,
   isConfigured,
+  pollRevisions,
   saveSetting,
   saveWorkspace,
   ScriptError,
@@ -119,6 +120,9 @@ export function useWorkspace() {
   const vehicleSupport = useRef(false);
   const [vehicleStorageReady, setVehicleStorageReady] = useState(false);
   const [migrationReady, setMigrationReady] = useState(false);
+  const [fastBackend, setFastBackend] = useState(false);
+  const [fastPoll, setFastPoll] = useState(false);
+  const [sheetsImportReady, setSheetsImportReady] = useState(false);
   const logSupport = useRef(false);
   const portfolioSupport = useRef(false);
   const timelineSupport = useRef(false);
@@ -370,6 +374,9 @@ export function useWorkspace() {
     skinSupport.current = remote.features?.skincare === true;
     setSkincareStorageReady(skinSupport.current);
     setSkincarePhotosReady(remote.features?.skincareDirectPhotos === true);
+    setFastBackend(remote.features?.fastBackend === true);
+    setFastPoll(remote.features?.fastPoll === true);
+    setSheetsImportReady(remote.features?.sheetsImportReady === true);
 
     const { workspace: rawParsed, warnings } = remoteWorkspace(remote);
     if (rawParsed) {
@@ -568,6 +575,33 @@ export function useWorkspace() {
       }
     };
   }, [pullCloud]);
+
+  useEffect(() => {
+    if (!isConfigured() || !fastPoll || !ready) return;
+    const timer = setInterval(() => {
+      if (
+        (typeof document !== "undefined" &&
+          document.visibilityState === "hidden") ||
+        saving.current ||
+        pulling.current
+      ) {
+        return;
+      }
+      void pollRevisions()
+        .then((rev) => {
+          if (
+            rev.workspaceRevision &&
+            rev.workspaceRevision !== cloudRevision.current
+          ) {
+            void pullCloud("online");
+          }
+        })
+        .catch(() => {
+          /* Ignore transient poll errors; full sync handles offline state. */
+        });
+    }, 12_000);
+    return () => clearInterval(timer);
+  }, [fastPoll, ready, pullCloud]);
 
   useEffect(() => {
     if (!data.updatedAt) return;
@@ -806,5 +840,7 @@ export function useWorkspace() {
     skincareStorageReady,
     skincarePhotosReady,
     migrationReady,
+    fastBackend,
+    sheetsImportReady,
   };
 }

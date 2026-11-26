@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   fetchAllData,
+  pollRevisions,
   saveHabits,
   saveEntries,
   saveSetting,
@@ -98,6 +99,7 @@ export interface JournalBridge extends JournalSnapshot {
   editHabit: (id: string, name: string, colorIndex: number) => void;
   removeHabit: (id: string, name: string) => void;
   sync: () => Promise<void>;
+  refresh: () => Promise<void>;
   saveStatus: string;
   syncState: SyncState;
 }
@@ -210,6 +212,8 @@ export default function Journal({ onReady }: JournalProps) {
   const lastPullAt = useRef(0);
   const pauseSync = useRef(false);
   const atomicJournal = useRef(false);
+  const journalRevision = useRef("");
+  const [fastPoll, setFastPoll] = useState(false);
   const baseRef = useRef<JournalSnapshot | null>(readJournalBase());
   const latest = useRef<JournalSnapshot>({ rows, habits, showTasksColumn });
   latest.current = { rows, habits, showTasksColumn };
@@ -258,6 +262,8 @@ export default function Journal({ onReady }: JournalProps) {
         const atStart = revision.current;
         const data = await fetchAllData();
         atomicJournal.current = data.features?.atomicJournal === true;
+        setFastPoll(data.features?.fastPoll === true);
+        if (data.journalRevision) journalRevision.current = data.journalRevision;
         const remoteSnap: JournalSnapshot = {
           rows: normalizeRows(data.entries),
           habits: data.habits,
@@ -345,6 +351,33 @@ export default function Journal({ onReady }: JournalProps) {
       }
     };
   }, [configured, pullJournal]);
+
+  useEffect(() => {
+    if (!configured || !fastPoll || !isLoaded) return;
+    const timer = setInterval(() => {
+      if (
+        (typeof document !== "undefined" &&
+          document.visibilityState === "hidden") ||
+        saving.current ||
+        pulling.current
+      ) {
+        return;
+      }
+      void pollRevisions()
+        .then((rev) => {
+          if (
+            rev.journalRevision &&
+            rev.journalRevision !== journalRevision.current
+          ) {
+            void pullJournal("online");
+          }
+        })
+        .catch(() => {
+          /* Ignore transient poll errors. */
+        });
+    }, 12_000);
+    return () => clearInterval(timer);
+  }, [configured, fastPoll, isLoaded, pullJournal]);
 
   // Fetch + 3-way merge before writing so concurrent Phone/Desktop habit toggles never clobber each other.
   const syncLocal = useCallback(async () => {
@@ -535,6 +568,7 @@ export default function Journal({ onReady }: JournalProps) {
         editHabit,
         removeHabit: handleRemoveHabit,
         sync: handleRefresh,
+        refresh: () => pullJournal("manual"),
         saveStatus,
         syncState,
       });
@@ -551,6 +585,7 @@ export default function Journal({ onReady }: JournalProps) {
     editHabit,
     handleRemoveHabit,
     handleRefresh,
+    pullJournal,
   ]);
 
   useEffect(() => {

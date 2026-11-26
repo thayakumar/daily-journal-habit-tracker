@@ -45,9 +45,13 @@ export interface SheetData {
     skincareDirectPhotos?: boolean;
     legacyBudgetImport?: boolean;
     atomicJournal?: boolean;
+    fastBackend?: boolean;
+    fastPoll?: boolean;
+    sheetsImportReady?: boolean;
   };
   workspace?: Workspace;
   workspaceRevision?: string;
+  journalRevision?: string;
 }
 
 export class ScriptError extends Error {
@@ -59,8 +63,16 @@ export class ScriptError extends Error {
   }
 }
 
+export function getApiUrl(): string {
+  return (
+    import.meta.env.VITE_API_URL ||
+    import.meta.env.VITE_GOOGLE_SCRIPT_URL ||
+    ""
+  );
+}
+
 function getScriptUrl(): string {
-  return import.meta.env.VITE_GOOGLE_SCRIPT_URL || "";
+  return getApiUrl();
 }
 
 async function postToScript(payload: Record<string, unknown>): Promise<{
@@ -281,3 +293,68 @@ export async function requestSkincarePhoto(
     throw Error("Invalid photo response");
   return data;
 }
+
+let pendingPoll: Promise<{
+  workspaceRevision: string;
+  journalRevision: string;
+}> | null = null;
+
+export async function pollRevisions(): Promise<{
+  workspaceRevision: string;
+  journalRevision: string;
+}> {
+  if (pendingPoll) return pendingPoll;
+  const url = getScriptUrl();
+  if (!url) throw new Error("API URL not configured");
+  const request = (async () => {
+    const sep = url.includes("?") ? "&" : "?";
+    const response = await fetch(`${url}${sep}action=poll&_ts=${Date.now()}`, {
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error(`Poll failed with status ${response.status}`);
+    const data = (await response.json()) as {
+      success?: boolean;
+      workspaceRevision?: string;
+      journalRevision?: string;
+    };
+    return {
+      workspaceRevision: String(data.workspaceRevision || ""),
+      journalRevision: String(data.journalRevision || ""),
+    };
+  })();
+  pendingPoll = request;
+  try {
+    return await request;
+  } finally {
+    if (pendingPoll === request) pendingPoll = null;
+  }
+}
+
+export async function importFromSheets(): Promise<{
+  imported: { habits: number; entries: number; hasWorkspace: boolean };
+  workspaceRevision: string;
+  journalRevision: string;
+}> {
+  const url = getScriptUrl();
+  if (!url) throw new Error("API URL not configured");
+  const response = await fetch(url, {
+    method: "POST",
+    body: JSON.stringify({ action: "importFromSheets" }),
+  });
+  const data = (await response.json()) as {
+    success?: boolean;
+    error?: string;
+    imported?: { habits: number; entries: number; hasWorkspace: boolean };
+    workspaceRevision?: string;
+    journalRevision?: string;
+  };
+  if (!response.ok || data.success !== true || !data.imported) {
+    throw new Error(data.error || "Could not import from Google Sheets");
+  }
+  return {
+    imported: data.imported,
+    workspaceRevision: String(data.workspaceRevision || ""),
+    journalRevision: String(data.journalRevision || ""),
+  };
+}
+

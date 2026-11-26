@@ -21,7 +21,7 @@ import {
   X,
 } from "lucide-react";
 import Journal, { type JournalBridge } from "../App";
-import { isConfigured } from "../lib/sheets-api";
+import { importFromSheets, isConfigured } from "../lib/sheets-api";
 import { CalendarPanel } from "./Calendar";
 import { Vehicles } from "./Vehicles";
 import { Habits } from "./Habits";
@@ -306,6 +306,8 @@ export default function WorkspaceApp() {
     skincareStorageReady,
     skincarePhotosReady,
     migrationReady,
+    fastBackend,
+    sheetsImportReady,
   } = useWorkspace();
   const [tab, setTab] = useState<Tab>(currentTab);
   const [menu, setMenu] = useState(false);
@@ -758,6 +760,8 @@ export default function WorkspaceApp() {
               reloadCloud={reloadCloud}
               tableStorage={tableStorage}
               logStorageReady={logStorageReady}
+              fastBackend={fastBackend}
+              sheetsImportReady={sheetsImportReady}
             />
           )}
         </main>
@@ -915,6 +919,8 @@ function SettingsPanel({
   reloadCloud,
   tableStorage,
   logStorageReady,
+  fastBackend,
+  sheetsImportReady,
 }: {
   data: Workspace;
   journal: JournalBridge | null;
@@ -924,8 +930,11 @@ function SettingsPanel({
   reloadCloud: () => Promise<void>;
   tableStorage: boolean;
   logStorageReady: boolean;
+  fastBackend: boolean;
+  sheetsImportReady: boolean;
 }) {
   const [message, setMessage] = useState("");
+  const [importingSheets, setImportingSheets] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   async function restore(file: File) {
     try {
@@ -1024,14 +1033,52 @@ function SettingsPanel({
               onClick={() => {
                 if (
                   confirm(
-                    "Load the latest planner from Google Sheets and replace this device’s planner? Export a backup first if you have unsynced edits.",
+                    fastBackend
+                      ? "Load the latest planner from Turso cloud and replace this device’s local copy? Export a backup first if you have unsynced edits."
+                      : "Load the latest planner from Google Sheets and replace this device’s planner? Export a backup first if you have unsynced edits.",
                   )
                 )
                   void reloadCloud();
               }}
             >
-              Load latest Sheet tables
+              {fastBackend ? "Reload from Turso" : "Load latest Sheet tables"}
             </button>
+            {fastBackend && sheetsImportReady && (
+              <button
+                type="button"
+                className={primaryClass}
+                disabled={importingSheets}
+                onClick={async () => {
+                  if (
+                    !confirm(
+                      "Import all existing planner & habit records from Google Sheets into Turso? This replaces the current Turso records with your latest Google Sheet data.",
+                    )
+                  )
+                    return;
+                  setImportingSheets(true);
+                  try {
+                    const res = await importFromSheets();
+                    await reloadCloud();
+                    await journal?.refresh();
+                    setMessage(
+                      `Imported ${res.imported.habits} habits and ${res.imported.entries} journal days${res.imported.hasWorkspace ? " plus your full planner" : ""} from Google Sheets into Turso.`,
+                    );
+                  } catch (e) {
+                    setMessage(
+                      e instanceof Error
+                        ? e.message
+                        : "Could not import from Google Sheets.",
+                    );
+                  } finally {
+                    setImportingSheets(false);
+                  }
+                }}
+              >
+                {importingSheets
+                  ? "Importing from Sheets…"
+                  : "Import from Google Sheets"}
+              </button>
+            )}
           </div>
         )}
         <div className="mt-4 rounded-xl border border-[#EAE2D6] p-4 text-xs leading-relaxed text-[#62584E]">
@@ -1043,11 +1090,13 @@ function SettingsPanel({
             <code>personal-workspace.v1</code>.
           </p>
           <p className="mt-2">
-            {tableStorage
-              ? logStorageReady
-                ? "Per-page storage, including dated workout sets and routine completion history, is active."
-                : "Existing per-page sync is active. Detailed workout sets and routine completion history stay on this device until the latest connection update is deployed."
-              : "The deployed Apps Script still uses legacy JSON. The new per-page tables become live after the backend update is deployed."}
+            {fastBackend
+              ? "Fast edge sync is active via Cloudflare Worker + Turso SQLite. Skincare photos and Finance receipts stage briefly in Turso for instant uploads, offload to Google Drive in the background, and automatically wipe from Turso once Drive confirms."
+              : tableStorage
+                ? logStorageReady
+                  ? "Per-page storage, including dated workout sets and routine completion history, is active."
+                  : "Existing per-page sync is active. Detailed workout sets and routine completion history stay on this device until the latest connection update is deployed."
+                : "The deployed Apps Script still uses legacy JSON. The new per-page tables become live after the backend update is deployed."}
           </p>
           <p className="mt-2">
             Habits: Habits, HabitChecks, RecurringHabits, RecurringChecks and
