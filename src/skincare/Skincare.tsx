@@ -210,7 +210,7 @@ export default function Skincare({
         <div
           role="tablist"
           aria-label="Skincare modules"
-          className="flex flex-wrap gap-2"
+          className="clay-segmented inline-flex flex-wrap gap-1 rounded-2xl p-1"
         >
           {(["tracker", "products", "overview"] as const).map((t) => (
             <button
@@ -220,7 +220,11 @@ export default function Skincare({
               aria-controls={`skincare-${t}`}
               id={`skin-tab-${t}`}
               key={t}
-              className={`${tab === t ? "bg-[#D95D39] text-white" : "bg-[#FAF7F2] text-[#62584E]"} min-h-11 rounded-xl px-4 py-2.5 text-sm font-semibold`}
+              className={`min-h-10 rounded-xl px-4 py-2 text-sm font-semibold transition-colors duration-150 ${
+                tab === t
+                  ? "bg-[#D95D39] text-white shadow-xs"
+                  : "text-[#5C5248] hover:bg-white/70 hover:text-[#24201D]"
+              }`}
               onClick={() => {
                 flushTextDrafts();
                 setTab(t);

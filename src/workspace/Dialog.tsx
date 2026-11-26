@@ -18,6 +18,7 @@ export function Dialog({
     const previous = document.activeElement as HTMLElement | null;
     const dialog = ref.current;
     dialog?.showModal();
+    dialog?.querySelector<HTMLElement>("[data-autofocus]")?.focus();
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -50,17 +51,20 @@ export function Dialog({
         }
         pointerStartedOutside.current = false;
       }}
-      className={`fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] ${wide ? "max-w-5xl" : "max-w-xl"} overflow-y-auto rounded-2xl border border-[#EAE2D6] bg-white p-6 shadow-xl backdrop:bg-[#24201D]/35 sm:p-8`}
+      className={`fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] ${wide ? "max-w-5xl" : "max-w-xl"} overflow-y-auto rounded-[20px] border border-[#E7DDD0] bg-white p-5 shadow-[0_24px_60px_-16px_rgba(36,32,29,0.22),0_4px_12px_rgba(36,32,29,0.08)] backdrop:bg-[#24201D]/35 backdrop:backdrop-blur-xs sm:p-7`}
     >
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <h2 id={id} className="font-display text-xl font-semibold text-[#24201D]">
+      <div className="mb-5 flex items-center justify-between gap-3 border-b border-[#EFE8DC] pb-4">
+        <h2
+          id={id}
+          className="font-display text-xl font-semibold text-[#24201D]"
+        >
           {title}
         </h2>
         <button
           type="button"
           aria-label="Close dialog"
           onClick={onClose}
-          className="flex h-11 w-11 items-center justify-center rounded-xl text-[#62584E] transition hover:bg-[#F3EDE3] hover:text-[#24201D]"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#5C5248] transition-colors hover:bg-[#F3EDE3] hover:text-[#24201D]"
         >
           <X className="h-5 w-5" />
         </button>

@@ -39,39 +39,63 @@ export function TodayHabits({
   const row = journal?.rows.find((r) => r.dateStr === today);
   const recurring = todayRecurring(data, today);
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-3 sm:grid-cols-2">
       {!journal && (
         <p
           role="status"
-          className="col-span-full rounded-xl bg-[#FAF7F2] px-4 py-6 text-center text-sm text-[#8C8073]"
+          className="col-span-full rounded-xl bg-[#FAF7F2] px-4 py-6 text-center text-sm text-[#6E6358]"
         >
           Loading habits…
         </p>
       )}
-      {(journal?.habits ?? []).map((h) => (
-        <div
-          key={h.id}
-          className="flex min-w-0 items-center gap-3 rounded-xl border border-[#EAE2D6] bg-[#FAF7F2]/60 p-3.5 transition hover:border-[#DDD2C3]"
-        >
-          <button
-            type="button"
-            aria-label={`${h.name} today`}
-            aria-pressed={!!row?.habits[h.id]}
-            onClick={() => journal?.toggleDay(today, h.id)}
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 text-sm transition ${row?.habits[h.id] ? `${h.color} text-white` : "border-[#DDD2C3] bg-white text-transparent hover:border-[#D95D39]"}`}
+      {(journal?.habits ?? []).map((h) => {
+        const isChecked = !!row?.habits[h.id];
+        return (
+          <div
+            key={h.id}
+            className={`flex min-w-0 items-center gap-3.5 rounded-2xl border p-3.5 transition-colors duration-150 ${
+              isChecked
+                ? "border-[#E8B8A9] bg-[#FBECE7]/50"
+                : "border-[#E7DDD0] bg-[#FAF7F2]/65 hover:border-[#D6C8B6] hover:bg-white"
+            }`}
           >
-            {row?.habits[h.id] ? "✓" : ""}
-          </button>
-          <div className="min-w-0">
-            <p className="break-words text-sm font-semibold text-[#24201D]">
-              {h.name}
-            </p>
-            <p className="mt-0.5 text-xs text-[#8C8073]">
-              Daily{data.reminders[h.id] ? ` · ${data.reminders[h.id]}` : ""}
-            </p>
+            <button
+              type="button"
+              aria-label={`${h.name} today`}
+              aria-pressed={isChecked}
+              onClick={() => journal?.toggleDay(today, h.id)}
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition duration-150 active:scale-95 ${
+                isChecked
+                  ? `${h.color} text-white shadow-xs`
+                  : "border-[#D6C8B6] bg-white text-transparent hover:border-[#D95D39]"
+              }`}
+            >
+              {isChecked ? "✓" : ""}
+            </button>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className={`h-2 w-2 shrink-0 rounded-full ${h.color.split(" ")[0]}`}
+                />
+                <p
+                  className={`break-words text-sm font-semibold ${
+                    isChecked
+                      ? "text-[#5C5248] line-through"
+                      : "text-[#24201D]"
+                  }`}
+                >
+                  {h.name}
+                </p>
+              </div>
+              <p className="mt-0.5 text-xs text-[#6E6358]">
+                {isChecked ? "Done today" : "Daily"}
+                {data.reminders[h.id] ? ` · ${data.reminders[h.id]}` : ""}
+              </p>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
       {recurring.map((h) => {
         const done = recurringDone(data, h.id, today);
         const canUndo = (data.recurringChecks ?? []).some(
@@ -161,6 +185,28 @@ export function Habits({
   const [adding, setAdding] = useState<"daily" | "routine" | null>(null);
   const [notice, setNotice] = useState("");
   const dates = useMemo(() => weekDates(week), [week]);
+  const todayRow = journal?.rows.find((r) => r.dateStr === today);
+  const dueRecurring = useMemo(() => todayRecurring(data, today), [data, today]);
+  const todayTotal = (journal?.habits.length ?? 0) + dueRecurring.length;
+  const todayDone =
+    (journal?.habits.filter((h) => !!todayRow?.habits[h.id]).length ?? 0) +
+    dueRecurring.filter((h) => recurringDone(data, h.id, today)).length;
+  const weekLabel = useMemo(() => {
+    const start = new Date(`${dates[0]}T12:00`);
+    const end = new Date(`${dates[6]}T12:00`);
+    const sameYear = start.getFullYear() === end.getFullYear();
+    const startFmt = start.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      ...(sameYear ? {} : { year: "numeric" }),
+    });
+    const endFmt = end.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    return `${startFmt} – ${endFmt}`;
+  }, [dates]);
 
   const rowsByDate = useMemo(() => {
     const map = new Map<string, Record<string, boolean>>();
@@ -189,8 +235,8 @@ export function Habits({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-3">
+      <div className="clay-card flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3.5 sm:px-5">
+        <div className="flex flex-wrap gap-2.5">
           <button
             type="button"
             className={primaryClass}
@@ -218,7 +264,7 @@ export function Habits({
           </button>
         </div>
         {journal && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span
               role="status"
               className={`rounded-full border px-3 py-1 text-xs font-medium ${
@@ -226,7 +272,7 @@ export function Habits({
                   ? "border-[#E3A694] bg-[#FBECE7] text-[#9A381D]"
                   : journal.syncState === "syncing"
                     ? "border-[#E5CF9E] bg-[#FDF6E7] text-[#8C5A12]"
-                    : "border-[#E4DBCE] bg-white text-[#62584E]"
+                    : "border-[#E4DBCE] bg-[#FAF7F2] text-[#5C5248]"
               }`}
             >
               {journal.saveStatus}
@@ -382,6 +428,19 @@ export function Habits({
       <Card
         title="Today’s habits"
         subtitle="Daily habits and recurring routines due today, together. Overdue routines stay here until completed."
+        action={
+          todayTotal > 0 ? (
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold tabular-nums ${
+                todayDone === todayTotal
+                  ? "bg-[#E6F1EC] text-[#2F5B48]"
+                  : "bg-[#FBECE7] text-[#A83E20]"
+              }`}
+            >
+              {todayDone}/{todayTotal} done
+            </span>
+          ) : undefined
+        }
       >
         <TodayHabits
           data={data}
@@ -394,56 +453,65 @@ export function Habits({
       <Card
         title="Weekly habit history"
         subtitle="Check any past day to update it. On a small screen, swipe the week horizontally."
+        action={
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              aria-label="Previous week"
+              className={secondaryClass}
+              onClick={() => setWeek(addDays(week, -7))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="min-h-[44px] rounded-xl px-3 text-xs font-semibold tabular-nums text-[#4C433B] transition-colors hover:bg-[#F3EDE3] hover:text-[#24201D]"
+              onClick={() => setWeek(today)}
+              title="Jump to current week"
+            >
+              {weekLabel}
+            </button>
+            <button
+              type="button"
+              aria-label="Next week"
+              className={secondaryClass}
+              onClick={() => setWeek(addDays(week, 7))}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        }
       >
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <button
-            type="button"
-            aria-label="Previous week"
-            className={secondaryClass}
-            onClick={() => setWeek(addDays(week, -7))}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            className="min-h-[44px] rounded-xl px-3 text-xs font-semibold text-[#62584E] hover:bg-[#F3EDE3] hover:text-[#24201D]"
-            onClick={() => setWeek(today)}
-          >
-            {dates[0]} — {dates[6]}
-          </button>
-          <button
-            type="button"
-            aria-label="Next week"
-            className={secondaryClass}
-            onClick={() => setWeek(addDays(week, 7))}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
         <div className="max-w-full overflow-x-auto">
-          <table className="w-full min-w-[550px] text-sm">
+          <table className="w-full min-w-[550px] border-separate border-spacing-0 text-sm">
             <thead>
               <tr>
-                <th className="pb-3 text-left text-xs font-semibold text-[#8C8073]">
+                <th className="pb-3 text-left text-xs font-semibold text-[#6E6358]">
                   Habit
                 </th>
                 {dates.map((d) => (
                   <th
                     key={d}
-                    className={`pb-3 text-xs font-medium ${d === today ? "font-bold text-[#D95D39]" : "text-[#8C8073]"}`}
+                    className={`rounded-t-xl px-1 py-2 text-xs font-semibold ${
+                      d === today
+                        ? "bg-[#FBECE7]/60 text-[#A83E20]"
+                        : "text-[#6E6358]"
+                    }`}
                   >
                     {new Date(`${d}T12:00`).toLocaleDateString("en", {
                       weekday: "short",
                     })}
-                    <span className="block">{d.slice(8)}</span>
+                    <span className="mt-0.5 block tabular-nums">
+                      {d.slice(8)}
+                    </span>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {journal?.habits.map((h) => (
-                <tr key={h.id} className="border-t border-[#EFE8DC]">
-                  <td className="py-3 pr-3">
+                <tr key={h.id}>
+                  <td className="border-t border-[#EFE8DC] py-3 pr-3">
                     <span
                       className={`inline-flex max-w-[170px] break-words rounded-xl border px-2.5 py-1 text-xs font-medium ${h.lightBg}`}
                     >
@@ -453,14 +521,19 @@ export function Habits({
                   {dates.map((d) => {
                     const checked = !!rowsByDate.get(d)?.[h.id];
                     return (
-                      <td key={d} className="px-1 py-3">
+                      <td
+                        key={d}
+                        className={`border-t border-[#EFE8DC] px-1 py-3 ${
+                          d === today ? "bg-[#FBECE7]/35" : ""
+                        }`}
+                      >
                         <button
                           type="button"
                           aria-label={`${h.name} on ${d}`}
                           aria-pressed={checked}
                           disabled={d > today}
                           onClick={() => journal.toggleDay(d, h.id)}
-                          className={`mx-auto flex h-11 w-11 items-center justify-center rounded-full border-2 transition disabled:opacity-30 ${checked ? `${h.color} text-white` : "border-[#DDD2C3] bg-white hover:border-[#D95D39]"}`}
+                          className={`mx-auto flex h-11 w-11 items-center justify-center rounded-full border-2 transition duration-150 active:scale-95 disabled:opacity-30 ${checked ? `${h.color} text-white shadow-xs` : "border-[#DDD2C3] bg-white hover:border-[#D95D39]"}`}
                         >
                           {checked ? "✓" : ""}
                         </button>
