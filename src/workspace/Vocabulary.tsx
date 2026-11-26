@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { BookOpen, Plus, Pencil, Search, X } from "lucide-react";
+import { useState } from "react";
+import { Plus, Pencil, Search } from "lucide-react";
 import { isConfigured } from "../lib/sheets-api";
+import { Dialog } from "./Dialog";
 import { uid, type VocabularyEntry, type Workspace } from "./model";
 import {
   Card,
@@ -28,9 +29,6 @@ export function Vocabulary({
     [editing, setEditing] = useState<string | null>(null),
     [draft, setDraft] = useState(BLANK),
     [error, setError] = useState("");
-  const dialog = useRef<HTMLDivElement>(null),
-    firstInput = useRef<HTMLInputElement>(null),
-    returnFocus = useRef<HTMLElement | null>(null);
   const entries = (data.vocabulary ?? [])
     .filter((e) =>
       `${e.word} ${e.definition} ${e.example}`
@@ -46,7 +44,6 @@ export function Vocabulary({
     setOpen(false);
   }
   function show(entry?: VocabularyEntry) {
-    returnFocus.current = document.activeElement as HTMLElement;
     setEditing(entry?.id ?? null);
     setDraft(
       entry
@@ -60,39 +57,6 @@ export function Vocabulary({
     setError("");
     setOpen(true);
   }
-  useEffect(() => {
-    if (!open) return;
-    firstInput.current?.focus();
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const key = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setOpen(false);
-      }
-      if (event.key === "Tab") {
-        const controls = dialog.current?.querySelectorAll<HTMLElement>(
-          'button:not([disabled]),input,textarea,select,[tabindex="0"]',
-        );
-        if (!controls?.length) return;
-        const first = controls[0],
-          last = controls[controls.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    window.addEventListener("keydown", key);
-    return () => {
-      document.body.style.overflow = previous;
-      window.removeEventListener("keydown", key);
-      returnFocus.current?.focus();
-    };
-  }, [open]);
   return (
     <div className="space-y-5">
       <Card
@@ -122,7 +86,7 @@ export function Vocabulary({
           <div className="min-w-40 flex-1">
             <Field label="Search vocabulary">
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-[#8C8073]" />
+                <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-[#6E6358]" />
                 <input
                   aria-label="Search vocabulary"
                   className={`${inputClass} !pl-9`}
@@ -145,7 +109,7 @@ export function Vocabulary({
             </select>
           </Field>
         </div>
-        <p className="mb-4 text-xs text-[#8C8073]">
+        <p className="mb-4 text-xs tabular-nums text-[#6E6358]">
           {entries.length} of {(data.vocabulary ?? []).length} words
         </p>
         {entries.length ? (
@@ -155,7 +119,7 @@ export function Vocabulary({
               className="block w-full border-collapse text-sm md:table"
             >
               <thead className="hidden md:table-header-group">
-                <tr className="border-b border-[#EAE2D6] text-left text-xs text-[#8C8073]">
+                <tr className="border-b border-[#EAE2D6] text-left text-xs text-[#6E6358]">
                   <th scope="col" className="p-3">
                     Word
                   </th>
@@ -183,18 +147,18 @@ export function Vocabulary({
                       {entry.word}
                     </th>
                     <td className="block min-w-0 p-3 pt-0 md:table-cell md:w-[32%] md:pt-3 md:align-top">
-                      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[#8C8073] md:hidden">
+                      <span className="mb-1 block text-xs font-medium text-[#6E6358] md:hidden">
                         Definition
                       </span>
-                      <p className="whitespace-pre-wrap break-words text-[#62584E] [overflow-wrap:anywhere]">
+                      <p className="whitespace-pre-wrap break-words text-[#4C433B] [overflow-wrap:anywhere]">
                         {entry.definition}
                       </p>
                     </td>
                     <td className="block min-w-0 p-3 pt-0 md:table-cell md:w-[36%] md:pt-3 md:align-top">
-                      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[#8C8073] md:hidden">
+                      <span className="mb-1 block text-xs font-medium text-[#6E6358] md:hidden">
                         Example usage
                       </span>
-                      <p className="whitespace-pre-wrap break-words text-[#62584E] [overflow-wrap:anywhere]">
+                      <p className="whitespace-pre-wrap break-words text-[#4C433B] [overflow-wrap:anywhere]">
                         {entry.example}
                       </p>
                     </td>
@@ -242,165 +206,132 @@ export function Vocabulary({
         )}
       </Card>
       {open && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-[#24201D]/35 p-3 backdrop-blur-sm sm:p-6"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) close();
-          }}
+        <Dialog
+          title={editing ? "Edit word" : "Add a new word"}
+          onClose={close}
         >
-          <div
-            ref={dialog}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="vocabulary-dialog-title"
-            aria-describedby="vocabulary-dialog-description"
-            className="max-h-[calc(100dvh-24px)] w-full max-w-lg overflow-y-auto rounded-2xl border border-[#EAE2D6] bg-white shadow-xl"
+          <p className="mb-4 text-sm text-[#5C5248]">
+            All three fields help make the word stick.
+          </p>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const clean = {
+                word: draft.word.trim(),
+                definition: draft.definition.trim(),
+                example: draft.example.trim(),
+              };
+              if (!clean.word || !clean.definition || !clean.example) {
+                setError("Enter the word, its definition and an example.");
+                return;
+              }
+              if (
+                (data.vocabulary ?? []).some(
+                  (v) =>
+                    v.id !== editing &&
+                    v.word.toLocaleLowerCase() ===
+                      clean.word.toLocaleLowerCase(),
+                )
+              ) {
+                setError(
+                  "This word is already in your list. Edit the existing entry instead.",
+                );
+                return;
+              }
+              const now = new Date().toISOString();
+              const id = editing ?? uid();
+              update((s) => {
+                const list = s.vocabulary ?? [];
+                if (editing) {
+                  const exists = list.some((v) => v.id === editing);
+                  return {
+                    ...s,
+                    vocabulary: exists
+                      ? list.map((v) =>
+                          v.id === editing
+                            ? { ...v, ...clean, updatedAt: now }
+                            : v,
+                        )
+                      : [{ id, ...clean, createdAt: now, updatedAt: now }, ...list],
+                  };
+                }
+                return {
+                  ...s,
+                  vocabulary: [
+                    { id, ...clean, createdAt: now, updatedAt: now },
+                    ...list,
+                  ],
+                };
+              });
+              close();
+            }}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-[#EFE8DC] p-5">
-              <div>
-                <h2
-                  id="vocabulary-dialog-title"
-                  className="flex items-center gap-2 font-semibold text-[#24201D]"
-                >
-                  <BookOpen className="h-5 w-5 text-[#D95D39]" />
-                  {editing ? "Edit word" : "Add a new word"}
-                </h2>
-                <p
-                  id="vocabulary-dialog-description"
-                  className="mt-1 text-sm text-[#62584E]"
-                >
-                  All three fields help make the word stick.
-                </p>
-              </div>
+            <Field label={editing ? "Vocabulary word" : "New vocabulary word"}>
+              <input
+                data-autofocus
+                aria-label="Vocabulary word"
+                required
+                maxLength={200}
+                autoComplete="off"
+                className={inputClass}
+                placeholder="e.g. Serendipity"
+                value={draft.word}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, word: e.target.value }))
+                }
+              />
+            </Field>
+            <Field label="Definition">
+              <textarea
+                aria-label="Vocabulary definition"
+                required
+                rows={3}
+                maxLength={5000}
+                className={inputClass}
+                placeholder="What does it mean?"
+                value={draft.definition}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, definition: e.target.value }))
+                }
+              />
+            </Field>
+            <Field label="Example usage">
+              <textarea
+                aria-label="Vocabulary example usage"
+                required
+                rows={3}
+                maxLength={5000}
+                className={inputClass}
+                placeholder="Use the word in a sentence…"
+                value={draft.example}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, example: e.target.value }))
+                }
+              />
+            </Field>
+            {error && (
+              <p
+                role="alert"
+                className="rounded-xl bg-[#FBECE7] p-3 text-sm text-[#A83E20]"
+              >
+                {error}
+              </p>
+            )}
+            <div className="flex flex-wrap justify-end gap-2 border-t border-[#EFE8DC] pt-4">
               <button
                 type="button"
-                aria-label="Close vocabulary popup"
                 className={secondaryClass}
                 onClick={close}
               >
-                <X className="h-4 w-4" />
+                Cancel
+              </button>
+              <button type="submit" className={primaryClass}>
+                {editing ? "Save changes" : "Save word"}
               </button>
             </div>
-            <form
-              className="space-y-4 p-5"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const clean = {
-                  word: draft.word.trim(),
-                  definition: draft.definition.trim(),
-                  example: draft.example.trim(),
-                };
-                if (!clean.word || !clean.definition || !clean.example) {
-                  setError("Enter the word, its definition and an example.");
-                  return;
-                }
-                if (
-                  (data.vocabulary ?? []).some(
-                    (v) =>
-                      v.id !== editing &&
-                      v.word.toLocaleLowerCase() ===
-                        clean.word.toLocaleLowerCase(),
-                  )
-                ) {
-                  setError(
-                    "This word is already in your list. Edit the existing entry instead.",
-                  );
-                  return;
-                }
-                const now = new Date().toISOString();
-                const id = editing ?? uid();
-                update((s) => {
-                  const list = s.vocabulary ?? [];
-                  if (editing) {
-                    const exists = list.some((v) => v.id === editing);
-                    return {
-                      ...s,
-                      vocabulary: exists
-                        ? list.map((v) =>
-                            v.id === editing
-                              ? { ...v, ...clean, updatedAt: now }
-                              : v,
-                          )
-                        : [{ id, ...clean, createdAt: now, updatedAt: now }, ...list],
-                    };
-                  }
-                  return {
-                    ...s,
-                    vocabulary: [
-                      { id, ...clean, createdAt: now, updatedAt: now },
-                      ...list,
-                    ],
-                  };
-                });
-                close();
-              }}
-            >
-              <Field label={editing ? "Vocabulary word" : "New vocabulary word"}>
-                <input
-                  ref={firstInput}
-                  aria-label="Vocabulary word"
-                  required
-                  maxLength={200}
-                  autoComplete="off"
-                  className={inputClass}
-                  placeholder="e.g. Serendipity"
-                  value={draft.word}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, word: e.target.value }))
-                  }
-                />
-              </Field>
-              <Field label="Definition">
-                <textarea
-                  aria-label="Vocabulary definition"
-                  required
-                  rows={3}
-                  maxLength={5000}
-                  className={inputClass}
-                  placeholder="What does it mean?"
-                  value={draft.definition}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, definition: e.target.value }))
-                  }
-                />
-              </Field>
-              <Field label="Example usage">
-                <textarea
-                  aria-label="Vocabulary example usage"
-                  required
-                  rows={3}
-                  maxLength={5000}
-                  className={inputClass}
-                  placeholder="Use the word in a sentence…"
-                  value={draft.example}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, example: e.target.value }))
-                  }
-                />
-              </Field>
-              {error && (
-                <p
-                  role="alert"
-                  className="rounded-xl bg-[#FBECE7] p-3 text-sm text-[#A83E20]"
-                >
-                  {error}
-                </p>
-              )}
-              <div className="flex flex-wrap justify-end gap-2 border-t border-[#EFE8DC] pt-4">
-                <button
-                  type="button"
-                  className={secondaryClass}
-                  onClick={close}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className={primaryClass}>
-                  {editing ? "Save changes" : "Save word"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </Dialog>
       )}
     </div>
   );

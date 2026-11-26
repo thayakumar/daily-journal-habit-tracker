@@ -104,58 +104,58 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
       className="min-w-0 space-y-6 [contain:paint]"
     >
       {/* Metrics Banner */}
-      <div id="metrics-grid" className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div id="metrics-grid" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {/* Metric 1 */}
         <div
           id="metric-total-box"
-          className="min-w-0 p-4 bg-white border border-[#EAE2D6] rounded-2xl flex items-center justify-between shadow-sm"
+          className="clay-card flex min-w-0 items-center justify-between gap-3 rounded-2xl p-4 sm:p-5"
         >
-          <div>
-            <p className="text-[10px] text-[#8C8073] font-bold uppercase tracking-wider">
-              {isFiltered ? "Filtered Spending" : "Total Recorded Spending"}
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-[#6E6358]">
+              {isFiltered ? "Filtered spending" : "Total spending"}
             </p>
-            <p className="break-words text-xl font-sans font-bold text-[#24201D] mt-1">
+            <p className="mt-1.5 break-words font-display text-2xl font-bold tabular-nums text-[#24201D]">
               {money(totalAmount)}
             </p>
           </div>
-          <div className="hidden 2xl:block p-3 bg-[#FBECE7] rounded-lg text-[#D95D39] border border-[#F5D8CE] shadow-xs">
-            <DollarSign className="h-5 w-5" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#F5D8CE] bg-[#FBECE7] text-[#D95D39]">
+            <DollarSign className="h-4 w-4" />
           </div>
         </div>
 
         {/* Metric 2 */}
         <div
           id="metric-avg-box"
-          className="min-w-0 p-4 bg-white border border-[#EAE2D6] rounded-2xl flex items-center justify-between shadow-sm"
+          className="clay-card flex min-w-0 items-center justify-between gap-3 rounded-2xl p-4 sm:p-5"
         >
-          <div>
-            <p className="text-[10px] text-[#8C8073] font-bold uppercase tracking-wider">
-              {isFiltered ? "Filtered Average" : "Average Expense"}
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-[#6E6358]">
+              {isFiltered ? "Filtered average" : "Average expense"}
             </p>
-            <p className="break-words text-xl font-sans font-bold text-[#24201D] mt-1">
+            <p className="mt-1.5 break-words font-display text-2xl font-bold tabular-nums text-[#24201D]">
               {money(averageAmount)}
             </p>
           </div>
-          <div className="hidden 2xl:block p-3 bg-[#FBECE7] rounded-lg text-[#D95D39] border border-[#F5D8CE] shadow-xs">
-            <TrendingUp className="h-5 w-5" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#CFE0D7] bg-[#ECF4F0] text-[#356651]">
+            <TrendingUp className="h-4 w-4" />
           </div>
         </div>
 
         {/* Metric 3 */}
         <div
           id="metric-max-box"
-          className="min-w-0 p-4 bg-white border border-[#EAE2D6] rounded-2xl flex items-center justify-between shadow-sm"
+          className="clay-card flex min-w-0 items-center justify-between gap-3 rounded-2xl p-4 sm:p-5"
         >
-          <div>
-            <p className="text-[10px] text-[#8C8073] font-bold uppercase tracking-wider">
-              {isFiltered ? "Filtered Highest" : "Highest Transaction"}
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-[#6E6358]">
+              {isFiltered ? "Filtered highest" : "Highest expense"}
             </p>
-            <p className="break-words text-xl font-sans font-bold text-[#24201D] mt-1">
+            <p className="mt-1.5 break-words font-display text-2xl font-bold tabular-nums text-[#24201D]">
               {money(maxExpense)}
             </p>
           </div>
-          <div className="hidden 2xl:block p-3 bg-[#FBECE7] rounded-lg text-[#D95D39] border border-[#F5D8CE] shadow-xs">
-            <Receipt className="h-5 w-5" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E7DDD0] bg-[#FAF7F2] text-[#5C5248]">
+            <Receipt className="h-4 w-4" />
           </div>
         </div>
       </div>
@@ -163,20 +163,20 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
       {/* Control Block */}
       <div
         id="history-controls"
-        className="min-w-0 bg-white border border-[#EAE2D6] rounded-2xl p-5 shadow-sm space-y-4"
+        className="clay-card min-w-0 space-y-4 rounded-2xl p-5"
       >
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between pb-3 border-b border-[#EFE8DC]">
-          <div className="w-full sm:w-auto">
-            <h3 className="font-sans font-bold text-[#24201D] text-sm">
-              Expense History Log
+        <div className="flex flex-col items-start justify-between gap-3 border-b border-[#EFE8DC] pb-4 sm:flex-row sm:items-center">
+          <div className="min-w-0">
+            <h3 className="font-display text-base font-semibold text-[#24201D]">
+              Expense history
             </h3>
-            <p className="text-[#8C8073] text-xs mt-0.5">
-              Selected salary cycle · updates as soon as you save
+            <p className="mt-0.5 text-xs text-[#6E6358]">
+              Selected salary cycle · updates automatically as you save
             </p>
             {lastSaved && (
               <p
                 role="status"
-                className="mt-2 break-words text-sm font-medium text-emerald-700"
+                className="mt-2 break-words text-sm font-medium text-[#356651]"
               >
                 {lastSaved.action ?? "Added"} {lastSaved.name}. Your history is
                 up to date.
@@ -187,7 +187,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
             type="button"
             id="btn-refresh-logs"
             onClick={onSync}
-            className="flex min-h-[44px] items-center gap-2 px-3.5 py-2 border border-[#EAE2D6] hover:bg-[#FAF7F2] text-[#62584E] text-xs font-bold rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+            className="flex min-h-[44px] shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-[#DFD5C6] bg-white px-3.5 py-2 text-xs font-semibold text-[#3B342E] shadow-xs transition-colors hover:bg-[#FAF7F2] disabled:opacity-50"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             <span>Sync expenses</span>

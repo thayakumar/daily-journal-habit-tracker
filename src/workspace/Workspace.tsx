@@ -16,6 +16,8 @@ import {
   LayoutGrid,
   Menu,
   RefreshCw,
+  Sparkles,
+  Wallet,
   X,
 } from "lucide-react";
 import { useJournal, type JournalBridge } from "../App";
@@ -32,8 +34,15 @@ import { SettingsPanel } from "./SettingsPanel";
 import { useWorkspace } from "./useWorkspace";
 import { ClayObject } from "./clayAssets";
 import { localDate } from "./model";
-import { countTodayHabits, currentTab, NAV, type Tab } from "./nav";
-import { ListPanel, RoomErrorBoundary } from "./ui";
+import {
+  countTodayHabits,
+  currentTab,
+  NAV,
+  NAV_GROUPS,
+  type NavEntry,
+  type Tab,
+} from "./nav";
+import { ListPanel, RoomErrorBoundary, RoomSkeleton } from "./ui";
 
 const Skincare = lazy(() => import("../skincare/Skincare"));
 const Finance = lazy(() => import("../finance/Finance"));
@@ -183,6 +192,10 @@ export default function WorkspaceApp() {
   }, []);
 
   const habitSummary = countTodayHabits(data, journal, today);
+  const habitPct =
+    habitSummary.total > 0
+      ? Math.round((habitSummary.done / habitSummary.total) * 100)
+      : 0;
   const journalState =
     journal?.syncState ?? (isConfigured() ? "syncing" : "local");
   const effectiveSyncState =
@@ -204,20 +217,52 @@ export default function WorkspaceApp() {
           ? "Offline — edits are safely saved on this device and will auto-sync when back online."
           : null;
 
+  const settingsEntry = NAV.find((n) => n.id === "settings")!;
+
+  const renderSidebarLink = (n: NavEntry) => {
+    const active = tab === n.id;
+    return (
+      <a
+        key={n.id}
+        href={`#${n.id}`}
+        onClick={(e) => {
+          e.preventDefault();
+          navigate(n.id);
+        }}
+        aria-current={active ? "page" : undefined}
+        className={`flex min-h-[40px] items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors duration-150 ${active ? "bg-[#FBECE7] font-semibold text-[#B84727] shadow-[inset_0_0_0_1px_rgba(217,93,57,0.16)]" : "text-[#5C5248] hover:bg-[#F6F1E9] hover:text-[#24201D]"}`}
+      >
+        {n.asset ? (
+          <ClayObject name={n.asset} className="h-6 w-6 shrink-0" />
+        ) : (
+          <span
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${active ? "bg-[#F6D6CB] text-[#B84727]" : "bg-[#F3EDE3] text-[#5C5248]"}`}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+          </span>
+        )}
+        <span className="truncate">{n.label}</span>
+        {active && (
+          <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-[#D95D39]" />
+        )}
+      </a>
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-[#FAF7F2] text-[#24201D] selection:bg-[#FBECE7] selection:text-[#9A381D]">
+    <div className="min-h-dvh bg-[#FAF7F2] text-[#24201D] selection:bg-[#FBECE7] selection:text-[#9A381D]">
       {menu && (
         <button
           type="button"
           aria-label="Close navigation overlay"
-          className="fixed inset-0 z-40 bg-[#24201D]/30 backdrop-blur-xs lg:hidden"
+          className="fixed inset-0 z-40 bg-[#24201D]/35 backdrop-blur-xs lg:hidden"
           onClick={() => setMenu(false)}
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-[#EAE2D6] bg-white transition-transform lg:translate-x-0 ${menu ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-[#E7DDD0] bg-white transition-transform duration-200 ease-out lg:translate-x-0 ${menu ? "translate-x-0 shadow-2xl" : "-translate-x-full"}`}
       >
-        <div className="flex items-center justify-between gap-2 px-4 pb-5 pt-5 sm:px-6">
+        <div className="flex items-center justify-between gap-2 px-4 pb-4 pt-5 sm:px-5">
           <a
             href="#overview"
             onClick={(e) => {
@@ -234,7 +279,7 @@ export default function WorkspaceApp() {
               <span className="font-display block max-w-32 truncate text-lg font-bold text-[#24201D]">
                 {data.name}
               </span>
-              <span className="block text-[11px] font-medium text-[#8C8073]">
+              <span className="block text-[11px] font-medium text-[#6E6358]">
                 Daily shelf
               </span>
             </div>
@@ -243,58 +288,39 @@ export default function WorkspaceApp() {
             type="button"
             aria-label="Close navigation"
             onClick={() => setMenu(false)}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#E4DBCE] bg-[#FAF7F2] text-[#62584E] transition hover:bg-[#F3EDE3] lg:hidden"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#DFD5C6] bg-[#FAF7F2] text-[#5C5248] transition-colors hover:bg-[#F3EDE3] lg:hidden"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="px-6 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9D9083]">
-          Rooms
-        </div>
         <nav
           aria-label="Main navigation"
-          className="flex-1 space-y-1 overflow-y-auto px-3 pb-4"
+          className="flex-1 space-y-4 overflow-y-auto px-3 pb-4"
         >
-          {NAV.map((n) => {
-            const active = tab === n.id;
-            return (
-              <a
-                key={n.id}
-                href={`#${n.id}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate(n.id);
-                }}
-                aria-current={active ? "page" : undefined}
-                className={`flex min-h-[40px] items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition ${n.id === "settings" ? "!mt-4 border-t border-[#EFE8DC] pt-3" : ""} ${active ? "bg-[#FBECE7] font-semibold text-[#B84727]" : "text-[#62584E] hover:bg-[#F6F1E9] hover:text-[#24201D]"}`}
-              >
-                {n.asset ? (
-                  <ClayObject name={n.asset} className="h-6 w-6 shrink-0" />
-                ) : (
-                  <span
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${active ? "bg-[#F6D6CB] text-[#B84727]" : "bg-[#F3EDE3] text-[#62584E]"}`}
-                  >
-                    <LayoutGrid className="h-3.5 w-3.5" />
-                  </span>
-                )}
-                <span className="truncate">{n.label}</span>
-                {active && (
-                  <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-[#D95D39]" />
-                )}
-              </a>
-            );
-          })}
+          {NAV_GROUPS.map((group) => (
+            <div key={group.id}>
+              <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#6E6358]">
+                {group.label}
+              </div>
+              <div className="space-y-0.5">
+                {NAV.filter((n) => n.group === group.id).map(renderSidebarLink)}
+              </div>
+            </div>
+          ))}
+          <div className="border-t border-[#EFE8DC] pt-3">
+            {renderSidebarLink(settingsEntry)}
+          </div>
         </nav>
-        <div className="m-4 rounded-2xl border border-[#EAE2D6] bg-[#F3EDE3] p-4">
+        <div className="m-3.5 rounded-2xl border border-[#E7DDD0] bg-[#FAF7F2] p-3.5">
           <div className="flex items-center gap-3">
-            <ClayObject name="spot-cup" className="h-12 w-12 shrink-0" />
-            <div className="min-w-0">
-              <p className="font-display text-sm font-semibold text-[#24201D]">
+            <ClayObject name="spot-cup" className="h-11 w-11 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="font-display text-sm font-semibold tabular-nums text-[#24201D]">
                 {habitSummary.total > 0
                   ? `${habitSummary.done} of ${habitSummary.total} today`
                   : "Fresh shelf today"}
               </p>
-              <p className="mt-0.5 text-xs leading-snug text-[#62584E]">
+              <p className="mt-0.5 text-xs leading-snug text-[#5C5248]">
                 {habitSummary.total > 0 &&
                 habitSummary.done === habitSummary.total
                   ? "All daily habits checked."
@@ -302,21 +328,29 @@ export default function WorkspaceApp() {
               </p>
             </div>
           </div>
+          {habitSummary.total > 0 && (
+            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-[#E7DDD0]">
+              <div
+                className="h-full rounded-full bg-[#D95D39] transition-[width] duration-300 ease-out"
+                style={{ width: `${habitPct}%` }}
+              />
+            </div>
+          )}
         </div>
       </aside>
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-30 border-b border-[#EAE2D6] bg-[#FAF7F2]/92 px-4 py-2.5 backdrop-blur-sm sm:px-8">
+        <header className="sticky top-0 z-30 border-b border-[#E7DDD0] bg-[#FAF7F2]/90 px-4 py-2.5 backdrop-blur-md sm:px-8">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#E4DBCE] bg-white text-[#62584E] transition hover:bg-[#F3EDE3] lg:hidden"
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#DFD5C6] bg-white text-[#5C5248] shadow-xs transition-colors hover:bg-[#F3EDE3] lg:hidden"
                 aria-label="Open navigation"
                 onClick={() => setMenu(true)}
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <div className="flex items-center gap-2 text-xs text-[#8C8073]">
+              <div className="flex items-center gap-2 text-xs text-[#6E6358]">
                 <span className="hidden sm:inline">{data.name}</span>
                 <ChevronRight className="hidden h-3 w-3 sm:block" />
                 <span className="font-semibold text-[#24201D]">
@@ -325,7 +359,7 @@ export default function WorkspaceApp() {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              <span className="hidden text-xs font-medium text-[#62584E] md:inline">
+              <span className="hidden text-xs font-medium text-[#5C5248] md:inline">
                 {new Date(`${today}T12:00`).toLocaleDateString(undefined, {
                   weekday: "short",
                   month: "short",
@@ -348,25 +382,25 @@ export default function WorkspaceApp() {
                   }
                 }}
                 aria-label={`Sync status: ${status}`}
-                className={`flex min-h-[38px] items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                className={`flex min-h-[38px] items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-xs transition-colors ${
                   effectiveSyncState === "error"
                     ? "border-[#E3A694] bg-[#FBECE7] text-[#9A381D] hover:bg-[#F7DDD4]"
                     : effectiveSyncState === "offline"
-                      ? "border-[#DFD4C3] bg-[#F3EDE3] text-[#62584E] hover:bg-[#EAE1D3]"
+                      ? "border-[#DFD4C3] bg-[#F3EDE3] text-[#5C5248] hover:bg-[#EAE1D3]"
                       : effectiveSyncState === "syncing"
                         ? "border-[#E5CF9E] bg-[#FDF6E7] text-[#8C5A12]"
-                        : "border-[#E4DBCE] bg-white text-[#62584E] hover:border-[#D5C9B9] hover:text-[#24201D]"
+                        : "border-[#DFD5C6] bg-white text-[#5C5248] hover:border-[#CFC1AE] hover:text-[#24201D]"
                 }`}
                 title={status}
               >
                 {effectiveSyncState === "error" ? (
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-[#B84727]" />
                 ) : effectiveSyncState === "offline" ? (
-                  <CloudOff className="h-3.5 w-3.5 shrink-0 text-[#8C8073]" />
+                  <CloudOff className="h-3.5 w-3.5 shrink-0 text-[#6E6358]" />
                 ) : effectiveSyncState === "syncing" ? (
                   <RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin text-[#B27B22]" />
                 ) : (
-                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[#5C8D78]" />
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[#356651]" />
                 )}
                 <span>
                   {effectiveSyncState === "error"
@@ -386,7 +420,7 @@ export default function WorkspaceApp() {
                 type="button"
                 aria-label="Open settings"
                 onClick={() => navigate("settings")}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E4DBCE] bg-[#F3EDE3] font-display text-xs font-bold text-[#24201D] transition hover:border-[#D5C9B9]"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#DFD5C6] bg-[#F3EDE3] font-display text-xs font-bold text-[#24201D] transition-colors hover:border-[#CFC1AE]"
               >
                 {data.name.trim().slice(0, 1).toUpperCase() || "M"}
               </button>
@@ -411,7 +445,7 @@ export default function WorkspaceApp() {
                     void retrySync();
                     void journal?.sync();
                   }}
-                  className="min-h-[34px] rounded-lg border border-current/25 bg-white/80 px-3 py-1 font-semibold transition hover:bg-white"
+                  className="min-h-[34px] rounded-lg border border-current/25 bg-white/80 px-3 py-1 font-semibold transition-colors hover:bg-white"
                 >
                   Sync now
                 </button>
@@ -428,20 +462,23 @@ export default function WorkspaceApp() {
         )}
         <main
           id="main-content"
-          className="mx-auto max-w-[1440px] px-4 py-8 sm:px-8 sm:py-10"
+          className="mx-auto max-w-[1440px] px-4 pb-24 pt-6 sm:px-8 sm:pt-8 lg:pb-10"
         >
           {tab !== "overview" && (
-            <div className="mb-8 flex items-center gap-4">
+            <div className="mb-6 flex items-center gap-4 sm:mb-7">
               {heading.asset && (
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-[#EAE2D6] bg-[#F3EDE3] p-2">
-                  <ClayObject name={heading.asset} className="h-12 w-12" />
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#E7DDD0] bg-white p-2 shadow-xs sm:h-16 sm:w-16">
+                  <ClayObject
+                    name={heading.asset}
+                    className="h-10 w-10 sm:h-12 sm:w-12"
+                  />
                 </div>
               )}
               <div className="min-w-0">
                 <h1 className="font-display text-2xl font-bold text-[#24201D] sm:text-3xl">
                   {heading.label}
                 </h1>
-                <p className="mt-1 text-sm text-[#62584E]">
+                <p className="mt-1 text-sm text-[#5C5248]">
                   {heading.description}
                 </p>
               </div>
@@ -468,7 +505,7 @@ export default function WorkspaceApp() {
               />
             )}
             {tab === "skincare" && (
-              <Suspense fallback={<p role="status">Loading skincare…</p>}>
+              <Suspense fallback={<RoomSkeleton label="Loading skincare…" />}>
                 <Skincare
                   data={data}
                   update={update}
@@ -480,7 +517,7 @@ export default function WorkspaceApp() {
               </Suspense>
             )}
             {tab === "finance" && (
-              <Suspense fallback={<p role="status">Loading finance…</p>}>
+              <Suspense fallback={<RoomSkeleton label="Loading finance…" />}>
                 <Finance
                   data={data}
                   initialLoading={initialLoading}
@@ -573,13 +610,13 @@ export default function WorkspaceApp() {
             )}
           </RoomErrorBoundary>
         </main>
-        <footer className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-2 border-t border-[#EFE8DC] px-4 py-4 text-xs text-[#8C8073] sm:px-8">
+        <footer className="mx-auto mb-20 flex max-w-[1440px] flex-wrap items-center justify-between gap-2 border-t border-[#EFE8DC] px-4 py-4 text-xs text-[#6E6358] sm:px-8 lg:mb-0">
           <span>
             {data.name} · Habits, meals, notes, and plans in one quiet place.
           </span>
           <button
             type="button"
-            className="inline-flex min-h-[44px] items-center rounded-lg px-2 font-medium text-[#62584E] transition hover:text-[#D95D39]"
+            className="inline-flex min-h-[44px] items-center rounded-lg px-2 font-medium text-[#5C5248] transition-colors hover:text-[#D95D39]"
             onClick={() => navigate("settings")}
           >
             Your data &amp; backups{" "}
@@ -587,6 +624,44 @@ export default function WorkspaceApp() {
           </button>
         </footer>
       </div>
+
+      {/* Apple-HIG Mobile Bottom Tab Dock */}
+      <nav
+        aria-label="Quick navigation"
+        className="clay-dock fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 px-1.5 pt-1.5 lg:hidden"
+      >
+        {(
+          [
+            { id: "overview", label: "Home", Icon: LayoutGrid },
+            { id: "habits", label: "Habits", Icon: CheckCircle2 },
+            { id: "finance", label: "Finance", Icon: Wallet },
+            { id: "skincare", label: "Skin", Icon: Sparkles },
+          ] as const
+        ).map(({ id, label, Icon }) => {
+          const active = tab === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              aria-current={active ? "page" : undefined}
+              onClick={() => navigate(id)}
+              className={`flex min-h-[48px] flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[11px] font-semibold transition-colors ${active ? "bg-[#FBECE7] text-[#B84727]" : "text-[#5C5248] hover:bg-[#F3EDE3]"}`}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{label}</span>
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setMenu(true)}
+          aria-expanded={menu}
+          className={`flex min-h-[48px] flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[11px] font-semibold transition-colors ${menu ? "bg-[#FBECE7] text-[#B84727]" : "text-[#5C5248] hover:bg-[#F3EDE3]"}`}
+        >
+          <Menu className="h-4 w-4 shrink-0" />
+          <span className="truncate">Rooms</span>
+        </button>
+      </nav>
     </div>
   );
 }

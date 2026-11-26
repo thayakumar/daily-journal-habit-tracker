@@ -52,11 +52,40 @@ export class RoomErrorBoundary extends Component<
   }
 }
 export const inputClass =
-  "w-full rounded-xl border border-[#E4DBCE] bg-white px-3.5 py-2.5 text-sm text-[#24201D] placeholder:text-[#9D9083] outline-none transition focus:border-[#D95D39] focus:ring-4 focus:ring-[#FBECE7]";
+  "w-full rounded-xl border border-[#DFD5C6] bg-white px-3.5 py-2.5 text-sm text-[#24201D] placeholder:text-[#7C7064] shadow-[inset_0_1px_2px_rgba(58,44,32,0.03)] outline-none transition-colors focus:border-[#D95D39] focus:ring-4 focus:ring-[#FBECE7]";
 export const primaryClass =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#D95D39] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#C04C2B] disabled:opacity-50 disabled:cursor-not-allowed";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#D95D39] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_2px_8px_-2px_rgba(217,93,57,0.45),inset_0_1px_0_rgba(255,255,255,0.22)] transition duration-150 hover:bg-[#C04C2B] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed";
 export const secondaryClass =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#E4DBCE] bg-white px-3.5 py-2 text-sm font-medium text-[#473F38] transition hover:border-[#D5C9B9] hover:bg-[#F6F1E9]";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#DFD5C6] bg-white px-3.5 py-2 text-sm font-medium text-[#3B342E] shadow-[0_1px_2px_rgba(58,44,32,0.04)] transition duration-150 hover:border-[#CFC1AE] hover:bg-[#FAF7F2] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed";
+
+export function RoomSkeleton({ label }: { label: string }) {
+  return (
+    <div role="status" className="space-y-5">
+      <span className="sr-only">{label}</span>
+      <div className="clay-card rounded-2xl p-6">
+        <div className="flex flex-wrap gap-2">
+          <div className="clay-skeleton h-10 w-32 rounded-xl" />
+          <div className="clay-skeleton h-10 w-32 rounded-xl" />
+          <div className="clay-skeleton h-10 w-24 rounded-xl" />
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="clay-skeleton h-20 rounded-xl" />
+          <div className="clay-skeleton h-20 rounded-xl" />
+          <div className="clay-skeleton h-20 rounded-xl" />
+        </div>
+      </div>
+      <div className="clay-card rounded-2xl p-6">
+        <div className="clay-skeleton h-5 w-44 rounded-lg" />
+        <div className="mt-4 space-y-3">
+          <div className="clay-skeleton h-12 rounded-xl" />
+          <div className="clay-skeleton h-12 rounded-xl" />
+          <div className="clay-skeleton h-12 rounded-xl" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Card({
   title,
   subtitle,
@@ -72,20 +101,20 @@ export function Card({
 }) {
   return (
     <section className={`clay-card rounded-2xl ${className}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#EFE8DC] p-6">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#EFE8DC] px-5 py-4 sm:px-6 sm:py-5">
+        <div className="min-w-0">
           <h2 className="font-display text-lg font-semibold text-[#24201D]">
             {title}
           </h2>
           {subtitle && (
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#62584E]">
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#5C5248]">
               {subtitle}
             </p>
           )}
         </div>
         {action}
       </div>
-      <div className="p-6">{children}</div>
+      <div className="p-5 sm:p-6">{children}</div>
     </section>
   );
 }

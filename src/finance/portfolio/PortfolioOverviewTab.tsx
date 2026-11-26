@@ -133,16 +133,16 @@ export function PortfolioOverviewTab({
             key={label}
             className={`min-w-0 rounded-2xl border p-5 shadow-xs ${tone}`}
           >
-            <p className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wider text-[#8C8073]">
+            <p className="flex items-center justify-between gap-2 text-xs font-semibold text-[#6E6358]">
               {label}
-              <Icon className="h-4 w-4 shrink-0 text-[#8C8073]" />
+              <Icon className="h-4 w-4 shrink-0 text-[#6E6358]" />
             </p>
             <p
-              className={`mt-2.5 break-words font-display text-2xl font-bold sm:text-3xl ${valueClass}`}
+              className={`mt-2.5 break-words font-display text-2xl font-bold tabular-nums sm:text-3xl ${valueClass}`}
             >
               {money(value)}
             </p>
-            <p className="mt-2 text-xs leading-relaxed text-[#62584E]">
+            <p className="mt-2 text-xs leading-relaxed text-[#5C5248]">
               {kpiInfo[label].text}
             </p>
           </div>
@@ -159,16 +159,16 @@ export function PortfolioOverviewTab({
         ).map(([label, value, Icon]) => (
           <div
             key={label}
-            className="min-w-0 rounded-2xl border border-[#EFE8DC] bg-[#FAF7F2] p-4"
+            className="min-w-0 rounded-2xl border border-[#E7DDD0] bg-[#FAF7F2] p-4"
           >
-            <p className="flex items-center justify-between gap-2 text-xs font-semibold text-[#62584E]">
+            <p className="flex items-center justify-between gap-2 text-xs font-semibold text-[#5C5248]">
               {label}
-              <Icon className="h-4 w-4 shrink-0 text-[#8C8073]" />
+              <Icon className="h-4 w-4 shrink-0 text-[#6E6358]" />
             </p>
-            <p className="mt-1.5 break-words font-display text-xl font-bold text-[#24201D]">
+            <p className="mt-1.5 break-words font-display text-xl font-bold tabular-nums text-[#24201D]">
               {money(value)}
             </p>
-            <p className="mt-1.5 text-xs leading-relaxed text-[#62584E]">
+            <p className="mt-1.5 text-xs leading-relaxed text-[#5C5248]">
               {kpiInfo[label].text}
             </p>
           </div>
