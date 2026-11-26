@@ -379,6 +379,38 @@ export function useWorkspace() {
         force,
       );
       if (hasFeatureUpgradeMerge) {
+        if (workspaceContentEqual(parsed, rawParsed)) {
+          try {
+            if (skinSupport.current) localStorage.removeItem(SKIN_PENDING_KEY);
+            if (vehicleSupport.current)
+              localStorage.removeItem(VEHICLE_PENDING_KEY);
+            if (portfolioSupport.current && timelineSupport.current)
+              localStorage.removeItem(PORTFOLIO_PENDING_KEY);
+            if (planningSupport.current) localStorage.removeItem(PLAN_PENDING_KEY);
+            if (financeSupport.current)
+              localStorage.removeItem(FINANCE_PENDING_KEY);
+            if (logSupport.current) localStorage.removeItem(LOG_PENDING_KEY);
+            if (vocabularySupport.current)
+              localStorage.removeItem(VOCAB_PENDING_KEY);
+          } catch {
+            /* Ignore storage errors when clearing stale pending flags. */
+          }
+          cloudTimestamp.current = cloudDate;
+          latest.current = rawParsed;
+          setData(rawParsed);
+          acknowledge(rawParsed.updatedAt, cloudRevision.current, rawParsed);
+          setSyncState("synced");
+          setSyncError(null);
+          setStatus(
+            warnings.length
+              ? `Connected · repaired ${warnings.join(", ")} rows`
+              : tableMode.current
+                ? "Connected to per-page Sheet tables"
+                : "Legacy cloud storage · update Apps Script for per-page tables",
+          );
+          setReady(true);
+          return;
+        }
         cloudTimestamp.current = cloudDate;
         baseRef.current = rawParsed;
         writeBase(rawParsed);
@@ -541,41 +573,43 @@ export function useWorkspace() {
     if (!data.updatedAt) return;
     try {
       localStorage.setItem(WORKSPACE_KEY, JSON.stringify(data));
-      if (
-        !skinSupport.current &&
-        data.skincare &&
-        Object.values(data.skincare).some((rows) => rows.length)
-      )
-        localStorage.setItem(SKIN_PENDING_KEY, "true");
-      if (
-        !vehicleSupport.current &&
-        (data.vehicles?.length ?? 0) + (data.vehicleServices?.length ?? 0) > 0
-      )
-        localStorage.setItem(VEHICLE_PENDING_KEY, "true");
-      if (
-        (!portfolioSupport.current || !timelineSupport.current) &&
-        data.financePortfolio &&
-        Object.values(data.financePortfolio).some((rows) => rows.length)
-      )
-        localStorage.setItem(PORTFOLIO_PENDING_KEY, "true");
-      if (
-        !planningSupport.current &&
-        data.financePlanning &&
-        (data.financePlanning.defaultStartDay !== 27 ||
-          data.financePlanning.cycles.length ||
-          data.financePlanning.rows.length)
-      )
-        localStorage.setItem(PLAN_PENDING_KEY, "true");
-      if (!financeSupport.current && (data.financeExpenses?.length ?? 0) > 0)
-        localStorage.setItem(FINANCE_PENDING_KEY, "true");
-      if (!vocabularySupport.current && (data.vocabulary?.length ?? 0) > 0)
-        localStorage.setItem(VOCAB_PENDING_KEY, "true");
-      if (
-        !logSupport.current &&
-        ((data.workoutSets?.length ?? 0) > 0 ||
-          (data.recurringChecks?.length ?? 0) > 0)
-      )
-        localStorage.setItem(LOG_PENDING_KEY, "true");
+      if (ready) {
+        if (
+          !skinSupport.current &&
+          data.skincare &&
+          Object.values(data.skincare).some((rows) => rows.length)
+        )
+          localStorage.setItem(SKIN_PENDING_KEY, "true");
+        if (
+          !vehicleSupport.current &&
+          (data.vehicles?.length ?? 0) + (data.vehicleServices?.length ?? 0) > 0
+        )
+          localStorage.setItem(VEHICLE_PENDING_KEY, "true");
+        if (
+          (!portfolioSupport.current || !timelineSupport.current) &&
+          data.financePortfolio &&
+          Object.values(data.financePortfolio).some((rows) => rows.length)
+        )
+          localStorage.setItem(PORTFOLIO_PENDING_KEY, "true");
+        if (
+          !planningSupport.current &&
+          data.financePlanning &&
+          (data.financePlanning.defaultStartDay !== 27 ||
+            data.financePlanning.cycles.length ||
+            data.financePlanning.rows.length)
+        )
+          localStorage.setItem(PLAN_PENDING_KEY, "true");
+        if (!financeSupport.current && (data.financeExpenses?.length ?? 0) > 0)
+          localStorage.setItem(FINANCE_PENDING_KEY, "true");
+        if (!vocabularySupport.current && (data.vocabulary?.length ?? 0) > 0)
+          localStorage.setItem(VOCAB_PENDING_KEY, "true");
+        if (
+          !logSupport.current &&
+          ((data.workoutSets?.length ?? 0) > 0 ||
+            (data.recurringChecks?.length ?? 0) > 0)
+        )
+          localStorage.setItem(LOG_PENDING_KEY, "true");
+      }
     } catch {
       setSyncState("error");
       setSyncError("Device storage full · export a backup");
