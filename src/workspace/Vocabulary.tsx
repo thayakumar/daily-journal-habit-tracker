@@ -303,23 +303,33 @@ export function Vocabulary({
                 }
                 const now = new Date().toISOString();
                 const id = editing ?? uid();
-                update((s) => ({
-                  ...s,
-                  vocabulary: editing
-                    ? (s.vocabulary ?? []).map((v) =>
-                        v.id === editing
-                          ? { ...v, ...clean, updatedAt: now }
-                          : v,
-                      )
-                    : [
-                        { id, ...clean, createdAt: now, updatedAt: now },
-                        ...(s.vocabulary ?? []),
-                      ],
-                }));
+                update((s) => {
+                  const list = s.vocabulary ?? [];
+                  if (editing) {
+                    const exists = list.some((v) => v.id === editing);
+                    return {
+                      ...s,
+                      vocabulary: exists
+                        ? list.map((v) =>
+                            v.id === editing
+                              ? { ...v, ...clean, updatedAt: now }
+                              : v,
+                          )
+                        : [{ id, ...clean, createdAt: now, updatedAt: now }, ...list],
+                    };
+                  }
+                  return {
+                    ...s,
+                    vocabulary: [
+                      { id, ...clean, createdAt: now, updatedAt: now },
+                      ...list,
+                    ],
+                  };
+                });
                 close();
               }}
             >
-              <Field label="New vocabulary word">
+              <Field label={editing ? "Vocabulary word" : "New vocabulary word"}>
                 <input
                   ref={firstInput}
                   aria-label="Vocabulary word"

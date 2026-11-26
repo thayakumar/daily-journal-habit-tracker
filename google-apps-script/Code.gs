@@ -362,8 +362,32 @@ function readTable(ss, title, headers) {
   return rows;
 }
 
+function cellCanonical(v) {
+  if (v === "" || v === null || v === undefined) return "";
+  if (typeof v === "boolean") return v ? "B:1" : "B:0";
+  if (typeof v === "number") return "N:" + String(v);
+  return "S:" + String(v);
+}
+function rowsIdentical(a, b) {
+  if (!a || !b || a.length !== b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i].length !== b[i].length) return false;
+    for (var j = 0; j < a[i].length; j++) {
+      if (cellCanonical(a[i][j]) !== cellCanonical(b[i][j])) return false;
+    }
+  }
+  return true;
+}
+function maxAllowedToday(ss) {
+  // Allow +1 day tolerance so phones ahead of the spreadsheet timezone past midnight never fail sync.
+  return Utilities.formatDate(
+    new Date(Date.now() + 86400000),
+    ss.getSpreadsheetTimeZone(),
+    "yyyy-MM-dd",
+  );
+}
 function writeTable(ss, title, headers, rows) {
-  if (REQUEST_CACHE) delete REQUEST_CACHE.tables[title];
+  var key = headers.join("|");
   var sheet = ensureSheet(ss, title, headers);
   if (
     rows.some(function (row) {
@@ -398,6 +422,14 @@ function writeTable(ss, title, headers, rows) {
       );
     sheet.getRange(2, 1, count, headers.length).setValues(padded);
   }
+  if (REQUEST_CACHE) {
+    REQUEST_CACHE.tables[title] = {
+      key: key,
+      rows: rows.map(function (r) {
+        return r.slice();
+      }),
+    };
+  }
 }
 function settingsOf(ss) {
   if (REQUEST_CACHE && REQUEST_CACHE.settings) return REQUEST_CACHE.settings;
@@ -414,15 +446,22 @@ function settingsOf(ss) {
   return settings;
 }
 function putSetting(ss, key, value) {
-  if (REQUEST_CACHE) REQUEST_CACHE.settings = null;
+  var nextVal = stringValue(value);
+  var current = settingsOf(ss);
+  if (current[key] === nextVal) return;
   var sheet = ensureSheet(ss, "Settings", ["key", "value"]);
   var rows = sheet.getDataRange().getValues();
+  var updated = false;
   for (var i = 1; i < rows.length; i++)
     if (rows[i][0] === key) {
-      sheet.getRange(i + 1, 2).setValue(safeCell(value));
-      return;
+      sheet.getRange(i + 1, 2).setValue(safeCell(nextVal));
+      updated = true;
+      break;
     }
-  sheet.appendRow([key, safeCell(value)]);
+  if (!updated) sheet.appendRow([key, safeCell(nextVal)]);
+  if (REQUEST_CACHE && REQUEST_CACHE.settings) {
+    REQUEST_CACHE.settings[key] = nextVal;
+  }
 }
 function validateWorkspace(w) {
   if (
@@ -669,14 +708,23 @@ function writePlanner(ss, w) {
         );
     });
   }
+  if (!REQUEST_CACHE) {
+    Object.keys(PLANNER_TABLES).forEach(function (name) {
+      ensureSheet(ss, name, PLANNER_TABLES[name]);
+    });
+  }
   Object.keys(PLANNER_TABLES).forEach(function (name) {
-    ensureSheet(ss, name, PLANNER_TABLES[name]);
-  });
-  Object.keys(PLANNER_TABLES).forEach(function (name) {
-    if (name === "PortfolioAccounts" && tables[name].length)
+    var existing =
+      REQUEST_CACHE && REQUEST_CACHE.tables[name]
+        ? REQUEST_CACHE.tables[name].rows
+        : null;
+    if (existing && rowsIdentical(existing, tables[name])) return;
+    if (name === "PortfolioAccounts" && tables[name].length) {
+      ensureSheet(ss, name, PLANNER_TABLES[name]);
       ss.getSheetByName(name)
         .getRange(2, 5, tables[name].length, 1)
         .setNumberFormat("@");
+    }
     writeTable(ss, name, PLANNER_TABLES[name], tables[name]);
   });
   putSetting(ss, "workspaceName", w.name);
@@ -1053,6 +1101,11 @@ function writeHabitChecks(ss, entries) {
 }
 function ensureMigration(ss) {
   var settings = settingsOf(ss);
+  var expectedCount = String(Object.keys(PLANNER_TABLES).length);
+  var migrated =
+    Number(settings.workspaceTablesVersion) === TABLE_SCHEMA_VERSION &&
+    settings.workspaceTablesCount === expectedCount;
+  if (migrated) return;
   Object.keys(PLANNER_TABLES).forEach(function (name) {
     ensureSheet(ss, name, PLANNER_TABLES[name]);
   });
@@ -1063,6 +1116,7 @@ function ensureMigration(ss) {
     writeHabitChecks(ss, journalRows(ss));
     putSetting(ss, "workspaceTablesVersion", String(TABLE_SCHEMA_VERSION));
   }
+  putSetting(ss, "workspaceTablesCount", expectedCount);
 }
 function getAll(ss) {
   ensureMigration(ss);
@@ -1106,6 +1160,7 @@ function getAll(ss) {
       skincare: true,
       skincareDirectPhotos: true,
       legacyBudgetImport: true,
+      atomicJournal: true,
     },
     workspace: readPlanner(ss, settings),
     workspaceRevision: plannerRevision(ss),
@@ -1205,6 +1260,52 @@ function doPost(e) {
         storageSchemaVersion: TABLE_SCHEMA_VERSION,
         workspaceRevision: plannerRevision(ss),
       };
+    }
+    if (action === "saveJournal") {
+      var jEntries = Array.isArray(payload.entries) ? payload.entries : [];
+      var jHabits = Array.isArray(payload.habits) ? payload.habits : [];
+      var entryRows = jEntries.map(function (e) {
+        return [
+          e.id,
+          e.dateStr,
+          e.displayDate,
+          e.dayName,
+          e.sleepTime,
+          e.exercise,
+          e.morningFood,
+          e.afternoonFood,
+          e.dinnerFood,
+          e.snack,
+          e.tasks,
+          JSON.stringify(e.habits || {}),
+        ];
+      });
+      var existingEntries = readTable(ss, "Entries", ENTRY_HEADERS);
+      if (!rowsIdentical(existingEntries, entryRows)) {
+        writeTable(ss, "Entries", ENTRY_HEADERS, entryRows);
+      }
+      var checkRows = [];
+      jEntries.forEach(function (e) {
+        Object.keys(e.habits || {}).forEach(function (id) {
+          checkRows.push([e.dateStr, id, !!e.habits[id]]);
+        });
+      });
+      var existingChecks = readTable(ss, "HabitChecks", HABIT_CHECK_HEADERS);
+      if (!rowsIdentical(existingChecks, checkRows)) {
+        writeTable(ss, "HabitChecks", HABIT_CHECK_HEADERS, checkRows);
+      }
+      var habitRows = jHabits.map(function (h) {
+        return [h.id, h.name, h.color, h.lightBg, h.ringColor];
+      });
+      var existingHabits = readTable(ss, "Habits", HABIT_HEADERS);
+      if (!rowsIdentical(existingHabits, habitRows)) {
+        writeTable(ss, "Habits", HABIT_HEADERS, habitRows);
+      }
+      if (payload.showTasksColumn !== undefined) {
+        putSetting(ss, "showTasksColumn", String(payload.showTasksColumn));
+      }
+      SpreadsheetApp.flush();
+      return { success: true };
     }
     if (action === "saveEntries") {
       var rows = payload.data.map(function (e) {
@@ -1502,11 +1603,7 @@ function validatePortfolioData(p, cycles) {
     )
       throw new Error("Invalid loan terms");
   });
-  var today = Utilities.formatDate(
-    new Date(),
-    SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone(),
-    "yyyy-MM-dd",
-  );
+  var today = maxAllowedToday(SpreadsheetApp.getActiveSpreadsheet());
   if (
     p.loans.some(function (l) {
       return l.asOf > today || l.startDate > l.asOf;
@@ -1689,11 +1786,7 @@ function validateSkinData(p) {
   var stamp = function (v) {
     return typeof v === "string" && !isNaN(Date.parse(v));
   };
-  var today = Utilities.formatDate(
-    new Date(),
-    SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone(),
-    "yyyy-MM-dd",
-  );
+  var today = maxAllowedToday(SpreadsheetApp.getActiveSpreadsheet());
   SKIN_SCHEMAS.forEach(function (schema) {
     if (!Array.isArray(p[schema.key]))
       throw new Error("Missing skincare collection");
@@ -1802,11 +1895,7 @@ function authorizeSkincarePhotos() {
   return skinPhotoFolder(SpreadsheetApp.getActiveSpreadsheet()).getName();
 }
 function uploadSkinPhoto(ss, p) {
-  var today = Utilities.formatDate(
-    new Date(),
-    ss.getSpreadsheetTimeZone(),
-    "yyyy-MM-dd",
-  );
+  var today = maxAllowedToday(ss);
   if (
     !validDateString(p.date) ||
     p.date > today ||

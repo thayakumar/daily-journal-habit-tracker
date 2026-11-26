@@ -1,4 +1,5 @@
 import {
+  Delete,
   Field,
   inputClass,
   primaryClass,
@@ -30,9 +31,11 @@ import {
 
 interface ExpenseHistoryProps {
   expenses: Expense[];
+  maxDate?: string;
   onSync: () => void;
   lastSaved?: { id: string; name: string; action?: "Added" | "Updated" } | null;
   onEdit?: (expense: Expense) => void;
+  onDelete?: (id: string) => void;
 }
 
 const CATEGORY_ICONS: Record<string, React.FC<{ className?: string }>> = {
@@ -46,9 +49,11 @@ const CATEGORY_ICONS: Record<string, React.FC<{ className?: string }>> = {
 
 export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
   expenses,
+  maxDate,
   onSync,
   lastSaved,
   onEdit,
+  onDelete,
 }) => {
   const [editing, setEditing] = useState<Expense | null>(null);
   const [amountText, setAmountText] = useState("");
@@ -60,6 +65,8 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
     : null;
   const [filterCategory, setFilterCategory] = useState<string>("All");
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const editMaxDate = maxDate || localDate();
+  const isFiltered = filterCategory !== "All" || searchTerm.trim().length > 0;
 
   const filteredExpenses = [...expenses]
     .sort((a, b) =>
@@ -105,7 +112,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
         >
           <div>
             <p className="text-[10px] text-[#8C8073] font-bold uppercase tracking-wider">
-              Total Recorded Spending
+              {isFiltered ? "Filtered Spending" : "Total Recorded Spending"}
             </p>
             <p className="break-words text-xl font-sans font-bold text-[#24201D] mt-1">
               {money(totalAmount)}
@@ -123,7 +130,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
         >
           <div>
             <p className="text-[10px] text-[#8C8073] font-bold uppercase tracking-wider">
-              Average Expense
+              {isFiltered ? "Filtered Average" : "Average Expense"}
             </p>
             <p className="break-words text-xl font-sans font-bold text-[#24201D] mt-1">
               {money(averageAmount)}
@@ -141,7 +148,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
         >
           <div>
             <p className="text-[10px] text-[#8C8073] font-bold uppercase tracking-wider">
-              Highest Transaction
+              {isFiltered ? "Filtered Highest" : "Highest Transaction"}
             </p>
             <p className="break-words text-xl font-sans font-bold text-[#24201D] mt-1">
               {money(maxExpense)}
@@ -177,11 +184,12 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
             )}
           </div>
           <button
+            type="button"
             id="btn-refresh-logs"
             onClick={onSync}
-            className="flex items-center gap-2 px-3.5 py-1.5 border border-[#EAE2D6] hover:bg-[#FAF7F2] text-[#62584E] text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+            className="flex min-h-[44px] items-center gap-2 px-3.5 py-2 border border-[#EAE2D6] hover:bg-[#FAF7F2] text-[#62584E] text-xs font-bold rounded-xl transition-colors cursor-pointer disabled:opacity-50"
           >
-            <RefreshCw className="h-3 w-3" />
+            <RefreshCw className="h-3.5 w-3.5" />
             <span>Sync expenses</span>
           </button>
         </div>
@@ -199,7 +207,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
               placeholder="Search expenses by item or tag..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="min-w-0 w-full pl-9 pr-4 py-2 bg-[#FAF7F2] border border-[#EAE2D6] rounded-lg text-xs focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] outline-none transition-all"
+              className="min-w-0 w-full pl-9 pr-4 py-2.5 bg-[#FAF7F2] border border-[#EAE2D6] rounded-lg text-xs focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] outline-none transition-all"
             />
           </div>
 
@@ -208,7 +216,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
             aria-label="Filter expense category"
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#EAE2D6] rounded-lg text-xs text-[#3B342E] focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] outline-none transition-all"
+            className="w-full px-3 py-2.5 bg-[#FAF7F2] border border-[#EAE2D6] rounded-lg text-xs text-[#3B342E] focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] outline-none transition-all"
           >
             <option value="All">All Categories</option>
             {Object.values(Category).map((cat) => (
@@ -258,7 +266,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                   <th scope="col" className="px-4 py-3 text-center">
                     Receipt
                   </th>
-                  {onEdit && (
+                  {(onEdit || onDelete) && (
                     <th scope="col" className="px-4 py-3 text-center">
                       Actions
                     </th>
@@ -332,21 +340,40 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                           </span>
                         )}
                       </td>
-                      {onEdit && (
+                      {(onEdit || onDelete) && (
                         <td className="px-4 py-3.5 text-center">
-                          <button
-                            type="button"
-                            aria-label={`Edit transaction ${exp.item}`}
-                            className={secondaryClass}
-                            onClick={() => {
-                              setEditing({ ...exp });
-                              setAmountText(String(exp.amount));
-                              setEditError("");
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                            Edit
-                          </button>
+                          <div className="inline-flex items-center justify-center gap-1">
+                            {onEdit && (
+                              <button
+                                type="button"
+                                aria-label={`Edit transaction ${exp.item}`}
+                                className={secondaryClass}
+                                onClick={() => {
+                                  setEditing({ ...exp });
+                                  setAmountText(String(exp.amount));
+                                  setEditError("");
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                                Edit
+                              </button>
+                            )}
+                            {onDelete && exp.id && (
+                              <Delete
+                                label={`Delete transaction ${exp.item}`}
+                                onClick={() => {
+                                  if (
+                                    exp.id &&
+                                    confirm(
+                                      `Delete expense "${exp.item}" (${money(exp.amount)})?`,
+                                    )
+                                  ) {
+                                    onDelete(exp.id);
+                                  }
+                                }}
+                              />
+                            )}
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -366,14 +393,14 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
               const amount = Number(amountText);
               if (
                 !validDate(editing.date) ||
-                editing.date > localDate() ||
+                editing.date > editMaxDate ||
                 !editing.item.trim() ||
                 !amountText.trim() ||
                 !Number.isFinite(amount) ||
                 amount <= 0
               ) {
                 setEditError(
-                  "Enter a valid date up to today, description and positive amount.",
+                  `Enter a valid date up to ${editMaxDate}, description and positive amount.`,
                 );
                 return;
               }
@@ -400,7 +427,7 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                 className={inputClass}
                 required
                 type="date"
-                max={localDate()}
+                max={editMaxDate}
                 value={editing.date}
                 onChange={(e) =>
                   setEditing({ ...editing, date: e.target.value })
@@ -459,24 +486,58 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                 {editError}
               </p>
             )}
-            <div className="flex flex-wrap gap-3">
-              <button className={primaryClass}>Save changes</button>
-              <button
-                type="button"
-                className={secondaryClass}
-                onClick={() => setEditing(null)}
-              >
-                Cancel
-              </button>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-3">
+                <button className={primaryClass}>Save changes</button>
+                <button
+                  type="button"
+                  className={secondaryClass}
+                  onClick={() => setEditing(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+              {onDelete && editing.id && (
+                <button
+                  type="button"
+                  className="min-h-11 rounded-xl border border-[#E8B8A9] bg-[#FBECE7] px-3.5 py-2 text-sm font-semibold text-[#A83E20] transition hover:bg-[#F7DDD4]"
+                  onClick={() => {
+                    if (
+                      editing.id &&
+                      confirm(
+                        `Delete expense "${editing.item}" (${money(editing.amount)})?`,
+                      )
+                    ) {
+                      onDelete(editing.id);
+                      setEditing(null);
+                    }
+                  }}
+                >
+                  Delete expense
+                </button>
+              )}
             </div>
           </form>
         </Dialog>
       )}
       {receipt && (
         <Dialog wide title="Receipt preview" onClose={() => setReceipt(null)}>
-          <p className="mb-3 break-words text-sm text-[#62584E]">
-            {receipt.receiptName || receipt.item}
-          </p>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="break-words text-sm text-[#62584E]">
+              {receipt.receiptName || receipt.item}
+            </p>
+            {previewUrl && (
+              <a
+                className={secondaryClass}
+                href={previewUrl.replace(/\/preview$/, "/view")}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Open in Google Drive
+              </a>
+            )}
+          </div>
           {previewUrl ? (
             <>
               {previewLoading && (
@@ -492,8 +553,8 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                 allow="fullscreen"
               />
               <p className="mt-3 text-xs leading-relaxed text-[#62584E]">
-                The preview uses your existing Google Drive access. If Google
-                blocks it, you can{" "}
+                On iPhone Safari or strict privacy browsers, Google Drive may
+                block embedded previews. Use{" "}
                 <a
                   className="font-medium text-[#D95D39] underline"
                   href={previewUrl.replace(/\/preview$/, "/view")}
@@ -502,8 +563,8 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                 >
                   open the original receipt{" "}
                   <ExternalLink className="inline h-3 w-3" />
-                </a>
-                .
+                </a>{" "}
+                above if it stays blank.
               </p>
             </>
           ) : (

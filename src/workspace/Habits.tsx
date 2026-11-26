@@ -1,6 +1,6 @@
 import { Dialog } from "./Dialog";
-import { useState } from "react";
-import { Bell, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Bell, ChevronLeft, ChevronRight, Plus, RefreshCw } from "lucide-react";
 import { COLOR_OPTIONS, type JournalBridge } from "../App";
 import {
   addDays,
@@ -39,6 +39,14 @@ export function TodayHabits({
   const recurring = todayRecurring(data, today);
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {!journal && (
+        <p
+          role="status"
+          className="col-span-full rounded-xl bg-[#FAF7F2] px-4 py-6 text-center text-sm text-[#8C8073]"
+        >
+          Loading habits…
+        </p>
+      )}
       {(journal?.habits ?? []).map((h) => (
         <div
           key={h.id}
@@ -73,15 +81,25 @@ export function TodayHabits({
             key={h.id}
             className={`flex min-w-0 items-center gap-3 rounded-xl border p-3.5 ${done ? "border-[#CFE0D7] bg-[#F1F6F3]" : "border-[#EFE0BE] bg-[#FBF6EA]"}`}
           >
-            <Circle
-              checked={done}
-              label={`${done ? "Undo" : "Complete"} ${h.name} today`}
-              onClick={() => {
-                if (done && !canUndo) return;
-                const id = uid();
-                update((s) => toggleRecurring(s, h.id, today, id));
-              }}
-            />
+            {done && !canUndo ? (
+              <span
+                aria-label={`${h.name} logged today`}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#5C8D78] bg-[#5C8D78] text-xs font-bold text-white">
+                  ✓
+                </span>
+              </span>
+            ) : (
+              <Circle
+                checked={done}
+                label={`${done ? "Undo" : "Complete"} ${h.name} today`}
+                onClick={() => {
+                  const id = uid();
+                  update((s) => toggleRecurring(s, h.id, today, id));
+                }}
+              />
+            )}
             <div className="min-w-0">
               <p className="break-words text-sm font-semibold text-[#24201D]">
                 {h.name}
@@ -90,7 +108,9 @@ export function TodayHabits({
                 className={`mt-0.5 text-xs ${done ? "text-[#3F6B57]" : "text-[#9A6F25]"}`}
               >
                 {done
-                  ? "Completed today"
+                  ? canUndo
+                    ? "Completed today"
+                    : "Logged today"
                   : recurrenceDue(h, today) < 0
                     ? "Overdue · due today"
                     : "Due today"}{" "}
@@ -100,14 +120,17 @@ export function TodayHabits({
           </div>
         );
       })}
-      {!journal?.habits.length && !recurring.length && (
-        <Empty>
-          Nothing due today. Use the add buttons above to get started.
-        </Empty>
+      {journal && !journal.habits.length && !recurring.length && (
+        <div className="col-span-full">
+          <Empty>
+            Nothing due today. Use the add buttons above to get started.
+          </Empty>
+        </div>
       )}
     </div>
   );
 }
+
 export function Habits({
   data,
   update,
@@ -119,58 +142,115 @@ export function Habits({
   journal: JournalBridge | null;
   today: string;
 }) {
-  const [week, setWeek] = useState(today),
-    [name, setName] = useState(""),
-    [interval, setIntervalDays] = useState(7),
-    [lastDone, setLastDone] = useState(today),
-    [dailyName, setDailyName] = useState(""),
-    [color, setColor] = useState(0);
+  const [week, setWeek] = useState(today);
+  const prevToday = useRef(today);
+  useEffect(() => {
+    if (prevToday.current !== today) {
+      if (week === prevToday.current) setWeek(today);
+      prevToday.current = today;
+    }
+  }, [today, week]);
+
+  const [name, setName] = useState("");
+  const [interval, setIntervalDays] = useState(7);
+  const [lastDone, setLastDone] = useState(today);
+  const [dailyName, setDailyName] = useState("");
+  const [color, setColor] = useState(0);
   const [draftNames, setDraftNames] = useState<Record<string, string>>({});
   const [adding, setAdding] = useState<"daily" | "routine" | null>(null);
-  const dates = weekDates(week);
+  const [notice, setNotice] = useState("");
+  const dates = useMemo(() => weekDates(week), [week]);
+
+  const rowsByDate = useMemo(() => {
+    const map = new Map<string, Record<string, boolean>>();
+    for (const r of journal?.rows ?? []) {
+      map.set(r.dateStr, r.habits);
+    }
+    return map;
+  }, [journal?.rows]);
+
   async function enableNotifications() {
     if (!("Notification" in window)) {
-      alert("Notifications are unavailable in this browser.");
+      setNotice("Notifications are unavailable in this browser.");
       return;
     }
     try {
       const p = await Notification.requestPermission();
-      alert(
+      setNotice(
         p === "granted"
           ? "Reminders enabled while this app is open."
           : "Notifications were not enabled.",
       );
     } catch {
-      alert("Notifications are unavailable in this browser.");
+      setNotice("Notifications are unavailable in this browser.");
     }
   }
+
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap gap-3">
-        <button
-          className={primaryClass}
-          onClick={() => {
-            setDailyName("");
-            setColor(0);
-            setAdding("daily");
-          }}
-        >
-          <Plus className="h-4 w-4" />
-          Add daily habit
-        </button>
-        <button
-          className={secondaryClass}
-          onClick={() => {
-            setName("");
-            setIntervalDays(7);
-            setLastDone(today);
-            setAdding("routine");
-          }}
-        >
-          <Plus className="h-4 w-4" />
-          Add recurring routine
-        </button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            className={primaryClass}
+            onClick={() => {
+              setDailyName("");
+              setColor(0);
+              setAdding("daily");
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            Add daily habit
+          </button>
+          <button
+            type="button"
+            className={secondaryClass}
+            onClick={() => {
+              setName("");
+              setIntervalDays(7);
+              setLastDone(today);
+              setAdding("routine");
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            Add recurring routine
+          </button>
+        </div>
+        {journal && (
+          <div className="flex items-center gap-2">
+            <span
+              role="status"
+              className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                journal.syncState === "error"
+                  ? "border-[#E3A694] bg-[#FBECE7] text-[#9A381D]"
+                  : journal.syncState === "syncing"
+                    ? "border-[#E5CF9E] bg-[#FDF6E7] text-[#8C5A12]"
+                    : "border-[#E4DBCE] bg-white text-[#62584E]"
+              }`}
+            >
+              {journal.saveStatus}
+            </span>
+            <button
+              type="button"
+              className={secondaryClass}
+              onClick={() => void journal.sync()}
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Sync habits
+            </button>
+          </div>
+        )}
       </div>
+
+      {notice && (
+        <p
+          role="status"
+          className="rounded-xl border border-[#EAE2D6] bg-white px-4 py-3 text-sm text-[#4C433B]"
+        >
+          {notice}
+        </p>
+      )}
+
       {adding && (
         <Dialog
           title={
@@ -305,19 +385,99 @@ export function Habits({
           today={today}
         />
       </Card>
+
+      <Card
+        title="Weekly habit history"
+        subtitle="Check any past day to update it. On a small screen, swipe the week horizontally."
+      >
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            aria-label="Previous week"
+            className={secondaryClass}
+            onClick={() => setWeek(addDays(week, -7))}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="min-h-[44px] rounded-xl px-3 text-xs font-semibold text-[#62584E] hover:bg-[#F3EDE3] hover:text-[#24201D]"
+            onClick={() => setWeek(today)}
+          >
+            {dates[0]} — {dates[6]}
+          </button>
+          <button
+            type="button"
+            aria-label="Next week"
+            className={secondaryClass}
+            onClick={() => setWeek(addDays(week, 7))}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="max-w-full overflow-x-auto">
+          <table className="w-full min-w-[550px] text-sm">
+            <thead>
+              <tr>
+                <th className="pb-3 text-left text-xs font-semibold text-[#8C8073]">
+                  Habit
+                </th>
+                {dates.map((d) => (
+                  <th
+                    key={d}
+                    className={`pb-3 text-xs font-medium ${d === today ? "font-bold text-[#D95D39]" : "text-[#8C8073]"}`}
+                  >
+                    {new Date(`${d}T12:00`).toLocaleDateString("en", {
+                      weekday: "short",
+                    })}
+                    <span className="block">{d.slice(8)}</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {journal?.habits.map((h) => (
+                <tr key={h.id} className="border-t border-[#EFE8DC]">
+                  <td className="py-3 pr-3">
+                    <span
+                      className={`inline-flex max-w-[170px] break-words rounded-xl border px-2.5 py-1 text-xs font-medium ${h.lightBg}`}
+                    >
+                      {h.name}
+                    </span>
+                  </td>
+                  {dates.map((d) => {
+                    const checked = !!rowsByDate.get(d)?.[h.id];
+                    return (
+                      <td key={d} className="px-1 py-3">
+                        <button
+                          type="button"
+                          aria-label={`${h.name} on ${d}`}
+                          aria-pressed={checked}
+                          disabled={d > today}
+                          onClick={() => journal.toggleDay(d, h.id)}
+                          className={`mx-auto flex h-11 w-11 items-center justify-center rounded-full border-2 transition disabled:opacity-30 ${checked ? `${h.color} text-white` : "border-[#DDD2C3] bg-white hover:border-[#D95D39]"}`}
+                        >
+                          {checked ? "✓" : ""}
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
       <details className="clay-card rounded-2xl">
         <summary className="cursor-pointer p-5 text-sm font-semibold text-[#24201D]">
-          Customize daily habits
+          Customize daily habits ({journal?.habits.length ?? 0})
         </summary>
-        <Card
-          title="Customize daily habits"
-          subtitle="Add, rename, recolour or remove habits here. Existing checkmarks stay attached to the same habit."
-          action={
-            <span role="status" className="text-xs text-[#62584E]">
-              {journal?.saveStatus ?? "Loading habits…"}
-            </span>
-          }
-        >
+        <div className="border-t border-[#EFE8DC] p-5">
+          <p className="mb-4 text-sm text-[#62584E]">
+            Rename, recolour, set reminders or remove habits here. Existing
+            checkmarks stay attached to the same habit.
+          </p>
           <div className="space-y-3">
             {journal?.habits.map((h) => {
               const c = Math.max(
@@ -389,8 +549,14 @@ export function Habits({
                         confirm(
                           `Remove ${h.name} from active habits? Its historical checkmarks remain in your backup.`,
                         )
-                      )
+                      ) {
                         journal.removeHabit(h.id, h.name);
+                        update((s) => {
+                          const nextReminders = { ...s.reminders };
+                          delete nextReminders[h.id];
+                          return { ...s, reminders: nextReminders };
+                        });
+                      }
                     }}
                   />
                 </div>
@@ -398,108 +564,27 @@ export function Habits({
             })}
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
-            <button className={secondaryClass} onClick={enableNotifications}>
+            <button
+              type="button"
+              className={secondaryClass}
+              onClick={enableNotifications}
+            >
               <Bell className="h-4 w-4" />
               Allow reminders
             </button>
-            {journal && (
-              <button
-                className={secondaryClass}
-                onClick={() => void journal.sync()}
-              >
-                Sync habits
-              </button>
-            )}
           </div>
-        </Card>
+        </div>
       </details>
-      <Card
-        title="Weekly habit history"
-        subtitle="Check any past day to update it. On a small screen, swipe the week horizontally."
-      >
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <button
-            aria-label="Previous week"
-            className={secondaryClass}
-            onClick={() => setWeek(addDays(week, -7))}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            className="text-xs font-semibold text-[#62584E] hover:text-[#24201D]"
-            onClick={() => setWeek(today)}
-          >
-            {dates[0]} — {dates[6]}
-          </button>
-          <button
-            aria-label="Next week"
-            className={secondaryClass}
-            onClick={() => setWeek(addDays(week, 7))}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="max-w-full overflow-x-auto">
-          <table className="w-full min-w-[550px] text-sm">
-            <thead>
-              <tr>
-                <th className="pb-3 text-left text-xs font-semibold text-[#8C8073]">
-                  Habit
-                </th>
-                {dates.map((d) => (
-                  <th
-                    key={d}
-                    className={`pb-3 text-xs font-medium ${d === today ? "font-bold text-[#D95D39]" : "text-[#8C8073]"}`}
-                  >
-                    {new Date(`${d}T12:00`).toLocaleDateString("en", {
-                      weekday: "short",
-                    })}
-                    <span className="block">{d.slice(8)}</span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {journal?.habits.map((h) => (
-                <tr key={h.id} className="border-t border-[#EFE8DC]">
-                  <td className="py-3 pr-3">
-                    <span
-                      className={`inline-flex max-w-[170px] break-words rounded-xl border px-2.5 py-1 text-xs font-medium ${h.lightBg}`}
-                    >
-                      {h.name}
-                    </span>
-                  </td>
-                  {dates.map((d) => {
-                    const checked = !!journal.rows.find((r) => r.dateStr === d)
-                      ?.habits[h.id];
-                    return (
-                      <td key={d} className="px-1 py-3">
-                        <button
-                          aria-label={`${h.name} on ${d}`}
-                          aria-pressed={checked}
-                          disabled={d > today}
-                          onClick={() => journal.toggleDay(d, h.id)}
-                          className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full border-2 transition disabled:opacity-30 ${checked ? `${h.color} text-white` : "border-[#DDD2C3] bg-white hover:border-[#D95D39]"}`}
-                        >
-                          {checked ? "✓" : ""}
-                        </button>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+
       <details className="clay-card rounded-2xl">
         <summary className="cursor-pointer p-5 text-sm font-semibold text-[#24201D]">
-          Recurring routines
+          Recurring routines ({data.recurring.length})
         </summary>
-        <Card
-          title="Recurring routines"
-          subtitle="Set how often it repeats. When the interval is reached, it automatically joins today’s habits."
-        >
+        <div className="border-t border-[#EFE8DC] p-5">
+          <p className="mb-4 text-sm text-[#62584E]">
+            Set how often a routine repeats. When the interval is reached, it
+            automatically joins today’s habits.
+          </p>
           <div className="grid gap-3 md:grid-cols-2">
             {data.recurring.map((h) => {
               const due = recurrenceDue(h, today);
@@ -531,6 +616,9 @@ export function Habits({
                       update((s) => ({
                         ...s,
                         recurring: s.recurring.filter((r) => r.id !== h.id),
+                        recurringChecks: (s.recurringChecks ?? []).filter(
+                          (c) => c.habitId !== h.id,
+                        ),
                       }))
                     }
                   />
@@ -538,7 +626,7 @@ export function Habits({
               );
             })}
           </div>
-        </Card>
+        </div>
       </details>
     </div>
   );

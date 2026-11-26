@@ -490,6 +490,7 @@ export function loanForecast(
   loan: PortfolioLoan,
   extra = 0,
   balance = loan.balance,
+  asOfDate?: string,
 ) {
   let remaining = roundMoney(balance),
     interest = 0;
@@ -499,7 +500,7 @@ export function loanForecast(
       months: 0,
       interest: 0,
       total: 0,
-      completion: loan.asOf,
+      completion: asOfDate || loan.asOf,
       amortizes: true,
     };
   if (payment <= 0)
@@ -530,11 +531,19 @@ export function loanForecast(
     interest = roundMoney(interest + charge);
     months++;
   }
+  let anchor = loan.nextDue;
+  if (asOfDate && anchor < asOfDate) {
+    let guard = 0;
+    while (anchor < asOfDate && guard < 1200) {
+      anchor = addMonths(anchor, 1);
+      guard++;
+    }
+  }
   return {
     months,
     interest,
     total: roundMoney(balance + interest),
-    completion: remaining > 0 ? "" : addMonths(loan.nextDue, months - 1),
+    completion: remaining > 0 ? "" : addMonths(anchor, months - 1),
     amortizes: remaining === 0,
   };
 }
@@ -800,22 +809,39 @@ export function syncPortfolioCommitments(
       ),
   );
   for (const item of [
-    ...p.loans.map((l) => ({
-      id: l.id,
-      name: l.name,
-      planName: l.planName,
-      kind: "loan",
-      amount:
-        loanCurrentBalance(p, l).balance > 0
-          ? l.payment *
-            (l.startDate > cycle.end
-              ? 0
-              : dueCount(l.nextDue, "monthly", {
-                  ...cycle,
-                  start: l.startDate > cycle.start ? l.startDate : cycle.start,
-                }))
-          : 0,
-    })),
+    ...p.loans.map((l) => {
+      const current = loanCurrentBalance(p, l);
+      const forecast =
+        current.balance > 0
+          ? loanForecast(l, 0, current.balance, current.date)
+          : null;
+      const endedBeforeCycle =
+        !!forecast?.amortizes &&
+        !!forecast.completion &&
+        forecast.completion < cycle.start;
+      return {
+        id: l.id,
+        name: l.name,
+        planName: l.planName,
+        kind: "loan",
+        amount:
+          current.balance > 0 && !endedBeforeCycle
+            ? l.payment *
+              (l.startDate > cycle.end
+                ? 0
+                : dueCount(l.nextDue, "monthly", {
+                    ...cycle,
+                    start: l.startDate > cycle.start ? l.startDate : cycle.start,
+                    end:
+                      forecast?.amortizes &&
+                      forecast.completion &&
+                      forecast.completion < cycle.end
+                        ? forecast.completion
+                        : cycle.end,
+                  }))
+            : 0,
+      };
+    }),
     ...p.subscriptions.map((s) => ({
       id: s.id,
       name: s.name,

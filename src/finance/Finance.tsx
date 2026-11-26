@@ -113,12 +113,6 @@ export default function Finance({
               onClick={() => {
                 if (tab === "portfolio") setPortfolioSection("overview");
                 setView(tab);
-                if (
-                  tab === "monthly" &&
-                  cycle &&
-                  !plan.cycles.some((c) => c.id === cycle.id)
-                )
-                  update(withCycle);
               }}
             >
               {tab === "expenses"
@@ -233,29 +227,6 @@ export default function Finance({
           className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)]"
         >
           <div className="min-w-0 space-y-5">
-            {cycle && (
-              <StatementImport
-                key={cycle.id}
-                cycle={cycle}
-                existing={data.financeExpenses ?? []}
-                onSave={(records) => {
-                  update((s) => {
-                    const next = withCycle(s);
-                    return {
-                      ...next,
-                      financeExpenses: [
-                        ...(next.financeExpenses ?? []),
-                        ...records,
-                      ],
-                    };
-                  });
-                  setLastSaved({
-                    id: records.at(-1)!.id,
-                    name: `${records.length} imported expenses`,
-                  });
-                }}
-              />
-            )}
             {cycle ? (
               <ExpenseForm
                 key={`${cycle.id}:${cycle.start}:${cycle.end}`}
@@ -285,6 +256,7 @@ export default function Finance({
                   });
                   setChosenId(cycle.id);
                   setLastSaved({ id: record.id, name: record.item });
+                  if (record.receiptUrl) onSync();
                 }}
               />
             ) : (
@@ -296,16 +268,54 @@ export default function Finance({
                 an expense.
               </p>
             )}
+            {cycle && (
+              <StatementImport
+                key={cycle.id}
+                cycle={cycle}
+                existing={data.financeExpenses ?? []}
+                onSave={(records) => {
+                  update((s) => {
+                    const next = withCycle(s);
+                    return {
+                      ...next,
+                      financeExpenses: [
+                        ...(next.financeExpenses ?? []),
+                        ...records,
+                      ],
+                    };
+                  });
+                  setLastSaved({
+                    id: records.at(-1)!.id,
+                    name: `${records.length} imported expenses`,
+                  });
+                }}
+              />
+            )}
           </div>
           <ExpenseHistory
             key={`${selectedId}:${lastSaved?.id ?? "initial"}`}
             expenses={expenses}
+            maxDate={cycle && cycle.end > today ? cycle.end : today}
             onSync={onSync}
             lastSaved={lastSaved}
+            onDelete={(id) => {
+              update((s) => ({
+                ...s,
+                financeExpenses: (s.financeExpenses ?? []).filter(
+                  (e) => e.id !== id,
+                ),
+              }));
+              setLastSaved(null);
+            }}
             onEdit={(edited) => {
+              const target = currentFinanceCycle(plan, edited.date);
+              const maxAllowed =
+                cycle && cycle.end > today ? cycle.end : today;
+              const ceiling =
+                target && target.end > maxAllowed ? target.end : maxAllowed;
               if (
                 !validDate(edited.date) ||
-                edited.date > today ||
+                edited.date > ceiling ||
                 !edited.item.trim() ||
                 !Number.isFinite(edited.amount) ||
                 edited.amount <= 0
@@ -317,7 +327,6 @@ export default function Finance({
                 throw new Error(
                   "This transaction no longer exists. Sync expenses and try again.",
                 );
-              const target = currentFinanceCycle(plan, edited.date);
               if (!target)
                 throw new Error(
                   "Set up a salary cycle covering this date in Monthly Budget, then try again.",
@@ -349,8 +358,8 @@ export default function Finance({
               });
               setChosenId(target.id);
               setLastSaved({
-                id: edited.id!,
-                name: edited.item,
+                id: edited.id ?? "",
+                name: edited.item.trim(),
                 action: "Updated",
               });
             }}

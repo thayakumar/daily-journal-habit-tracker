@@ -7,13 +7,16 @@ import {
   useState,
 } from "react";
 import {
+  AlertTriangle,
   ArrowRight,
   CheckCircle2,
   ChevronRight,
   Cloud,
+  CloudOff,
   Download,
   LayoutGrid,
   Menu,
+  RefreshCw,
   Upload,
   X,
 } from "lucide-react";
@@ -37,6 +40,7 @@ import {
   readJournal,
   todayRecurring,
   recurringDone,
+  wishlistExpired,
   WORKSPACE_KEY,
   type Workspace,
 } from "./model";
@@ -163,8 +167,16 @@ function currentTab(): Tab {
 function useToday() {
   const [today, setToday] = useState(localDate);
   useEffect(() => {
-    const timer = setInterval(() => setToday(localDate()), 30_000);
-    return () => clearInterval(timer);
+    const refresh = () => setToday(localDate());
+    const timer = setInterval(refresh, 30_000);
+    const canDoc =
+      typeof document !== "undefined" &&
+      typeof document.addEventListener === "function";
+    if (canDoc) document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearInterval(timer);
+      if (canDoc) document.removeEventListener("visibilitychange", refresh);
+    };
   }, []);
   return today;
 }
@@ -194,6 +206,28 @@ function countTodayHabits(
   };
 }
 
+function countOpenPersonalItems(data: Workspace, today: string): number {
+  return data.items.filter(
+    (i) =>
+      ["personal", "grocery", "wishlist", "watch"].includes(i.kind) &&
+      !i.done &&
+      !wishlistExpired(i, today),
+  ).length;
+}
+
+function countUpcomingCalendarItems(data: Workspace, today: string): number {
+  const manual = data.events.filter((e) => e.date >= today).length;
+  const vehicleRenewals = (data.vehicles ?? []).reduce((sum, v) => {
+    return (
+      sum +
+      (v.roadTaxDue && v.roadTaxDue >= today ? 1 : 0) +
+      (v.insuranceDue && v.insuranceDue >= today ? 1 : 0) +
+      (v.serviceDue && v.serviceDue >= today ? 1 : 0)
+    );
+  }, 0);
+  return manual + vehicleRenewals;
+}
+
 function roomMeta(
   id: Tab,
   data: Workspace,
@@ -206,11 +240,7 @@ function roomMeta(
       return total ? `${done}/${total} today` : "No habits yet";
     }
     case "personal": {
-      const open = data.items.filter(
-        (i) =>
-          ["personal", "grocery", "wishlist", "watch"].includes(i.kind) &&
-          !i.done,
-      ).length;
+      const open = countOpenPersonalItems(data, today);
       return open ? `${open} open` : "All clear";
     }
     case "skincare": {
@@ -226,7 +256,7 @@ function roomMeta(
       return count ? `${count} expenses` : "Budget & receipts";
     }
     case "calendar": {
-      const upcoming = data.events.filter((e) => e.date >= today).length;
+      const upcoming = countUpcomingCalendarItems(data, today);
       return upcoming ? `${upcoming} upcoming` : "Open calendar";
     }
     case "vehicles": {
@@ -234,7 +264,7 @@ function roomMeta(
       return count ? `${count} tracked` : "Service & renewals";
     }
     case "meals":
-      return "7-day table";
+      return "7-day plan";
     case "dump": {
       const count = data.thoughts.length;
       return count ? `${count} notes` : "Clear mind";
@@ -260,7 +290,11 @@ export default function WorkspaceApp() {
     initialLoading,
     update,
     status,
+    syncState,
+    syncError,
     retrySync,
+    flushSync,
+    pullCloud,
     reloadCloud,
     tableStorage,
     logStorageReady,
@@ -300,17 +334,30 @@ export default function WorkspaceApp() {
     return () => window.removeEventListener("hashchange", change);
   }, []);
   useEffect(() => {
-    const timer = setInterval(() => {
-      if (!("Notification" in window) || Notification.permission !== "granted")
+    if (!menu) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenu(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menu]);
+  useEffect(() => {
+    const checkReminders = () => {
+      if (
+        typeof Notification === "undefined" ||
+        !("Notification" in window) ||
+        Notification.permission !== "granted"
+      )
         return;
       const now = new Date();
       const date = localDate(now);
       const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
       const { data: state, journal: j } = reminderSource.current;
       for (const h of j?.habits ?? []) {
-        const key = `${date}:${h.id}:${time}`;
+        const scheduled = state.reminders[h.id];
+        if (!scheduled || scheduled > time) continue;
+        const key = `${date}:${h.id}:${scheduled}`;
         if (
-          state.reminders[h.id] === time &&
           !notified.current.has(key) &&
           !j?.rows.find((r) => r.dateStr === date)?.habits[h.id]
         ) {
@@ -322,11 +369,31 @@ export default function WorkspaceApp() {
           }
         }
       }
-    }, 15_000);
+    };
+    const timer = setInterval(checkReminders, 15_000);
     return () => clearInterval(timer);
   }, []);
 
   const habitSummary = countTodayHabits(data, journal, today);
+  const journalState = journal?.syncState ?? (isConfigured() ? "syncing" : "local");
+  const effectiveSyncState =
+    syncState === "error" || journalState === "error"
+      ? "error"
+      : syncState === "offline" || journalState === "offline"
+        ? "offline"
+        : syncState === "syncing" || journalState === "syncing"
+          ? "syncing"
+          : isConfigured()
+            ? "synced"
+            : "local";
+  const bannerMessage =
+    syncState === "error"
+      ? syncError || status
+      : journalState === "error"
+        ? journal?.saveStatus || "Habits sync failed · tap Retry"
+        : effectiveSyncState === "offline"
+          ? "Offline — edits are safely saved on this device and will auto-sync when back online."
+          : null;
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] text-[#24201D] selection:bg-[#FBECE7] selection:text-[#9A381D]">
@@ -340,27 +407,37 @@ export default function WorkspaceApp() {
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-[#EAE2D6] bg-white transition-transform lg:translate-x-0 ${menu ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <a
-          href="#overview"
-          onClick={(e) => {
-            e.preventDefault();
-            navigate("overview");
-          }}
-          className="flex items-center gap-3 px-6 pb-6 pt-6"
-        >
-          <ClayObject
-            name="brand-shelf"
-            className="h-11 w-11 shrink-0 rounded-2xl shadow-xs"
-          />
-          <div className="min-w-0">
-            <span className="font-display block max-w-36 truncate text-lg font-bold text-[#24201D]">
-              {data.name}
-            </span>
-            <span className="block text-[11px] font-medium text-[#8C8073]">
-              Daily shelf
-            </span>
-          </div>
-        </a>
+        <div className="flex items-center justify-between gap-2 px-4 pb-5 pt-5 sm:px-6">
+          <a
+            href="#overview"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate("overview");
+            }}
+            className="flex min-w-0 items-center gap-3"
+          >
+            <ClayObject
+              name="brand-shelf"
+              className="h-11 w-11 shrink-0 rounded-2xl shadow-xs"
+            />
+            <div className="min-w-0">
+              <span className="font-display block max-w-32 truncate text-lg font-bold text-[#24201D]">
+                {data.name}
+              </span>
+              <span className="block text-[11px] font-medium text-[#8C8073]">
+                Daily shelf
+              </span>
+            </div>
+          </a>
+          <button
+            type="button"
+            aria-label="Close navigation"
+            onClick={() => setMenu(false)}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#E4DBCE] bg-[#FAF7F2] text-[#62584E] transition hover:bg-[#F3EDE3] lg:hidden"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
         <div className="px-6 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9D9083]">
           Rooms
         </div>
@@ -379,7 +456,7 @@ export default function WorkspaceApp() {
                   navigate(n.id);
                 }}
                 aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition ${n.id === "settings" ? "!mt-4 border-t border-[#EFE8DC] pt-3" : ""} ${active ? "bg-[#FBECE7] font-semibold text-[#B84727]" : "text-[#62584E] hover:bg-[#F6F1E9] hover:text-[#24201D]"}`}
+                className={`flex min-h-[40px] items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition ${n.id === "settings" ? "!mt-4 border-t border-[#EFE8DC] pt-3" : ""} ${active ? "bg-[#FBECE7] font-semibold text-[#B84727]" : "text-[#62584E] hover:bg-[#F6F1E9] hover:text-[#24201D]"}`}
               >
                 {n.asset ? (
                   <ClayObject
@@ -423,19 +500,16 @@ export default function WorkspaceApp() {
         </div>
       </aside>
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-30 border-b border-[#EAE2D6] bg-[#FAF7F2]/92 px-4 py-3 backdrop-blur-sm sm:px-8">
+        <header className="sticky top-0 z-30 border-b border-[#EAE2D6] bg-[#FAF7F2]/92 px-4 py-2.5 backdrop-blur-sm sm:px-8">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <button
-                className="rounded-xl border border-[#E4DBCE] bg-white p-2 text-[#62584E] transition hover:bg-[#F3EDE3] lg:hidden"
+                type="button"
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#E4DBCE] bg-white text-[#62584E] transition hover:bg-[#F3EDE3] lg:hidden"
                 aria-label="Open navigation"
                 onClick={() => setMenu(true)}
               >
-                {menu ? (
-                  <X className="h-5 w-5" />
-                ) : (
-                  <Menu className="h-5 w-5" />
-                )}
+                <Menu className="h-5 w-5" />
               </button>
               <div className="flex items-center gap-2 text-xs text-[#8C8073]">
                 <span className="hidden sm:inline">{data.name}</span>
@@ -445,7 +519,7 @@ export default function WorkspaceApp() {
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <span className="hidden text-xs font-medium text-[#62584E] md:inline">
                 {new Date(`${today}T12:00`).toLocaleDateString(undefined, {
                   weekday: "short",
@@ -454,25 +528,96 @@ export default function WorkspaceApp() {
                 })}
               </span>
               <button
-                onClick={() => navigate("settings")}
-                className="flex items-center gap-1.5 rounded-full border border-[#E4DBCE] bg-white px-3 py-1.5 text-[11px] font-medium text-[#62584E] transition hover:border-[#D5C9B9] hover:text-[#24201D]"
+                type="button"
+                onClick={() => {
+                  if (effectiveSyncState === "error" || effectiveSyncState === "offline") {
+                    void retrySync();
+                    void journal?.sync();
+                  } else if (isConfigured()) {
+                    void pullCloud();
+                  } else {
+                    navigate("settings");
+                  }
+                }}
+                aria-label={`Sync status: ${status}`}
+                className={`flex min-h-[38px] items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                  effectiveSyncState === "error"
+                    ? "border-[#E3A694] bg-[#FBECE7] text-[#9A381D] hover:bg-[#F7DDD4]"
+                    : effectiveSyncState === "offline"
+                      ? "border-[#DFD4C3] bg-[#F3EDE3] text-[#62584E] hover:bg-[#EAE1D3]"
+                      : effectiveSyncState === "syncing"
+                        ? "border-[#E5CF9E] bg-[#FDF6E7] text-[#8C5A12]"
+                        : "border-[#E4DBCE] bg-white text-[#62584E] hover:border-[#D5C9B9] hover:text-[#24201D]"
+                }`}
                 title={status}
               >
-                <CheckCircle2 className="h-3.5 w-3.5 text-[#5C8D78]" />
+                {effectiveSyncState === "error" ? (
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-[#B84727]" />
+                ) : effectiveSyncState === "offline" ? (
+                  <CloudOff className="h-3.5 w-3.5 shrink-0 text-[#8C8073]" />
+                ) : effectiveSyncState === "syncing" ? (
+                  <RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin text-[#B27B22]" />
+                ) : (
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[#5C8D78]" />
+                )}
                 <span>
-                  {isConfigured()
-                    ? tableStorage
-                      ? "Per-page tables"
-                      : "Legacy sync"
-                    : "Device storage"}
+                  {effectiveSyncState === "error"
+                    ? "Sync issue · Retry"
+                    : effectiveSyncState === "offline"
+                      ? "Offline"
+                      : effectiveSyncState === "syncing"
+                        ? "Syncing…"
+                        : isConfigured()
+                          ? tableStorage
+                            ? "Synced"
+                            : "Legacy sync"
+                          : "Device only"}
                 </span>
               </button>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[#E4DBCE] bg-[#F3EDE3] font-display text-xs font-bold text-[#24201D]">
+              <button
+                type="button"
+                aria-label="Open settings"
+                onClick={() => navigate("settings")}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E4DBCE] bg-[#F3EDE3] font-display text-xs font-bold text-[#24201D] transition hover:border-[#D5C9B9]"
+              >
                 {data.name.trim().slice(0, 1).toUpperCase() || "M"}
-              </div>
+              </button>
             </div>
           </div>
         </header>
+        {bannerMessage && (
+          <div
+            role="status"
+            className={`border-b px-4 py-2.5 text-xs sm:px-8 ${
+              effectiveSyncState === "error"
+                ? "border-[#E8B8A9] bg-[#FBECE7] text-[#9A381D]"
+                : "border-[#E4DBCE] bg-[#F3EDE3] text-[#4C433B]"
+            }`}
+          >
+            <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-2">
+              <span className="font-medium">{bannerMessage}</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void retrySync();
+                    void journal?.sync();
+                  }}
+                  className="min-h-[34px] rounded-lg border border-current/25 bg-white/80 px-3 py-1 font-semibold transition hover:bg-white"
+                >
+                  Sync now
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("settings")}
+                  className="min-h-[34px] rounded-lg px-2.5 py-1 font-medium underline underline-offset-2"
+                >
+                  Settings
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <main
           id="main-content"
           className="mx-auto max-w-[1440px] px-4 py-8 sm:px-8 sm:py-10"
@@ -521,6 +666,7 @@ export default function WorkspaceApp() {
                 today={today}
                 storageReady={skincareStorageReady}
                 photoReady={skincarePhotosReady}
+                onSync={() => void flushSync()}
               />
             </Suspense>
           )}
@@ -534,7 +680,7 @@ export default function WorkspaceApp() {
                 planningReady={planningStorageReady}
                 portfolioReady={portfolioStorageReady}
                 migrationReady={migrationReady}
-                onSync={() => void retrySync()}
+                onSync={() => void flushSync()}
               />
             </Suspense>
           )}
@@ -605,6 +751,7 @@ export default function WorkspaceApp() {
           {tab === "settings" && (
             <SettingsPanel
               data={data}
+              journal={journal}
               update={update}
               status={status}
               retrySync={retrySync}
@@ -615,10 +762,11 @@ export default function WorkspaceApp() {
           )}
         </main>
         <Journal onReady={onJournalReady} headless />
-        <footer className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-2 border-t border-[#EFE8DC] px-4 py-6 text-xs text-[#8C8073] sm:px-8">
+        <footer className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-2 border-t border-[#EFE8DC] px-4 py-4 text-xs text-[#8C8073] sm:px-8">
           <span>{data.name} · Habits, meals, notes, and plans in one quiet place.</span>
           <button
-            className="font-medium text-[#62584E] transition hover:text-[#D95D39]"
+            type="button"
+            className="inline-flex min-h-[44px] items-center rounded-lg px-2 font-medium text-[#62584E] transition hover:text-[#D95D39]"
             onClick={() => navigate("settings")}
           >
             Your data &amp; backups <ArrowRight className="ml-1 inline h-3 w-3" />
@@ -641,10 +789,7 @@ function Overview({
   navigate: (tab: Tab) => void;
 }) {
   const { done, total } = countTodayHabits(data, journal, today);
-  const openTasks = data.items.filter(
-    (i) =>
-      ["personal", "grocery", "wishlist", "watch"].includes(i.kind) && !i.done,
-  ).length;
+  const openTasks = countOpenPersonalItems(data, today);
   const formattedDate = new Date(`${today}T12:00`).toLocaleDateString(
     undefined,
     {
@@ -763,6 +908,7 @@ function Overview({
 
 function SettingsPanel({
   data,
+  journal,
   update,
   status,
   retrySync,
@@ -771,6 +917,7 @@ function SettingsPanel({
   logStorageReady,
 }: {
   data: Workspace;
+  journal: JournalBridge | null;
   update: Update;
   status: string;
   retrySync: () => Promise<void>;
@@ -801,13 +948,14 @@ function SettingsPanel({
       )
         return;
       // Persist validated records before notifying the mounted journal.
-      if (backup.journal)
-        localStorage.setItem(JOURNAL_KEY, JSON.stringify(backup.journal));
-      localStorage.setItem(WORKSPACE_KEY, JSON.stringify(backup.workspace));
       if (backup.journal) {
-        localStorage.setItem("journal.pending.v1", "true");
-        window.dispatchEvent(new Event("journal-restored"));
+        localStorage.setItem(JOURNAL_KEY, JSON.stringify(backup.journal));
+      } else {
+        localStorage.removeItem(JOURNAL_KEY);
       }
+      localStorage.setItem(WORKSPACE_KEY, JSON.stringify(backup.workspace));
+      localStorage.setItem("journal.pending.v1", "true");
+      window.dispatchEvent(new Event("journal-restored"));
       const restored = backup.workspace;
       update(() => restored);
       setMessage(
@@ -853,35 +1001,38 @@ function SettingsPanel({
             </p>
             <p className="mt-2 text-xs leading-relaxed text-[#62584E]">
               {isConfigured()
-                ? "Planner sections save to their own Sheet tables after the Apps Script update. Journal records continue to use Entries and Habits. The sync status above identifies the active storage mode."
+                ? "Planner sections save to their own Sheet tables and automatically merge changes across your phone and desktop."
                 : "Changes stay in this browser, on this device. Your existing GitHub Pages deployment keeps its Sheets configuration when this update is merged."}
             </p>
           </div>
         </div>
         {isConfigured() && (
-          <button
-            className={`${secondaryClass} mt-4`}
-            onClick={() => {
-              void retrySync();
-            }}
-          >
-            Retry planner sync
-          </button>
-        )}
-        {isConfigured() && (
-          <button
-            className={`${secondaryClass} mt-3`}
-            onClick={() => {
-              if (
-                confirm(
-                  "Load the latest planner from Google Sheets and replace this device’s planner? Export a backup first if you have unsynced edits.",
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              className={secondaryClass}
+              onClick={() => {
+                void retrySync();
+                void journal?.sync();
+              }}
+            >
+              Retry planner sync
+            </button>
+            <button
+              type="button"
+              className={secondaryClass}
+              onClick={() => {
+                if (
+                  confirm(
+                    "Load the latest planner from Google Sheets and replace this device’s planner? Export a backup first if you have unsynced edits.",
+                  )
                 )
-              )
-                void reloadCloud();
-            }}
-          >
-            Load latest Sheet tables
-          </button>
+                  void reloadCloud();
+              }}
+            >
+              Load latest Sheet tables
+            </button>
+          </div>
         )}
         <div className="mt-4 rounded-xl border border-[#EAE2D6] p-4 text-xs leading-relaxed text-[#62584E]">
           <p className="font-semibold text-[#24201D]">
@@ -924,15 +1075,23 @@ function SettingsPanel({
       >
         <div className="flex flex-wrap gap-3">
           <button
+            type="button"
             className={primaryClass}
             onClick={() => {
+              const liveJournal = journal
+                ? {
+                    rows: journal.rows,
+                    habits: journal.habits,
+                    showTasksColumn: journal.showTasksColumn,
+                  }
+                : readJournal();
               downloadJson(
                 {
                   format: "my-space-backup",
                   version: 1,
                   exportedAt: new Date().toISOString(),
                   workspace: data,
-                  journal: readJournal(),
+                  journal: liveJournal,
                 },
                 `my-space-${localDate()}.json`,
               );
@@ -943,6 +1102,7 @@ function SettingsPanel({
             Export full backup
           </button>
           <button
+            type="button"
             className={secondaryClass}
             onClick={() => fileRef.current?.click()}
           >

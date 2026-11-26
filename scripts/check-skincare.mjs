@@ -66,13 +66,18 @@ try {
     checks = [],
     errors = [];
   browser = await chromium.launch({
-    executablePath: "/usr/bin/chromium",
+    executablePath:
+      process.env.CHROMIUM_PATH ||
+      (fs.existsSync("/usr/bin/chromium")
+        ? "/usr/bin/chromium"
+        : "/usr/bin/google-chrome"),
     headless: true,
     args: ["--no-sandbox", "--disable-dev-shm-usage"],
   });
   const context = await browser.newContext({
       viewport: { width: 390, height: 844 },
       serviceWorkers: "block",
+      timezoneId: "Asia/Kuala_Lumpur",
     }),
     page = await context.newPage();
   page.on("pageerror", (e) => errors.push(e.message));

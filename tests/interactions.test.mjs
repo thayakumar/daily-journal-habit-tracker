@@ -203,7 +203,7 @@ test("failed cloud load never overwrites remote planner with local defaults", as
   assert.equal(JSON.parse(store.get(WORKSPACE_KEY)).name, "Offline edit");
 });
 
-test("journal keeps unsynced local changes on startup and awaits an explicit sync", async () => {
+test("journal preserves unsynced local changes on startup via 3-way merge and auto-syncs", async () => {
   globalThis.__TEST_SCRIPT_URL__ = "https://sheet.test/exec";
   const today = localDate();
   const local = {
@@ -213,9 +213,12 @@ test("journal keeps unsynced local changes on startup and awaits an explicit syn
   };
   store.set(JOURNAL_KEY, JSON.stringify(local));
   store.set("journal.pending.v1", "true");
-  let posts = 0;
+  const posts = [];
   globalThis.fetch = async (_url, options) => {
-    if (options?.method === "POST") posts++;
+    if (options?.method === "POST") {
+      posts.push(JSON.parse(options.body));
+      return { ok: true, json: async () => ({ success: true }) };
+    }
     return {
       ok: true,
       json: async () => ({
@@ -235,7 +238,10 @@ test("journal keeps unsynced local changes on startup and awaits an explicit syn
   );
   assert.equal(bridge.rows[0].morningFood, "Local breakfast");
   await act(async () => sleep(1100));
-  assert.equal(posts, 0);
+  const saved = posts.find((p) => p.action === "saveEntries");
+  assert.ok(saved, "pending local journal should auto-sync after merge");
+  assert.equal(saved.data[0].morningFood, "Local breakfast");
+  assert.equal(store.get("journal.pending.v1"), undefined);
 });
 
 test("journal toggles persist to Sheets without side effects in React state updaters", async () => {

@@ -106,9 +106,13 @@ export function Circle({
       aria-label={label}
       aria-pressed={checked}
       onClick={onClick}
-      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition ${checked ? "border-[#D95D39] bg-[#D95D39] text-white shadow-sm" : "border-[#DDD2C3] bg-white text-transparent hover:border-[#D95D39]"}`}
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition"
     >
-      <Check className="h-4 w-4" />
+      <span
+        className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition ${checked ? "border-[#D95D39] bg-[#D95D39] text-white shadow-sm" : "border-[#DDD2C3] bg-white text-transparent hover:border-[#D95D39]"}`}
+      >
+        <Check className="h-4 w-4" />
+      </span>
     </button>
   );
 }
@@ -176,6 +180,7 @@ export function ListPanel({
     }));
     setText("");
     setDue("");
+    if (filter !== "active") setFilter("active");
   };
   const emptyActiveCopy: Record<ItemKind, string> = {
     personal: "No open errands or appointments.",
@@ -231,7 +236,7 @@ export function ListPanel({
             key={f}
             aria-pressed={filter === f}
             onClick={() => setFilter(f as typeof filter)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition ${filter === f ? "bg-[#FBECE7] text-[#B84727]" : "text-[#62584E] hover:bg-[#F3EDE3]"}`}
+            className={`min-h-[44px] rounded-xl px-3.5 py-2 text-xs font-semibold capitalize transition ${filter === f ? "bg-[#FBECE7] text-[#B84727]" : "text-[#62584E] hover:bg-[#F3EDE3]"}`}
           >
             {f}
           </button>

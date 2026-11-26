@@ -55,12 +55,21 @@ function dayInMonth(month: string, day: number) {
   return `${month}-${String(Math.min(day, new Date(Date.UTC(y, m, 0)).getUTCDate())).padStart(2, "0")}`;
 }
 export function cycleDates(month: string, day: number) {
+  if (day <= 1) {
+    const [y, m] = month.split("-").map(Number);
+    const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    return {
+      start: `${month}-01`,
+      end: `${month}-${String(last).padStart(2, "0")}`,
+    };
+  }
   const start = dayInMonth(shiftMonth(month, -1), day);
   const next = new Date(`${dayInMonth(month, day)}T12:00:00Z`);
   next.setUTCDate(next.getUTCDate() - 1);
   return { start, end: next.toISOString().slice(0, 10) };
 }
 export function activeMonth(today: string, day: number) {
+  if (day <= 1) return today.slice(0, 7);
   return today >= dayInMonth(today.slice(0, 7), day)
     ? shiftMonth(today.slice(0, 7), 1)
     : today.slice(0, 7);

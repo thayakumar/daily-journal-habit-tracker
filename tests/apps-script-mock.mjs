@@ -6,7 +6,7 @@ export function createBackend(
   journal = { entries: [], habits: [] },
 ) {
   const sheets = new Map();
-  const metrics = { reads: 0, bodyReads: {} };
+  const metrics = { reads: 0, bodyReads: {}, writes: 0, writesBySheet: {} };
   let lockHeld = false;
   const receipts = [];
   const scriptProperties = new Map([
@@ -34,6 +34,9 @@ export function createBackend(
         rows.some((r) => r.length !== this.width)
       )
         throw new Error("Range shape mismatch");
+      metrics.writes++;
+      metrics.writesBySheet[this.sheet.name] =
+        (metrics.writesBySheet[this.sheet.name] ?? 0) + 1;
       rows.forEach((row, r) =>
         row.forEach((v, c) => {
           if (!this.sheet.grid[this.row + r - 1])

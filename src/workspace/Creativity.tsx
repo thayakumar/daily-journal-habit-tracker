@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ExternalLink, Plus, Send } from "lucide-react";
 import { safeUrl, uid, type Workspace } from "./model";
 import {
@@ -19,6 +19,14 @@ export function BrainDump({
   update: Update;
 }) {
   const [text, setText] = useState("");
+  const listRef = useRef<HTMLDivElement>(null);
+  const prevCount = useRef(data.thoughts.length);
+  useEffect(() => {
+    if (data.thoughts.length > prevCount.current && listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
+    prevCount.current = data.thoughts.length;
+  }, [data.thoughts.length]);
   return (
     <Card
       title="Brain dump"
@@ -30,7 +38,10 @@ export function BrainDump({
       }
     >
       <div className="mx-auto max-w-3xl">
-        <div className="mb-6 max-h-[55vh] space-y-4 overflow-y-auto rounded-2xl bg-[#FAF7F2] p-3 sm:p-6">
+        <div
+          ref={listRef}
+          className="mb-6 max-h-[55vh] space-y-4 overflow-y-auto rounded-2xl bg-[#FAF7F2] p-3 sm:p-6"
+        >
           {data.thoughts.length ? (
             data.thoughts.map((t) => (
               <article
@@ -100,7 +111,11 @@ export function BrainDump({
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-          <button className={primaryClass} disabled={!text.trim()}>
+          <button
+            aria-label="Add thought"
+            className={primaryClass}
+            disabled={!text.trim()}
+          >
             <Send className="h-4 w-4" />
             <span className="hidden sm:inline">Add</span>
           </button>
@@ -113,6 +128,7 @@ export function Ideas({ data, update }: { data: Workspace; update: Update }) {
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [note, setNote] = useState("");
+  const [error, setError] = useState("");
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_1.5fr]">
       <Card
@@ -125,9 +141,10 @@ export function Ideas({ data, update }: { data: Workspace; update: Update }) {
             e.preventDefault();
             if (!title.trim()) return;
             if (url && !safeUrl(url)) {
-              alert("Please enter a full http:// or https:// link.");
+              setError("Please enter a full http:// or https:// link.");
               return;
             }
+            setError("");
             update((s) => ({
               ...s,
               ideas: [
@@ -156,7 +173,10 @@ export function Ideas({ data, update }: { data: Workspace; update: Update }) {
               className={inputClass}
               placeholder="https://…"
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                if (error) setError("");
+              }}
             />
           </Field>
           <Field label="Notes">
@@ -168,6 +188,11 @@ export function Ideas({ data, update }: { data: Workspace; update: Update }) {
               placeholder="Why did this catch your eye?"
             />
           </Field>
+          {error && (
+            <p role="alert" className="text-sm text-[#A83E20]">
+              {error}
+            </p>
+          )}
           <button className={primaryClass}>
             <Plus className="h-4 w-4" />
             Save idea

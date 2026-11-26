@@ -12,14 +12,11 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,11 +27,13 @@ jobs:
 
       - run: npm ci
 
+      - run: npm run lint
+
       - run: npm test
 
       - run: npm run build
         env:
-          VITE_GOOGLE_SCRIPT_URL: https://script.google.com/macros/s/AKfycbze66c2WlE1MnH1XeVxHrGtwSceFqKapitXL53wMTE25dBbvnpJErAOiODf5WLaSSGZCg/exec
+          VITE_GOOGLE_SCRIPT_URL: ${{ secrets.VITE_GOOGLE_SCRIPT_URL || vars.VITE_GOOGLE_SCRIPT_URL }}
 
       - uses: actions/configure-pages@v5
 
@@ -42,5 +41,12 @@ jobs:
         with:
           path: dist
 
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4

@@ -67,7 +67,9 @@ export function MonthlyBudget({
     [editingCycle, setEditingCycle] = useState(false),
     [copyFrom, setCopyFrom] = useState("");
   const [rowDialog, setRowDialog] = useState<FinancePlanRow | null>(null),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [cycleNotice, setCycleNotice] = useState(""),
+    [showAllExpenses, setShowAllExpenses] = useState(false);
   const categories = [
     ...new Set([
       ...Object.values(Category),
@@ -118,30 +120,67 @@ export function MonthlyBudget({
   }
   return (
     <div className="min-w-0 space-y-5 [contain:paint]">
-      <details className="rounded-2xl border border-[#EAE2D6] bg-white">
-        <summary className="cursor-pointer p-5 text-lg font-semibold text-[#3B342E]">
-          Salary cycle settings
-        </summary>
-        <Card
-          title="Your salary cycles"
-          subtitle="Name a cycle by the month it funds. Its start and end dates decide which expenses appear."
-          action={
-            <button className={primaryClass} onClick={() => openCycle()}>
+      <Card
+        title={cycle ? monthName(cycle.month) : "Your salary cycles"}
+        subtitle={
+          cycle
+            ? `${cycle.start} → ${cycle.end} · both dates included`
+            : "Name a cycle by the month it funds. Its start and end dates decide which expenses appear."
+        }
+        action={
+          <div className="flex flex-wrap gap-2">
+            {cycle && (
+              <button
+                type="button"
+                className={secondaryClass}
+                onClick={() => openCycle(true)}
+              >
+                <Pencil className="h-4 w-4" />
+                Edit cycle dates
+              </button>
+            )}
+            <button
+              type="button"
+              className={primaryClass}
+              onClick={() => openCycle()}
+            >
               <Plus className="h-4 w-4" />
               New cycle
             </button>
-          }
-        >
-          {!storageReady && (
-            <p
-              role="status"
-              className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800"
-            >
-              Monthly plans save on this device. Your connection needs an update
-              to sync them to Sheets.
-            </p>
-          )}
-          <div className="flex flex-wrap items-end gap-4">
+          </div>
+        }
+      >
+        {!storageReady && (
+          <p
+            role="status"
+            className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800"
+          >
+            Monthly plans save on this device. Your connection needs an update
+            to sync them to Sheets.
+          </p>
+        )}
+        {cycleNotice && (
+          <p
+            role="status"
+            className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+          >
+            {cycleNotice}
+          </p>
+        )}
+        {!cycle && (
+          <div className="mb-4">
+            <Empty>
+              {plan.cycles.length
+                ? "Select a cycle above to see its monthly picture."
+                : "Create your first salary cycle to start your monthly plan."}
+            </Empty>
+          </div>
+        )}
+        <details className="rounded-xl border border-[#EFE8DC] bg-[#FAF7F2]/60">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-[#473F38]">
+            Salary cycle settings
+          </summary>
+          <div className="flex flex-wrap items-end gap-4 border-t border-[#EFE8DC] p-4">
             <div className="w-full sm:w-48">
               <Field label="Default salary day">
                 <select
@@ -172,86 +211,81 @@ export function MonthlyBudget({
               Short months use the last available day.
             </p>
           </div>
-          {cycle && (
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#FBECE7] p-4">
-              <div>
-                <p className="font-semibold text-[#24201D]">
-                  {monthName(cycle.month)}
-                </p>
-                <p className="mt-1 text-sm text-[#62584E]">
-                  {cycle.start} → {cycle.end} · both dates included
-                </p>
-              </div>
-              <button
-                className={secondaryClass}
-                onClick={() => openCycle(true)}
-              >
-                <Pencil className="h-4 w-4" />
-                Edit cycle dates
-              </button>
-            </div>
-          )}
-          {!cycle && (
-            <div className="mt-5">
-              <Empty>
-                {plan.cycles.length
-                  ? "Select a cycle above to see its monthly picture."
-                  : "Create your first salary cycle to start your monthly plan."}
-              </Empty>
-            </div>
-          )}
-        </Card>
-      </details>
+        </details>
+      </Card>
       {cycle && summary && (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {[
-              ["Income", summary.income, "Income recorded for this cycle"],
+            {(
               [
-                "Fixed commitments",
-                summary.commitments,
-                "Your monthly committed payments",
-              ],
-              [
-                "Expenses",
-                summary.spent,
-                `${summary.transactions.length} expenses within these dates`,
-              ],
-              [
-                "Expected savings",
-                summary.expected,
-                "Income − commitments − planned budgets",
-              ],
-              [
-                "Actual surplus",
-                summary.surplus,
-                "Income − commitments − recorded expenses",
-              ],
-              [
-                "Budget remaining",
-                summary.remaining,
-                "Planned budgets − recorded expenses",
-              ],
-            ].map(([label, value, hint], index) => (
-              <div
-                key={String(label)}
-                className={`min-w-0 rounded-2xl border p-6 shadow-sm ${["border-emerald-200 bg-emerald-50/70", "border-amber-200 bg-amber-50/70", "border-[#F2C9BC] bg-[#FBECE7]/70", "border-sky-200 bg-sky-50/70", "border-[#CFDCEB] bg-[#EDF2F8]/80", "border-teal-200 bg-teal-50/70"][index]}`}
-              >
-                <p
-                  className={`text-lg font-bold sm:text-xl ${["text-emerald-800", "text-amber-800", "text-[#A83E20]", "text-sky-800", "text-[#355380]", "text-teal-800"][index]}`}
+                {
+                  label: "Income",
+                  value: summary.income,
+                  hint: "Income recorded for this cycle",
+                  semantic: false,
+                },
+                {
+                  label: "Fixed commitments",
+                  value: summary.commitments,
+                  hint: "Your monthly committed payments",
+                  semantic: false,
+                },
+                {
+                  label: "Expenses",
+                  value: summary.spent,
+                  hint: `${summary.transactions.length} expenses within these dates`,
+                  semantic: false,
+                },
+                {
+                  label: "Expected savings",
+                  value: summary.expected,
+                  hint: "Income − commitments − planned budgets",
+                  semantic: true,
+                },
+                {
+                  label: "Actual surplus",
+                  value: summary.surplus,
+                  hint: "Income − commitments − recorded expenses",
+                  semantic: true,
+                },
+                {
+                  label: "Budget remaining",
+                  value: summary.remaining,
+                  hint: "Planned budgets − recorded expenses",
+                  semantic: true,
+                },
+              ] as const
+            ).map(({ label, value, hint, semantic }) => {
+              const negative = value < 0;
+              return (
+                <div
+                  key={label}
+                  className={`min-w-0 rounded-2xl border p-5 shadow-xs ${
+                    negative
+                      ? "border-[#E8B8A9] bg-[#FBECE7]/60"
+                      : "border-[#EAE2D6] bg-white"
+                  }`}
                 >
-                  {label}
-                </p>
-                <p
-                  className={`mt-3 break-words text-3xl font-bold ${Number(value) < 0 ? "text-[#D95D39]" : "text-[#24201D]"}`}
-                >
-                  {money(Number(value))}
-                </p>
-                <p className="mt-3 text-sm leading-relaxed text-[#62584E]">
-                  {hint}
-                </p>
-              </div>
-            ))}
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[#8C8073]">
+                    {label}
+                  </p>
+                  <p
+                    className={`mt-2 break-words font-display text-2xl font-bold sm:text-3xl ${
+                      negative
+                        ? "text-[#B84727]"
+                        : semantic && value > 0
+                          ? "text-[#356651]"
+                          : "text-[#24201D]"
+                    }`}
+                  >
+                    {money(value)}
+                  </p>
+                  <p className="mt-2 text-xs leading-relaxed text-[#62584E]">
+                    {hint}
+                  </p>
+                </div>
+              );
+            })}
           </div>
           <Card
             title="Expenses by category"
@@ -466,29 +500,33 @@ export function MonthlyBudget({
                                   )}
                                   <td>
                                     <div className="flex justify-end">
-                                      <button
-                                        aria-label={`Edit ${row.name}`}
-                                        className="flex h-11 w-11 shrink-0 items-center justify-center text-[#8C8073] hover:text-[#C04C2B]"
-                                        onClick={() =>
-                                          row.id.startsWith("portfolio:") &&
-                                          kind === "balance" &&
-                                          onOpenPortfolio
-                                            ? onOpenPortfolio()
-                                            : openRow(kind, row)
-                                        }
-                                      >
-                                        <Pencil className="h-4 w-4" />
-                                      </button>
-                                      <Delete
-                                        label={`Delete ${row.name}`}
-                                        onClick={() =>
-                                          row.id.startsWith("portfolio:") &&
-                                          kind === "balance" &&
-                                          onOpenPortfolio
-                                            ? onOpenPortfolio()
-                                            : removeRow(row)
-                                        }
-                                      />
+                                      {row.id.startsWith("portfolio:") &&
+                                      kind === "balance" &&
+                                      onOpenPortfolio ? (
+                                        <button
+                                          type="button"
+                                          aria-label={`Manage ${row.name} in Portfolio`}
+                                          className={secondaryClass}
+                                          onClick={onOpenPortfolio}
+                                        >
+                                          Portfolio
+                                        </button>
+                                      ) : (
+                                        <>
+                                          <button
+                                            type="button"
+                                            aria-label={`Edit ${row.name}`}
+                                            className="flex h-11 w-11 shrink-0 items-center justify-center text-[#8C8073] hover:text-[#C04C2B]"
+                                            onClick={() => openRow(kind, row)}
+                                          >
+                                            <Pencil className="h-4 w-4" />
+                                          </button>
+                                          <Delete
+                                            label={`Delete ${row.name}`}
+                                            onClick={() => removeRow(row)}
+                                          />
+                                        </>
+                                      )}
                                     </div>
                                   </td>
                                 </tr>
@@ -534,7 +572,20 @@ export function MonthlyBudget({
           </div>
           <Card
             title="Expenses in this cycle"
-            subtitle="These are the same records as Expense Tracker, selected by the cycle dates."
+            subtitle={`${summary.transactions.length} transactions within ${cycle.start} → ${cycle.end} (synced with Expense Tracker).`}
+            action={
+              summary.transactions.length > 10 && (
+                <button
+                  type="button"
+                  className={secondaryClass}
+                  onClick={() => setShowAllExpenses((v) => !v)}
+                >
+                  {showAllExpenses
+                    ? "Show fewer"
+                    : `Show all ${summary.transactions.length}`}
+                </button>
+              )
+            }
           >
             {!summary.transactions.length ? (
               <Empty>No expenses in these dates.</Empty>
@@ -558,6 +609,7 @@ export function MonthlyBudget({
                   <tbody>
                     {[...summary.transactions]
                       .sort((a, b) => b.date.localeCompare(a.date))
+                      .slice(0, showAllExpenses ? undefined : 10)
                       .map((e) => (
                         <tr key={e.id} className="border-t border-[#EFE8DC]">
                           <td className="whitespace-nowrap py-3 pr-3">
@@ -594,14 +646,47 @@ export function MonthlyBudget({
                 return;
               }
               const saved = cycleDialog;
+              const today = localDate();
+              if (editingCycle) {
+                const curPortfolio = data.financePortfolio ?? emptyPortfolio();
+                const hasOpening =
+                  curPortfolio.snapshots.some(
+                    (r) => r.cycleId === saved.id && r.phase === "opening",
+                  ) ||
+                  curPortfolio.debtSnapshots.some(
+                    (r) => r.cycleId === saved.id && r.phase === "opening",
+                  );
+                const hasClosing =
+                  curPortfolio.snapshots.some(
+                    (r) => r.cycleId === saved.id && r.phase === "closing",
+                  ) ||
+                  curPortfolio.debtSnapshots.some(
+                    (r) => r.cycleId === saved.id && r.phase === "closing",
+                  );
+                if (hasOpening && saved.start > today) {
+                  setError(
+                    "Linked Portfolio opening balances cannot be moved into a future date.",
+                  );
+                  return;
+                }
+                if (hasClosing && saved.end > today) {
+                  setError(
+                    "Linked Portfolio closing balances cannot be moved into a future date.",
+                  );
+                  return;
+                }
+              }
+              let shiftedCount = 0;
+              let detachedCount = 0;
               update((s) => {
                 const p = s.financePlanning ?? emptyPlanning();
-                const source = p.rows.filter((r) => r.cycleId === copyFrom);
+                const source = p.rows.filter(
+                  (r) =>
+                    r.cycleId === copyFrom && !r.id.startsWith("portfolio:"),
+                );
                 const copied = source.map((r) => ({
                   ...r,
-                  id: r.id.startsWith("portfolio:")
-                    ? `${r.id.split(":").slice(0, 3).join(":")}:${saved.id}`
-                    : uid(),
+                  id: uid(),
                   cycleId: saved.id,
                   amount: r.kind === "balance" ? 0 : r.amount,
                 }));
@@ -630,6 +715,60 @@ export function MonthlyBudget({
                         liquid: false,
                       }))
                     : [];
+                let nextPortfolio = s.financePortfolio ?? emptyPortfolio();
+                if (editingCycle) {
+                  nextPortfolio = {
+                    ...nextPortfolio,
+                    snapshots: nextPortfolio.snapshots.map((snap) => {
+                      if (snap.cycleId !== saved.id) return snap;
+                      if (snap.phase === "opening" && snap.date !== saved.start) {
+                        shiftedCount++;
+                        return { ...snap, date: saved.start };
+                      }
+                      if (snap.phase === "closing" && snap.date !== saved.end) {
+                        shiftedCount++;
+                        return { ...snap, date: saved.end };
+                      }
+                      if (
+                        snap.phase === "current" &&
+                        (snap.date < saved.start || snap.date > saved.end)
+                      ) {
+                        detachedCount++;
+                        return { ...snap, cycleId: "" };
+                      }
+                      return snap;
+                    }),
+                    debtSnapshots: nextPortfolio.debtSnapshots.map((snap) => {
+                      if (snap.cycleId !== saved.id) return snap;
+                      if (snap.phase === "opening" && snap.date !== saved.start) {
+                        shiftedCount++;
+                        return { ...snap, date: saved.start };
+                      }
+                      if (snap.phase === "closing" && snap.date !== saved.end) {
+                        shiftedCount++;
+                        return { ...snap, date: saved.end };
+                      }
+                      if (
+                        snap.phase === "current" &&
+                        (snap.date < saved.start || snap.date > saved.end)
+                      ) {
+                        detachedCount++;
+                        return { ...snap, cycleId: "" };
+                      }
+                      return snap;
+                    }),
+                    flows: nextPortfolio.flows.map((flow) => {
+                      if (
+                        flow.cycleId === saved.id &&
+                        (flow.date < saved.start || flow.date > saved.end)
+                      ) {
+                        detachedCount++;
+                        return { ...flow, cycleId: "" };
+                      }
+                      return flow;
+                    }),
+                  };
+                }
                 let nextPlan = {
                   ...p,
                   cycles: editingCycle
@@ -640,22 +779,42 @@ export function MonthlyBudget({
                     ...(editingCycle ? [] : copyFrom ? copied : defaults),
                   ],
                 };
-                const portfolio = s.financePortfolio ?? emptyPortfolio();
-                if (portfolio.accounts.length)
+                if (nextPortfolio.accounts.length)
                   nextPlan = syncPortfolioBalances(
                     nextPlan,
-                    portfolio,
+                    nextPortfolio,
                     saved.id,
                   );
-                if (portfolio.loans.length || portfolio.subscriptions.length)
+                if (
+                  nextPortfolio.loans.length ||
+                  nextPortfolio.subscriptions.length
+                )
                   nextPlan = syncPortfolioCommitments(
                     nextPlan,
-                    portfolio,
+                    nextPortfolio,
                     saved,
-                    localDate(),
+                    today,
                   );
-                return { ...s, financePlanning: nextPlan };
+                return {
+                  ...s,
+                  financePlanning: nextPlan,
+                  financePortfolio: nextPortfolio,
+                };
               });
+              if (shiftedCount || detachedCount) {
+                const parts: string[] = [];
+                if (shiftedCount)
+                  parts.push(
+                    `shifted ${shiftedCount} opening/closing Portfolio snapshot${shiftedCount === 1 ? "" : "s"} to match the new dates`,
+                  );
+                if (detachedCount)
+                  parts.push(
+                    `${detachedCount} mid-cycle Portfolio record${detachedCount === 1 ? "" : "s"} fell outside the new dates and were moved to ongoing dated history`,
+                  );
+                setCycleNotice(`Cycle updated: ${parts.join("; ")}.`);
+              } else {
+                setCycleNotice("");
+              }
               onSelect(saved.id);
               setCycleDialog(null);
             }}

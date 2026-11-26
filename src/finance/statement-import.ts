@@ -12,7 +12,7 @@ export function statementDate(value: string, year: number): string {
   let y: number, m: number, d: number;
   const iso = value.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
   const local = value.match(
-    /\b(\d{1,2})[\/. -](\d{1,2})(?:[\/. -](20\d{2}|\d{2}))?\b/,
+    /\b(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](20\d{2}|\d{2}))?\b/,
   );
   const named = value.match(
     /\b(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+(20\d{2}))?\b/i,

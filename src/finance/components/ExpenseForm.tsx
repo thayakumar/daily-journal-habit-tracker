@@ -316,7 +316,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
                   key={meta.name}
                   type="button"
                   onClick={() => setSelectedCategory(meta.name)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs text-left cursor-pointer transition-all duration-150 ${
+                  className={`flex min-h-[44px] items-center gap-2 px-3 py-2.5 rounded-lg border text-xs text-left cursor-pointer transition-all duration-150 ${
                     isSelected
                       ? `border-[#D95D39] bg-[#FBECE7] text-[#A83E20] font-semibold shadow-xs`
                       : "bg-[#FAF7F2] border-[#EAE2D6] text-[#62584E] hover:bg-[#F3EDE3]"
@@ -396,7 +396,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
                 type="button"
                 aria-label="Remove selected receipt"
                 onClick={handleRemoveFile}
-                className="p-1.5 hover:bg-[#EAE2D6] rounded-full text-[#8C8073] hover:text-[#24201D] cursor-pointer"
+                className="flex h-11 w-11 shrink-0 items-center justify-center hover:bg-[#EAE2D6] rounded-full text-[#8C8073] hover:text-[#24201D] cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>

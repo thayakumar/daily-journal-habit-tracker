@@ -37,7 +37,11 @@ try {
     await new Promise((r) => setTimeout(r, 100));
   }
   browser = await chromium.launch({
-    executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium",
+    executablePath:
+      process.env.CHROMIUM_PATH ||
+      (fs.existsSync("/usr/bin/chromium")
+        ? "/usr/bin/chromium"
+        : "/usr/bin/google-chrome"),
     headless: true,
     args: ["--no-sandbox", "--disable-dev-shm-usage"],
   });
