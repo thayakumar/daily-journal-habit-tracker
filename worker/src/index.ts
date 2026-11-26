@@ -187,11 +187,13 @@ async function callAppsScriptPost(
   return data;
 }
 
+const defaultFetch: typeof fetch = (input, init) => fetch(input, init);
+
 export async function offloadMediaById(
   db: TursoClient,
   env: WorkerEnv,
   id: string,
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: typeof fetch = defaultFetch,
 ): Promise<{ offloaded: boolean; error?: string }> {
   if (!env.GOOGLE_SCRIPT_URL) {
     return { offloaded: false, error: "GOOGLE_SCRIPT_URL not configured" };
@@ -274,7 +276,7 @@ export async function offloadMediaById(
 export async function flushPendingMedia(
   db: TursoClient,
   env: WorkerEnv,
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: typeof fetch = defaultFetch,
   limit = 5,
   minAgeMs = 0,
 ): Promise<{ checked: number; offloaded: number; failed: number }> {
@@ -848,7 +850,7 @@ export async function handleWorkerRequest(
   request: Request,
   env: WorkerEnv,
   ctx: ExecutionCtx,
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: typeof fetch = defaultFetch,
 ): Promise<Response> {
   const origin = request.headers.get("Origin");
   if (!isOriginAllowed(origin, env)) {
@@ -889,7 +891,7 @@ export default {
     const db = new TursoClient(env.TURSO_DATABASE_URL, env.TURSO_AUTH_TOKEN);
     ctx.waitUntil(
       ensureSchema(db, env.TURSO_DATABASE_URL)
-        .then(() => flushPendingMedia(db, env, fetch, 20, 0))
+        .then(() => flushPendingMedia(db, env, defaultFetch, 20, 0))
         .catch(() => {}),
     );
   },

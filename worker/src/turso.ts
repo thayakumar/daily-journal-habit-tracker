@@ -66,12 +66,12 @@ export class TursoClient {
   constructor(
     databaseUrl: string,
     authToken: string,
-    fetchImpl: typeof fetch = fetch,
+    fetchImpl?: typeof fetch,
   ) {
     if (!databaseUrl) throw new Error("TURSO_DATABASE_URL is not configured");
     this.pipelineUrl = tursoPipelineUrl(databaseUrl);
     this.authToken = authToken || "";
-    this.fetchImpl = fetchImpl;
+    this.fetchImpl = fetchImpl ?? ((input, init) => fetch(input, init));
   }
 
   async batch(statements: SqlStatement[]): Promise<SqlResult[]> {
@@ -93,7 +93,8 @@ export class TursoClient {
       headers.Authorization = `Bearer ${this.authToken}`;
     }
 
-    const res = await this.fetchImpl(this.pipelineUrl, {
+    const doFetch = this.fetchImpl;
+    const res = await doFetch(this.pipelineUrl, {
       method: "POST",
       headers,
       body: JSON.stringify({ requests }),
