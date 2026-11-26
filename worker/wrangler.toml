@@ -1,0 +1,10 @@
+name = "my-space-api"
+main = "src/index.ts"
+compatibility_date = "2025-02-01"
+
+[triggers]
+# Automatically retry any transiently failed Google Drive media offloads and wipe their Turso blobs.
+crons = ["*/15 * * * *"]
+
+[vars]
+ALLOWED_ORIGINS = "https://thayakumar.github.io"

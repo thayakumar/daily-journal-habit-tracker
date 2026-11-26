@@ -1,6 +1,7 @@
 import { build } from "vite";
 await build({
   define: {
+    "import.meta.env.VITE_API_URL": "globalThis.__TEST_API_URL__",
     "import.meta.env.VITE_GOOGLE_SCRIPT_URL": "globalThis.__TEST_SCRIPT_URL__",
   },
   build: {
