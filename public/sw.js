@@ -1,4 +1,4 @@
-const CACHE_NAME = 'journal-workspace-v2';
+const CACHE_NAME = 'journal-workspace-v3';
 self.addEventListener('install', () => { self.skipWaiting(); });
 self.addEventListener('activate', event => {
   event.waitUntil(Promise.all([
