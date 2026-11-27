@@ -234,12 +234,13 @@ export function Habits({
   }
 
   return (
-    <div className="space-y-5">
-      <div className="clay-card flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3.5 sm:px-5">
-        <div className="flex flex-wrap gap-2.5">
+    <div className="space-y-4">
+      {/* Compact Borderless Action Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            className={primaryClass}
+            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-[#D95D39] px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition duration-150 hover:bg-[#C04C2B] active:scale-[0.98] sm:text-sm"
             onClick={() => {
               setDailyName("");
               setColor(0);
@@ -251,7 +252,7 @@ export function Habits({
           </button>
           <button
             type="button"
-            className={secondaryClass}
+            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-[#DFD5C6] bg-white px-3 py-2 text-xs font-semibold text-[#3B342E] shadow-xs transition duration-150 hover:bg-[#FAF7F2] active:scale-[0.98] sm:text-sm"
             onClick={() => {
               setName("");
               setIntervalDays(7);
@@ -264,26 +265,27 @@ export function Habits({
           </button>
         </div>
         {journal && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              role="status"
-              className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                journal.syncState === "error"
-                  ? "border-[#E3A694] bg-[#FBECE7] text-[#9A381D]"
-                  : journal.syncState === "syncing"
-                    ? "border-[#E5CF9E] bg-[#FDF6E7] text-[#8C5A12]"
-                    : "border-[#E4DBCE] bg-[#FAF7F2] text-[#5C5248]"
-              }`}
-            >
-              {journal.saveStatus}
-            </span>
+          <div className="flex items-center gap-2">
+            {(journal.syncState === "error" ||
+              journal.syncState === "syncing") && (
+              <span
+                role="status"
+                className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+                  journal.syncState === "error"
+                    ? "border-[#E3A694] bg-[#FBECE7] text-[#9A381D]"
+                    : "border-[#E5CF9E] bg-[#FDF6E7] text-[#8C5A12]"
+                }`}
+              >
+                {journal.saveStatus}
+              </span>
+            )}
             <button
               type="button"
-              className={secondaryClass}
+              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-[#DFD5C6] bg-white px-3 py-2 text-xs font-semibold text-[#3B342E] shadow-xs transition-colors hover:bg-[#FAF7F2]"
               onClick={() => void journal.sync()}
             >
               <RefreshCw className="h-3.5 w-3.5" />
-              Sync habits
+              <span>Sync habits</span>
             </button>
           </div>
         )}
@@ -292,7 +294,7 @@ export function Habits({
       {notice && (
         <p
           role="status"
-          className="rounded-xl border border-[#EAE2D6] bg-white px-4 py-3 text-sm text-[#4C433B]"
+          className="rounded-xl border border-[#EAE2D6] bg-white px-4 py-2.5 text-xs font-medium text-[#4C433B]"
         >
           {notice}
         </p>
@@ -425,127 +427,139 @@ export function Habits({
         </Dialog>
       )}
 
-      <Card
-        title="Today’s habits"
-        subtitle="Daily habits and recurring routines due today, together. Overdue routines stay here until completed."
-        action={
-          todayTotal > 0 ? (
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold tabular-nums ${
-                todayDone === todayTotal
-                  ? "bg-[#E6F1EC] text-[#2F5B48]"
-                  : "bg-[#FBECE7] text-[#A83E20]"
-              }`}
-            >
-              {todayDone}/{todayTotal} done
-            </span>
-          ) : undefined
-        }
-      >
-        <TodayHabits
-          data={data}
-          update={update}
-          journal={journal}
-          today={today}
-        />
-      </Card>
+      {/* Desktop 2-Column Dashboard Split: Today (5 cols) | Weekly Matrix (7 cols) */}
+      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-12">
+        <Card
+          compact
+          className="min-w-0 lg:col-span-5"
+          title="Today’s habits"
+          action={
+            todayTotal > 0 ? (
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums ${
+                  todayDone === todayTotal
+                    ? "bg-[#E6F1EC] text-[#2F5B48]"
+                    : "bg-[#FBECE7] text-[#A83E20]"
+                }`}
+              >
+                {todayDone}/{todayTotal} done
+              </span>
+            ) : undefined
+          }
+        >
+          <TodayHabits
+            data={data}
+            update={update}
+            journal={journal}
+            today={today}
+          />
+        </Card>
 
-      <Card
-        title="Weekly habit history"
-        subtitle="Check any past day to update it. On a small screen, swipe the week horizontally."
-        action={
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              aria-label="Previous week"
-              className={secondaryClass}
-              onClick={() => setWeek(addDays(week, -7))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className="min-h-[44px] rounded-xl px-3 text-xs font-semibold tabular-nums text-[#4C433B] transition-colors hover:bg-[#F3EDE3] hover:text-[#24201D]"
-              onClick={() => setWeek(today)}
-              title="Jump to current week"
-            >
-              {weekLabel}
-            </button>
-            <button
-              type="button"
-              aria-label="Next week"
-              className={secondaryClass}
-              onClick={() => setWeek(addDays(week, 7))}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        }
-      >
-        <div className="max-w-full overflow-x-auto">
-          <table className="w-full min-w-[550px] border-separate border-spacing-0 text-sm">
-            <thead>
-              <tr>
-                <th className="pb-3 text-left text-xs font-semibold text-[#6E6358]">
-                  Habit
-                </th>
-                {dates.map((d) => (
-                  <th
-                    key={d}
-                    className={`rounded-t-xl px-1 py-2 text-xs font-semibold ${
-                      d === today
-                        ? "bg-[#FBECE7]/60 text-[#A83E20]"
-                        : "text-[#6E6358]"
-                    }`}
-                  >
-                    {new Date(`${d}T12:00`).toLocaleDateString("en", {
-                      weekday: "short",
-                    })}
-                    <span className="mt-0.5 block tabular-nums">
-                      {d.slice(8)}
-                    </span>
+        <Card
+          compact
+          className="min-w-0 lg:col-span-7"
+          title="Weekly habit history"
+          action={
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                aria-label="Previous week"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DFD5C6] bg-white text-[#3B342E] hover:bg-[#FAF7F2]"
+                onClick={() => setWeek(addDays(week, -7))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                className="min-h-9 rounded-xl px-2 text-xs font-semibold tabular-nums text-[#4C433B] transition-colors hover:bg-[#F3EDE3] hover:text-[#24201D]"
+                onClick={() => setWeek(today)}
+                title="Jump to current week"
+              >
+                {weekLabel}
+              </button>
+              <button
+                type="button"
+                aria-label="Next week"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DFD5C6] bg-white text-[#3B342E] hover:bg-[#FAF7F2]"
+                onClick={() => setWeek(addDays(week, 7))}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          }
+        >
+          <div className="max-w-full overflow-x-auto">
+            <table className="w-full border-separate border-spacing-0 text-xs sm:text-sm">
+              <thead>
+                <tr>
+                  <th className="pb-2 text-left text-[11px] font-semibold text-[#6E6358]">
+                    Habit
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {journal?.habits.map((h) => (
-                <tr key={h.id}>
-                  <td className="border-t border-[#EFE8DC] py-3 pr-3">
-                    <span
-                      className={`inline-flex max-w-[170px] break-words rounded-xl border px-2.5 py-1 text-xs font-medium ${h.lightBg}`}
+                  {dates.map((d) => (
+                    <th
+                      key={d}
+                      className={`rounded-t-xl px-0.5 py-1.5 text-center text-[10px] font-semibold sm:px-1 sm:text-xs ${
+                        d === today
+                          ? "bg-[#FBECE7]/60 text-[#A83E20]"
+                          : "text-[#6E6358]"
+                      }`}
                     >
-                      {h.name}
-                    </span>
-                  </td>
-                  {dates.map((d) => {
-                    const checked = !!rowsByDate.get(d)?.[h.id];
-                    return (
-                      <td
-                        key={d}
-                        className={`border-t border-[#EFE8DC] px-1 py-3 ${
-                          d === today ? "bg-[#FBECE7]/35" : ""
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          aria-label={`${h.name} on ${d}`}
-                          aria-pressed={checked}
-                          disabled={d > today}
-                          onClick={() => journal.toggleDay(d, h.id)}
-                          className={`mx-auto flex h-11 w-11 items-center justify-center rounded-full border-2 transition duration-150 active:scale-95 disabled:opacity-30 ${checked ? `${h.color} text-white shadow-xs` : "border-[#DDD2C3] bg-white hover:border-[#D95D39]"}`}
-                        >
-                          {checked ? "✓" : ""}
-                        </button>
-                      </td>
-                    );
-                  })}
+                      <span className="sm:hidden">
+                        {new Date(`${d}T12:00`)
+                          .toLocaleDateString("en", { weekday: "narrow" })}
+                      </span>
+                      <span className="hidden sm:inline">
+                        {new Date(`${d}T12:00`).toLocaleDateString("en", {
+                          weekday: "short",
+                        })}
+                      </span>
+                      <span className="mt-0.5 block tabular-nums">
+                        {d.slice(8)}
+                      </span>
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
+              <tbody>
+                {journal?.habits.map((h) => (
+                  <tr key={h.id}>
+                    <td className="border-t border-[#EFE8DC] py-2 pr-1.5 sm:py-2.5 sm:pr-3">
+                      <span
+                        className={`inline-flex max-w-[78px] truncate rounded-lg border px-1.5 py-0.5 text-[11px] font-medium sm:max-w-[150px] sm:rounded-xl sm:px-2.5 sm:py-1 sm:text-xs ${h.lightBg}`}
+                        title={h.name}
+                      >
+                        {h.name}
+                      </span>
+                    </td>
+                    {dates.map((d) => {
+                      const checked = !!rowsByDate.get(d)?.[h.id];
+                      return (
+                        <td
+                          key={d}
+                          className={`border-t border-[#EFE8DC] px-0.5 py-2 sm:px-1 sm:py-2.5 ${
+                            d === today ? "bg-[#FBECE7]/35" : ""
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            aria-label={`${h.name} on ${d}`}
+                            aria-pressed={checked}
+                            disabled={d > today}
+                            onClick={() => journal.toggleDay(d, h.id)}
+                            className={`mx-auto flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs transition duration-150 active:scale-95 disabled:opacity-30 sm:h-10 sm:w-10 ${checked ? `${h.color} text-white shadow-xs` : "border-[#DDD2C3] bg-white hover:border-[#D95D39]"}`}
+                          >
+                            {checked ? "✓" : ""}
+                          </button>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
 
       <details className="clay-card rounded-2xl">
         <summary className="cursor-pointer p-5 text-sm font-semibold text-[#24201D]">

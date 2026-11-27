@@ -17,8 +17,6 @@ import {
   RefreshCw,
   Search,
   ExternalLink,
-  DollarSign,
-  TrendingUp,
   Receipt,
   Car,
   ShoppingBag,
@@ -101,82 +99,53 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
   return (
     <div
       id="expense-history-root"
-      className="min-w-0 space-y-6 [contain:paint]"
+      className="min-w-0 space-y-4 [contain:paint]"
     >
-      {/* Metrics Banner */}
-      <div id="metrics-grid" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {/* Metric 1 */}
-        <div
-          id="metric-total-box"
-          className="clay-card flex min-w-0 items-center justify-between gap-3 rounded-2xl p-4 sm:p-5"
-        >
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-[#6E6358]">
-              {isFiltered ? "Filtered spending" : "Total spending"}
-            </p>
-            <p className="mt-1.5 break-words font-display text-2xl font-bold tabular-nums text-[#24201D]">
-              {money(totalAmount)}
-            </p>
-          </div>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#F5D8CE] bg-[#FBECE7] text-[#D95D39]">
-            <DollarSign className="h-4 w-4" />
-          </div>
+      {/* Joined 3-Column KPI Summary Strip */}
+      <div
+        id="metrics-grid"
+        className="clay-card grid grid-cols-3 divide-x divide-[#EFE8DC] rounded-2xl"
+      >
+        <div id="metric-total-box" className="min-w-0 px-3 py-3 sm:px-4 sm:py-4">
+          <p className="truncate text-[11px] font-semibold text-[#6E6358] sm:text-xs">
+            {isFiltered ? "Filtered" : "Total spent"}
+          </p>
+          <p className="mt-1 truncate font-display text-sm font-bold tabular-nums text-[#D95D39] min-[375px]:text-base sm:text-2xl">
+            {money(totalAmount)}
+          </p>
         </div>
-
-        {/* Metric 2 */}
-        <div
-          id="metric-avg-box"
-          className="clay-card flex min-w-0 items-center justify-between gap-3 rounded-2xl p-4 sm:p-5"
-        >
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-[#6E6358]">
-              {isFiltered ? "Filtered average" : "Average expense"}
-            </p>
-            <p className="mt-1.5 break-words font-display text-2xl font-bold tabular-nums text-[#24201D]">
-              {money(averageAmount)}
-            </p>
-          </div>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#CFE0D7] bg-[#ECF4F0] text-[#356651]">
-            <TrendingUp className="h-4 w-4" />
-          </div>
+        <div id="metric-avg-box" className="min-w-0 px-3 py-3 sm:px-4 sm:py-4">
+          <p className="truncate text-[11px] font-semibold text-[#6E6358] sm:text-xs">
+            {isFiltered ? "Avg (filt.)" : "Average"}
+          </p>
+          <p className="mt-1 truncate font-display text-sm font-bold tabular-nums text-[#24201D] min-[375px]:text-base sm:text-2xl">
+            {money(averageAmount)}
+          </p>
         </div>
-
-        {/* Metric 3 */}
-        <div
-          id="metric-max-box"
-          className="clay-card flex min-w-0 items-center justify-between gap-3 rounded-2xl p-4 sm:p-5"
-        >
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-[#6E6358]">
-              {isFiltered ? "Filtered highest" : "Highest expense"}
-            </p>
-            <p className="mt-1.5 break-words font-display text-2xl font-bold tabular-nums text-[#24201D]">
-              {money(maxExpense)}
-            </p>
-          </div>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E7DDD0] bg-[#FAF7F2] text-[#5C5248]">
-            <Receipt className="h-4 w-4" />
-          </div>
+        <div id="metric-max-box" className="min-w-0 px-3 py-3 sm:px-4 sm:py-4">
+          <p className="truncate text-[11px] font-semibold text-[#6E6358] sm:text-xs">
+            {isFiltered ? "Max (filt.)" : "Highest"}
+          </p>
+          <p className="mt-1 truncate font-display text-sm font-bold tabular-nums text-[#24201D] min-[375px]:text-base sm:text-2xl">
+            {money(maxExpense)}
+          </p>
         </div>
       </div>
 
-      {/* Control Block */}
+      {/* Ledger Card */}
       <div
         id="history-controls"
-        className="clay-card min-w-0 space-y-4 rounded-2xl p-5"
+        className="clay-card min-w-0 space-y-3 rounded-2xl p-3.5 sm:p-5"
       >
-        <div className="flex flex-col items-start justify-between gap-3 border-b border-[#EFE8DC] pb-4 sm:flex-row sm:items-center">
+        <div className="flex items-center justify-between gap-2 border-b border-[#EFE8DC] pb-3">
           <div className="min-w-0">
-            <h3 className="font-display text-base font-semibold text-[#24201D]">
+            <h3 className="font-display text-sm font-semibold text-[#24201D] sm:text-base">
               Expense history
             </h3>
-            <p className="mt-0.5 text-xs text-[#6E6358]">
-              Selected salary cycle · updates automatically as you save
-            </p>
             {lastSaved && (
               <p
                 role="status"
-                className="mt-2 break-words text-sm font-medium text-[#356651]"
+                className="mt-1 break-words text-xs font-medium text-[#356651]"
               >
                 {lastSaved.action ?? "Added"} {lastSaved.name}. Your history is
                 up to date.
@@ -187,36 +156,34 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
             type="button"
             id="btn-refresh-logs"
             onClick={onSync}
-            className="flex min-h-[44px] shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-[#DFD5C6] bg-white px-3.5 py-2 text-xs font-semibold text-[#3B342E] shadow-xs transition-colors hover:bg-[#FAF7F2] disabled:opacity-50"
+            className="flex min-h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-[#DFD5C6] bg-white px-3 py-1.5 text-xs font-semibold text-[#3B342E] shadow-xs transition-colors hover:bg-[#FAF7F2] disabled:opacity-50"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             <span>Sync expenses</span>
           </button>
         </div>
 
-        {/* Search & Category Filter */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* Search bar */}
-          <div className="relative sm:col-span-2">
-            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#8C8073]">
-              <Search className="h-4 w-4 text-[#8C8073]" />
+        {/* Single-Row Search & Category Filter */}
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+          <div className="relative min-w-0">
+            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#6E6358]">
+              <Search className="h-3.5 w-3.5" />
             </span>
             <input
               type="text"
               aria-label="Search expenses"
-              placeholder="Search expenses by item or tag..."
+              placeholder="Search expenses…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="min-w-0 w-full pl-9 pr-4 py-2.5 bg-[#FAF7F2] border border-[#EAE2D6] rounded-lg text-xs focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] outline-none transition-colors"
+              className="min-w-0 w-full rounded-xl border border-[#E7DDD0] bg-[#FAF7F2] py-2 pl-8 pr-3 text-xs outline-none transition-colors focus:border-[#D95D39] focus:bg-white focus:ring-2 focus:ring-[#FBECE7]"
             />
           </div>
 
-          {/* Selector */}
           <select
             aria-label="Filter expense category"
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="w-full px-3 py-2.5 bg-[#FAF7F2] border border-[#EAE2D6] rounded-lg text-xs text-[#3B342E] focus:ring-2 focus:ring-[#FBECE7] focus:border-[#D95D39] outline-none transition-colors"
+            className="max-w-[132px] rounded-xl border border-[#E7DDD0] bg-[#FAF7F2] px-2.5 py-2 text-xs font-medium text-[#3B342E] outline-none transition-colors focus:border-[#D95D39] focus:bg-white focus:ring-2 focus:ring-[#FBECE7] sm:max-w-[180px]"
           >
             <option value="All">All Categories</option>
             {Object.values(Category).map((cat) => (
@@ -231,13 +198,13 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
         {filteredExpenses.length === 0 ? (
           <div
             id="empty-history"
-            className="py-16 text-center text-[#8C8073] border border-dashed border-[#EAE2D6] rounded-lg bg-[#FAF7F2] font-medium"
+            className="rounded-xl border border-dashed border-[#EAE2D6] bg-[#FAF7F2] py-10 text-center font-medium text-[#6E6358]"
           >
-            <Receipt className="h-8 w-8 mx-auto text-[#C5B8A8] mb-2" />
-            <p className="text-xs font-bold text-[#62584E]">
+            <Receipt className="mx-auto mb-2 h-7 w-7 text-[#C5B8A8]" />
+            <p className="text-xs font-bold text-[#5C5248]">
               No transactions recorded
             </p>
-            <p className="text-[10px] text-[#8C8073] mt-1">
+            <p className="mt-1 text-[11px] text-[#6E6358]">
               {expenses.length === 0
                 ? "Add your first expense using the form."
                 : "No items match your active search filter."}
@@ -246,34 +213,34 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
         ) : (
           <div
             id="expense-table"
-            className="max-w-full overflow-x-auto rounded-lg border border-[#EAE2D6]"
+            className="max-w-full overflow-x-auto rounded-xl border border-[#EAE2D6]"
           >
-            <table className="min-w-full divide-y divide-[#EFE8DC] text-left">
-              <thead className="bg-[#FAF7F2] text-[10px] text-[#62584E] font-bold uppercase tracking-wider">
+            <table className="w-full divide-y divide-[#EFE8DC] text-left">
+              <thead className="hidden bg-[#FAF7F2] text-[11px] font-semibold text-[#5C5248] md:table-header-group">
                 <tr>
-                  <th scope="col" className="px-4 py-3">
+                  <th scope="col" className="px-4 py-2.5">
                     Date
                   </th>
-                  <th scope="col" className="px-4 py-3">
+                  <th scope="col" className="px-4 py-2.5">
                     Category
                   </th>
-                  <th scope="col" className="px-4 py-3">
+                  <th scope="col" className="px-4 py-2.5">
                     Expense Item
                   </th>
-                  <th scope="col" className="px-4 py-3 text-right">
+                  <th scope="col" className="px-4 py-2.5 text-right">
                     Amount
                   </th>
-                  <th scope="col" className="px-4 py-3 text-center">
+                  <th scope="col" className="px-4 py-2.5 text-center">
                     Receipt
                   </th>
                   {(onEdit || onDelete) && (
-                    <th scope="col" className="px-4 py-3 text-center">
+                    <th scope="col" className="px-4 py-2.5 text-center">
                       Actions
                     </th>
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#EFE8DC] text-xs text-[#3B342E] bg-white">
+              <tbody className="divide-y divide-[#EFE8DC] bg-white text-xs text-[#3B342E]">
                 {filteredExpenses.map((exp) => {
                   const CategoryIcon =
                     CATEGORY_ICONS[exp.category] || HelpCircle;
@@ -283,44 +250,58 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                       className={
                         exp.id === lastSaved?.id
                           ? "bg-emerald-50"
-                          : "hover:bg-[#FAF7F2]/70 transition-colors"
+                          : "transition-colors hover:bg-[#FAF7F2]/70"
                       }
                     >
-                      {/* Date */}
-                      <td className="px-4 py-3.5 whitespace-nowrap text-[11px] font-mono text-[#62584E]">
+                      {/* Desktop Date */}
+                      <td className="hidden whitespace-nowrap px-4 py-3 font-mono text-[11px] text-[#5C5248] md:table-cell">
                         {exp.date}
                       </td>
-                      {/* Category */}
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#F3EDE3] border border-[#EAE2D6] rounded text-[10px] text-[#62584E] font-bold uppercase tracking-wide">
-                          <CategoryIcon className="h-3 w-3 text-[#62584E]" />
+                      {/* Desktop Category */}
+                      <td className="hidden whitespace-nowrap px-4 py-3 md:table-cell">
+                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#EAE2D6] bg-[#F3EDE3] px-2 py-0.5 text-[11px] font-semibold text-[#5C5248]">
+                          <CategoryIcon className="h-3 w-3 text-[#5C5248]" />
                           <span className="max-w-[100px] truncate">
                             {exp.category}
                           </span>
                         </span>
                       </td>
-                      {/* Item */}
-                      <td className="px-4 py-3.5 max-w-xs truncate font-medium text-[#24201D]">
-                        <span>{exp.item}</span>
-                        {exp.receiptName?.startsWith(
-                          "Bulk screenshot import",
-                        ) && (
-                          <span className="mt-1 block w-fit rounded bg-[#EDF2F8] px-2 py-0.5 text-[10px] font-semibold text-[#355380]">
-                            Bulk import
+                      {/* Item (also serves as compact mobile transaction summary cell) */}
+                      <td className="px-3 py-3 md:max-w-xs md:px-4">
+                        <div className="flex items-start gap-2.5 md:block">
+                          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#F3EDE3] text-[#5C5248] md:hidden">
+                            <CategoryIcon className="h-4 w-4" />
                           </span>
-                        )}
-                        {exp.receiptName?.startsWith("Imported ") && (
-                          <span className="mt-1 block w-fit rounded bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700">
-                            Sheet import
-                          </span>
-                        )}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-semibold text-[#24201D]">
+                              {exp.item}
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-[#6E6358] md:hidden">
+                              {exp.date} · {exp.category}
+                            </p>
+                            {exp.receiptName?.startsWith(
+                              "Bulk screenshot import",
+                            ) && (
+                              <span className="mt-1 inline-block rounded bg-[#EDF2F8] px-1.5 py-0.5 text-[10px] font-semibold text-[#355380]">
+                                Bulk import
+                              </span>
+                            )}
+                            {exp.receiptName?.startsWith("Imported ") && (
+                              <span className="mt-1 inline-block rounded bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700">
+                                Sheet import
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </td>
-                      {/* Amount */}
-                      <td className="px-4 py-3.5 whitespace-nowrap text-right font-mono font-bold text-[#24201D]">
-                        {money(exp.amount)}
+                      {/* Amount (also carries compact mobile actions below amount!) */}
+                      <td className="whitespace-nowrap px-3 py-3 text-right align-top md:px-4 md:align-middle">
+                        <span className="font-display text-sm font-bold tabular-nums text-[#24201D] md:font-mono md:text-xs">
+                          {money(exp.amount)}
+                        </span>
                       </td>
                       {/* Receipt link */}
-                      <td className="px-4 py-3.5 whitespace-nowrap text-center">
+                      <td className="whitespace-nowrap px-1.5 py-3 text-center align-middle md:px-4">
                         {exp.receiptUrl ? (
                           <button
                             type="button"
@@ -329,33 +310,33 @@ export const ExpenseHistory: React.FC<ExpenseHistoryProps> = ({
                               setPreviewLoading(true);
                               setReceipt(exp);
                             }}
-                            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#F2C9BC] bg-[#FBECE7] px-3 py-2 text-xs font-semibold text-[#A83E20] hover:bg-[#F7DDD4]"
+                            className="inline-flex min-h-9 items-center gap-1 rounded-xl border border-[#F2C9BC] bg-[#FBECE7] px-2.5 py-1.5 text-[11px] font-semibold text-[#A83E20] hover:bg-[#F7DDD4] md:min-h-10 md:px-3"
                           >
-                            <FileText className="h-4 w-4" />
-                            View
+                            <FileText className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">View</span>
                           </button>
                         ) : (
-                          <span className="text-[10px] text-[#C5B8A8] font-mono">
+                          <span className="hidden font-mono text-[10px] text-[#C5B8A8] md:inline">
                             -
                           </span>
                         )}
                       </td>
                       {(onEdit || onDelete) && (
-                        <td className="px-4 py-3.5 text-center">
-                          <div className="inline-flex items-center justify-center gap-1">
+                        <td className="px-2 py-3 text-right align-middle md:px-4 md:text-center">
+                          <div className="inline-flex items-center justify-end gap-1">
                             {onEdit && (
                               <button
                                 type="button"
                                 aria-label={`Edit transaction ${exp.item}`}
-                                className={secondaryClass}
+                                className="inline-flex min-h-9 items-center gap-1 rounded-xl border border-[#DFD5C6] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#3B342E] shadow-xs hover:bg-[#FAF7F2] md:min-h-10 md:px-3"
                                 onClick={() => {
                                   setEditing({ ...exp });
                                   setAmountText(String(exp.amount));
                                   setEditError("");
                                 }}
                               >
-                                <Pencil className="h-4 w-4" />
-                                Edit
+                                <Pencil className="h-3.5 w-3.5" />
+                                <span className="hidden sm:inline">Edit</span>
                               </button>
                             )}
                             {onDelete && exp.id && (

@@ -95,130 +95,213 @@ export function CalendarPanel({
             ]
           : [];
     });
+  const formattedSelected = new Date(`${selected}T12:00`).toLocaleDateString(
+    "en-US",
+    {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    },
+  );
   return (
-    <div className="grid items-start gap-5 xl:grid-cols-[1.5fr_1fr]">
-      <div className="xl:col-start-1 xl:row-start-1">
-        <Card
-          title={new Date(`${first}T12:00`).toLocaleDateString("en", {
-            month: "long",
-            year: "numeric",
-          })}
-          subtitle="Your events, holidays and little plans for time off."
-          action={
-            <div className="flex gap-1">
-              <button
-                type="button"
-                aria-label="Previous month"
-                className={secondaryClass}
-                onClick={() => shift(-1)}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                className={secondaryClass}
-                onClick={() => {
-                  setMonth(today.slice(0, 7));
-                  setSelected(today);
-                }}
-              >
-                Today
-              </button>
-              <button
-                type="button"
-                aria-label="Next month"
-                className={secondaryClass}
-                onClick={() => shift(1)}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          }
-        >
-          <div className="grid grid-cols-7 gap-1">
+    <div className="grid items-start gap-4 xl:grid-cols-[1.45fr_1fr]">
+      <div className="space-y-3 xl:col-start-1 xl:row-start-1">
+        {/* Centered Monurus-Style Month Switcher */}
+        <div className="flex items-center justify-between gap-2 px-1">
+          <button
+            type="button"
+            aria-label="Previous month"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#DFD5C6] bg-white text-[#3B342E] shadow-xs hover:bg-[#FAF7F2]"
+            onClick={() => shift(-1)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-base font-bold text-[#24201D] sm:text-lg">
+              {new Date(`${first}T12:00`).toLocaleDateString("en", {
+                month: "long",
+                year: "numeric",
+              })}
+            </h2>
+            <button
+              type="button"
+              className="rounded-full border border-[#DFD5C6] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#5C5248] hover:bg-[#FAF7F2] hover:text-[#24201D]"
+              onClick={() => {
+                setMonth(today.slice(0, 7));
+                setSelected(today);
+              }}
+            >
+              Today
+            </button>
+          </div>
+          <button
+            type="button"
+            aria-label="Next month"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#DFD5C6] bg-white text-[#3B342E] shadow-xs hover:bg-[#FAF7F2]"
+            onClick={() => shift(1)}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Clean Clay Calendar Grid */}
+        <section className="clay-card rounded-[22px] p-3 sm:p-5">
+          <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
             {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
               <div
                 key={day}
-                className="pb-3 text-center text-xs font-medium text-[#8C8073]"
+                className="pb-2 text-center text-[11px] font-semibold text-[#6E6358]"
               >
                 {day}
               </div>
             ))}
             {cells.map((d) => {
               const entries = allEvents.filter((e) => e.date === d);
+              const isSelected = selected === d;
+              const isToday = d === today;
+              const inMonth = d.startsWith(month);
               return (
                 <button
                   type="button"
                   key={d}
                   aria-label={`${d}${entries.length ? `, ${entries.length} events` : ""}`}
-                  aria-pressed={selected === d}
+                  aria-pressed={isSelected}
                   onClick={() => {
                     setSelected(d);
                     if (!d.startsWith(month)) setMonth(d.slice(0, 7));
                   }}
-                  className={`min-h-14 min-w-0 rounded-xl border p-1 text-left transition sm:min-h-24 sm:p-2 ${selected === d ? "border-[#D95D39] bg-[#FBECE7] ring-1 ring-[#F2C9BC]" : "border-[#EFE8DC] hover:border-[#EAB9A9]"} ${!d.startsWith(month) ? "opacity-40" : ""}`}
+                  className={`flex min-h-12 min-w-0 flex-col items-center justify-start rounded-xl border p-1 transition sm:min-h-20 sm:items-start sm:p-1.5 ${
+                    isSelected
+                      ? "border-[#D95D39] bg-[#FBECE7]/75 ring-1 ring-[#D95D39]/40"
+                      : "border-[#EFE8DC] bg-white hover:border-[#EAB9A9]"
+                  } ${!inMonth ? "opacity-35" : ""}`}
                 >
                   <span
-                    className={`inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-xs font-semibold ${d === today ? "bg-[#D95D39] text-white" : "text-[#62584E]"}`}
+                    className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums ${
+                      isToday
+                        ? "bg-[#D95D39] text-white"
+                        : isSelected
+                          ? "text-[#A83E20]"
+                          : "text-[#3B342E]"
+                    }`}
                   >
                     {Number(d.slice(8))}
                   </span>
-                  <div className="mt-1 flex flex-wrap gap-1 sm:block">
-                    {entries.slice(0, 2).map((e) => (
-                      <div
-                        key={e.id}
-                        className={`mt-1 max-w-full truncate rounded px-1 py-0.5 text-[10px] ${e.type === "holiday" ? "bg-emerald-50 text-emerald-700" : e.type === "leave" ? "bg-[#EDF2F8] text-[#355380]" : "bg-sky-50 text-sky-700"}`}
-                      >
-                        <span className="hidden sm:inline">{e.title}</span>
-                        <span className="sm:hidden">●</span>
+                  {entries.length > 0 && (
+                    <>
+                      {/* Mobile crisp indicator dots */}
+                      <div className="mt-1 flex items-center justify-center gap-1 sm:hidden">
+                        {entries.slice(0, 3).map((e) => (
+                          <span
+                            key={e.id}
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              e.type === "holiday"
+                                ? "bg-emerald-600"
+                                : e.type === "leave"
+                                  ? "bg-[#355380]"
+                                  : "bg-sky-600"
+                            }`}
+                          />
+                        ))}
                       </div>
-                    ))}
-                    {entries.length > 2 && (
-                      <span className="text-[10px] text-[#8C8073]">
-                        +{entries.length - 2}
-                      </span>
-                    )}
-                  </div>
+                      {/* Desktop compact pills */}
+                      <div className="mt-1 hidden w-full space-y-0.5 sm:block">
+                        {entries.slice(0, 2).map((e) => (
+                          <div
+                            key={e.id}
+                            className={`max-w-full truncate rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${
+                              e.type === "holiday"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : e.type === "leave"
+                                  ? "bg-[#EDF2F8] text-[#355380]"
+                                  : "bg-sky-50 text-sky-700"
+                            }`}
+                          >
+                            {e.title}
+                          </div>
+                        ))}
+                        {entries.length > 2 && (
+                          <span className="block px-1 text-left text-[10px] text-[#6E6358]">
+                            +{entries.length - 2}
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </button>
               );
             })}
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-[#62584E]">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-600" />
-              Holiday
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#355380]" />
-              Leave
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-sky-600" />
-              Event
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#EFE8DC] pt-3 text-[11px] font-medium text-[#5C5248]">
+            <div className="flex flex-wrap items-center gap-3.5">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-600" />
+                Holiday
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-[#355380]" />
+                Leave
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-sky-600" />
+                Event
+              </span>
+            </div>
+            <span className="tabular-nums text-[#6E6358]">
+              {events.length} this month
             </span>
           </div>
-        </Card>
+        </section>
       </div>
-      <div className="space-y-5 xl:col-start-2 xl:row-span-2 xl:row-start-1">
-        <Card
-          title="Add to your calendar"
-          subtitle={`Selected date: ${selected}${selectedDayEvents.length ? ` · ${selectedDayEvents.length} planned` : " · Nothing planned yet"}`}
-        >
-          {selectedDayEvents.length > 0 && (
-            <ul className="mb-4 space-y-1.5 rounded-xl border border-[#EFE8DC] bg-[#FAF7F2] p-3 text-xs">
-              {selectedDayEvents.map((e) => (
-                <li
-                  key={e.id}
-                  className="flex items-center justify-between gap-2 text-[#3B342E]"
-                >
-                  <span className="font-medium">{e.title}</span>
-                  <span className="capitalize text-[#8C8073]">{e.type}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+
+      <div className="space-y-4 xl:col-start-2 xl:row-span-2 xl:row-start-1">
+        {/* Dedicated Selected-Day Detail Banner (Monurus-inspired) */}
+        <section className="clay-card overflow-hidden rounded-2xl">
+          <div className="flex items-center justify-between gap-2 bg-[#24201D] px-4 py-3 text-white">
+            <span className="font-display text-sm font-semibold">
+              {formattedSelected}
+            </span>
+            <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold tabular-nums">
+              {selectedDayEvents.length}{" "}
+              {selectedDayEvents.length === 1 ? "item" : "items"}
+            </span>
+          </div>
+          <div className="p-3.5 sm:p-4">
+            {selectedDayEvents.length > 0 ? (
+              <ul className="space-y-2">
+                {selectedDayEvents.map((e) => (
+                  <li
+                    key={e.id}
+                    className="flex items-center justify-between gap-2 rounded-xl border border-[#EFE8DC] bg-[#FAF7F2] px-3 py-2 text-xs text-[#24201D]"
+                  >
+                    <span className="min-w-0 truncate font-semibold">
+                      {e.title}
+                    </span>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${
+                        e.type === "holiday"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : e.type === "leave"
+                            ? "bg-[#EDF2F8] text-[#355380]"
+                            : "bg-sky-50 text-sky-700"
+                      }`}
+                    >
+                      {e.type}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-[#6E6358]">
+                Nothing planned for this day.
+              </p>
+            )}
+          </div>
+        </section>
+
+        <Card compact title="Add to your calendar">
           <form
-            className="space-y-4"
+            className="space-y-3"
             onSubmit={(e) => {
               e.preventDefault();
               if (!title.trim()) return;

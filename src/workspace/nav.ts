@@ -45,6 +45,7 @@ export const NAV: readonly NavEntry[] = [
     group: "daily",
     description: "Every room on your daily shelf.",
   },
+  // Row 1 — Daily rhythm
   {
     id: "habits",
     label: "Habits",
@@ -60,11 +61,26 @@ export const NAV: readonly NavEntry[] = [
     description: "Errands, groceries, wishlist, and watch list.",
   },
   {
+    id: "meals",
+    label: "Meals",
+    group: "daily",
+    asset: "meals",
+    description: "Weekly breakfast, lunch, dinner, and snacks.",
+  },
+  {
     id: "skincare",
     label: "Skincare",
     group: "wellbeing",
     asset: "skincare",
     description: "Morning and night shelf, products, and notes.",
+  },
+  // Row 2 — Life & money
+  {
+    id: "finance",
+    label: "Finance",
+    group: "life",
+    asset: "finance",
+    description: "Expenses, monthly cycles, receipts, and net worth.",
   },
   {
     id: "fitness",
@@ -72,13 +88,6 @@ export const NAV: readonly NavEntry[] = [
     group: "wellbeing",
     asset: "fitness",
     description: "Workouts, dated sets, and cardio sessions.",
-  },
-  {
-    id: "finance",
-    label: "Finance",
-    group: "life",
-    asset: "finance",
-    description: "Expenses, monthly cycles, receipts, and net worth.",
   },
   {
     id: "calendar",
@@ -94,13 +103,7 @@ export const NAV: readonly NavEntry[] = [
     asset: "vehicles",
     description: "Renewals, mileage, and service logs.",
   },
-  {
-    id: "meals",
-    label: "Meals",
-    group: "daily",
-    asset: "meals",
-    description: "Weekly breakfast, lunch, dinner, and snacks.",
-  },
+  // Row 3 — Mind & system
   {
     id: "dump",
     label: "Brain dump",
@@ -190,9 +193,9 @@ export function roomMeta(
   switch (id) {
     case "habits": {
       const { done, total } = countTodayHabits(data, journal, today);
-      if (!total) return { label: "No habits yet", tone: "neutral" };
+      if (!total) return { label: "Start", tone: "neutral" };
       return {
-        label: `${done}/${total} today`,
+        label: `${done}/${total}`,
         tone: done === total ? "sage" : "accent",
       };
     }
@@ -200,62 +203,70 @@ export function roomMeta(
       const open = countOpenPersonalItems(data, today);
       return open
         ? { label: `${open} open`, tone: "accent" }
-        : { label: "All clear", tone: "sage" };
+        : { label: "Clear", tone: "sage" };
+    }
+    case "meals": {
+      const m = data.meals[today];
+      const filled = m
+        ? [m.breakfast, m.lunch, m.dinner, m.snack].filter((v) => v.trim())
+            .length
+        : 0;
+      return filled
+        ? { label: `${filled}/4`, tone: "sage" }
+        : { label: "Plan", tone: "neutral" };
     }
     case "skincare": {
       const count = data.skincare?.products.filter((p) => p.active).length ?? 0;
       return count
         ? { label: `${count} active`, tone: "sage" }
-        : { label: "Routine & shelf", tone: "neutral" };
+        : { label: "Routine", tone: "neutral" };
     }
     case "fitness": {
       const count = data.workoutSets?.length ?? 0;
       return count
-        ? { label: `${count} logged sets`, tone: "sage" }
-        : { label: "Log a session", tone: "neutral" };
+        ? { label: `${count} sets`, tone: "sage" }
+        : { label: "Log", tone: "neutral" };
     }
     case "finance": {
       const count = data.financeExpenses?.length ?? 0;
       return count
-        ? { label: `${count} expenses`, tone: "neutral" }
-        : { label: "Budget & receipts", tone: "neutral" };
+        ? { label: `${count} txns`, tone: "neutral" }
+        : { label: "Budget", tone: "neutral" };
     }
     case "calendar": {
       const upcoming = countUpcomingCalendarItems(data, today);
       return upcoming
-        ? { label: `${upcoming} upcoming`, tone: "accent" }
-        : { label: "Open calendar", tone: "neutral" };
+        ? { label: `${upcoming} soon`, tone: "accent" }
+        : { label: "Clear", tone: "neutral" };
     }
     case "vehicles": {
       const count = data.vehicles?.length ?? 0;
       return count
         ? { label: `${count} tracked`, tone: "neutral" }
-        : { label: "Service & renewals", tone: "neutral" };
+        : { label: "Renewals", tone: "neutral" };
     }
-    case "meals":
-      return { label: "7-day plan", tone: "neutral" };
     case "dump": {
       const count = data.thoughts.length;
       return count
         ? { label: `${count} notes`, tone: "neutral" }
-        : { label: "Clear mind", tone: "sage" };
+        : { label: "Clear", tone: "sage" };
     }
     case "ideas": {
       const count = data.ideas.length;
       return count
         ? { label: `${count} saved`, tone: "neutral" }
-        : { label: "Shelf for later", tone: "neutral" };
+        : { label: "Shelf", tone: "neutral" };
     }
     case "vocabulary": {
       const count = data.vocabulary?.length ?? 0;
       return count
         ? { label: `${count} words`, tone: "neutral" }
-        : { label: "Pocket lexicon", tone: "neutral" };
+        : { label: "Lexicon", tone: "neutral" };
     }
     case "settings":
       return isConfigured()
-        ? { label: "Cloud sync", tone: "sage" }
-        : { label: "Local device", tone: "neutral" };
+        ? { label: "Synced", tone: "sage" }
+        : { label: "Local", tone: "neutral" };
     default:
       return null;
   }

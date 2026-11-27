@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog } from "../../workspace/Dialog";
 import {
-  Card,
   Field,
   inputClass,
   parseNumberInput,
@@ -155,13 +154,13 @@ export function StatementImport({
   }
   return (
     <>
-      <Card
-        title="Import bank transactions"
-        subtitle="Extract a screenshot, review the debit rows, then add them together."
-      >
+      <div className="clay-card flex flex-wrap items-center justify-between gap-2.5 rounded-2xl px-4 py-2.5">
+        <span className="text-xs font-semibold text-[#5C5248]">
+          Bank statement OCR
+        </span>
         <button
           type="button"
-          className={secondaryClass}
+          className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl border border-[#DFD5C6] bg-white px-3 py-1.5 text-xs font-semibold text-[#3B342E] shadow-xs transition-colors hover:bg-[#FAF7F2]"
           onClick={() => {
             setOpen(true);
             setError("");
@@ -170,11 +169,11 @@ export function StatementImport({
           Import screenshot / pasted text
         </button>
         {status && !open && (
-          <p role="status" className="mt-3 text-sm text-emerald-700">
+          <p role="status" className="w-full text-xs font-medium text-emerald-700">
             {status}
           </p>
         )}
-      </Card>
+      </div>
       {open && (
         <Dialog
           wide

@@ -4,10 +4,10 @@ import { isConfigured } from "../lib/sheets-api";
 import { Dialog } from "./Dialog";
 import { uid, type VocabularyEntry, type Workspace } from "./model";
 import {
-  Card,
   Delete,
   Empty,
   Field,
+  SectionHeader,
   inputClass,
   primaryClass,
   secondaryClass,
@@ -58,153 +58,141 @@ export function Vocabulary({
     setOpen(true);
   }
   return (
-    <div className="space-y-5">
-      <Card
-        title="Your word collection"
-        subtitle="Keep new words, their meanings and an example you can remember."
-        action={
-          <button
-            type="button"
-            className={primaryClass}
-            onClick={() => show()}
-          >
-            <Plus className="h-4 w-4" />
-            Add word
-          </button>
-        }
-      >
-        {isConfigured() && !storageReady && (
-          <p
-            role="status"
-            className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
-          >
-            Vocabulary is saved on this device. The latest connection update is
-            needed to sync words to Google Sheets.
-          </p>
-        )}
-        <div className="mb-5 flex flex-wrap items-end gap-3">
-          <div className="min-w-40 flex-1">
-            <Field label="Search vocabulary">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-[#6E6358]" />
-                <input
-                  aria-label="Search vocabulary"
-                  className={`${inputClass} !pl-9`}
-                  placeholder="Search words, meanings or examples…"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-              </div>
-            </Field>
-          </div>
-          <Field label="Sort">
-            <select
-              aria-label="Sort vocabulary"
-              className={inputClass}
-              value={sort}
-              onChange={(e) => setSort(e.target.value as typeof sort)}
-            >
-              <option value="newest">Newest first</option>
-              <option value="az">A–Z</option>
-            </select>
-          </Field>
+    <div className="space-y-4">
+      {/* Compact Single-Row Control Bar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-36 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-[#6E6358]" />
+          <input
+            aria-label="Search vocabulary"
+            className="min-h-10 w-full rounded-xl border border-[#DFD5C6] bg-white py-2 pl-9 pr-3 text-xs text-[#24201D] placeholder:text-[#7C7064] shadow-xs outline-none transition-colors focus:border-[#D95D39] focus:ring-4 focus:ring-[#FBECE7] sm:text-sm"
+            placeholder="Search words, meanings…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
         </div>
-        <p className="mb-4 text-xs tabular-nums text-[#6E6358]">
-          {entries.length} of {(data.vocabulary ?? []).length} words
+        <select
+          aria-label="Sort vocabulary"
+          className="min-h-10 rounded-xl border border-[#DFD5C6] bg-white px-2.5 py-2 text-xs font-semibold text-[#3B342E] shadow-xs outline-none focus:border-[#D95D39] focus:ring-4 focus:ring-[#FBECE7] sm:text-sm"
+          value={sort}
+          onChange={(e) => setSort(e.target.value as typeof sort)}
+        >
+          <option value="newest">Newest first</option>
+          <option value="az">A–Z</option>
+        </select>
+        <button
+          type="button"
+          className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#D95D39] px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition duration-150 hover:bg-[#C04C2B] sm:text-sm"
+          onClick={() => show()}
+        >
+          <Plus className="h-4 w-4" />
+          Add word
+        </button>
+      </div>
+
+      {isConfigured() && !storageReady && (
+        <p
+          role="status"
+          className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs text-amber-800"
+        >
+          Vocabulary is saved on this device. The latest connection update is
+          needed to sync words to Google Sheets.
         </p>
-        {entries.length ? (
-          <div className="max-w-full overflow-x-auto">
-            <table
-              aria-label="Vocabulary list"
-              className="block w-full border-collapse text-sm md:table"
-            >
-              <thead className="hidden md:table-header-group">
-                <tr className="border-b border-[#EAE2D6] text-left text-xs text-[#6E6358]">
-                  <th scope="col" className="p-3">
-                    Word
-                  </th>
-                  <th scope="col" className="p-3">
-                    Definition
-                  </th>
-                  <th scope="col" className="p-3">
-                    Example usage
-                  </th>
-                  <th scope="col" className="p-3 text-right">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="block md:table-row-group">
-                {entries.map((entry) => (
-                  <tr
-                    key={entry.id}
-                    className="mb-4 block rounded-xl border border-[#EAE2D6] p-1 md:mb-0 md:table-row md:rounded-none md:border-x-0 md:border-t-0"
+      )}
+
+      <SectionHeader
+        title="Lexicon"
+        count={`${entries.length} of ${(data.vocabulary ?? []).length}`}
+      />
+
+      {entries.length ? (
+        <div className="max-w-full overflow-x-auto md:clay-card md:rounded-2xl">
+          <table
+            aria-label="Vocabulary list"
+            className="block w-full border-collapse text-sm md:table"
+          >
+            <thead className="hidden bg-[#FAF7F2] md:table-header-group">
+              <tr className="border-b border-[#EAE2D6] text-left text-xs font-semibold text-[#6E6358]">
+                <th scope="col" className="px-4 py-3">
+                  Word
+                </th>
+                <th scope="col" className="px-4 py-3">
+                  Definition
+                </th>
+                <th scope="col" className="px-4 py-3">
+                  Example usage
+                </th>
+                <th scope="col" className="px-4 py-3 text-right">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="block space-y-2.5 md:table-row-group md:space-y-0">
+              {entries.map((entry) => (
+                <tr
+                  key={entry.id}
+                  className="clay-card block rounded-2xl p-3.5 md:table-row md:rounded-none md:border-0 md:border-b md:border-[#EFE8DC] md:bg-transparent md:p-0 md:shadow-none"
+                >
+                  <th
+                    scope="row"
+                    className="block min-w-0 break-words font-display text-base font-bold text-[#24201D] md:table-cell md:w-[18%] md:px-4 md:py-3 md:align-top md:font-sans md:text-sm md:font-semibold"
                   >
-                    <th
-                      scope="row"
-                      className="block min-w-0 break-words p-3 text-left font-semibold text-[#24201D] md:table-cell md:w-[18%] md:align-top"
-                    >
-                      {entry.word}
-                    </th>
-                    <td className="block min-w-0 p-3 pt-0 md:table-cell md:w-[32%] md:pt-3 md:align-top">
-                      <span className="mb-1 block text-xs font-medium text-[#6E6358] md:hidden">
-                        Definition
-                      </span>
-                      <p className="whitespace-pre-wrap break-words text-[#4C433B] [overflow-wrap:anywhere]">
-                        {entry.definition}
-                      </p>
-                    </td>
-                    <td className="block min-w-0 p-3 pt-0 md:table-cell md:w-[36%] md:pt-3 md:align-top">
-                      <span className="mb-1 block text-xs font-medium text-[#6E6358] md:hidden">
-                        Example usage
-                      </span>
-                      <p className="whitespace-pre-wrap break-words text-[#4C433B] [overflow-wrap:anywhere]">
-                        {entry.example}
-                      </p>
-                    </td>
-                    <td className="block p-2 md:table-cell md:align-top">
-                      <div className="flex justify-end gap-1">
-                        <button
-                          type="button"
-                          aria-label={`Edit ${entry.word}`}
-                          title={`Edit ${entry.word}`}
-                          className={secondaryClass}
-                          onClick={() => show(entry)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                          <span className="md:sr-only">Edit</span>
-                        </button>
-                        <Delete
-                          label={`Delete ${entry.word}`}
-                          onClick={() => {
-                            if (
-                              confirm(
-                                `Delete “${entry.word}” from your vocabulary?`,
-                              )
+                    {entry.word}
+                  </th>
+                  <td className="mt-1.5 block min-w-0 md:mt-0 md:table-cell md:w-[32%] md:px-4 md:py-3 md:align-top">
+                    <p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-[#3B342E] [overflow-wrap:anywhere] sm:text-sm">
+                      {entry.definition}
+                    </p>
+                  </td>
+                  <td className="mt-2 block min-w-0 md:mt-0 md:table-cell md:w-[36%] md:px-4 md:py-3 md:align-top">
+                    <p className="whitespace-pre-wrap break-words border-l-2 border-[#E8B8A9] pl-2.5 text-xs italic leading-relaxed text-[#5C5248] [overflow-wrap:anywhere] md:border-l-0 md:pl-0 md:not-italic sm:text-sm">
+                      {entry.example}
+                    </p>
+                  </td>
+                  <td className="mt-2.5 block border-t border-[#EFE8DC] pt-2 md:mt-0 md:table-cell md:border-t-0 md:px-4 md:py-2 md:align-top">
+                    <div className="flex justify-end gap-1">
+                      <button
+                        type="button"
+                        aria-label={`Edit ${entry.word}`}
+                        title={`Edit ${entry.word}`}
+                        className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-[#DFD5C6] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#3B342E] hover:bg-[#FAF7F2]"
+                        onClick={() => show(entry)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        <span className="md:sr-only">Edit</span>
+                      </button>
+                      <Delete
+                        label={`Delete ${entry.word}`}
+                        onClick={() => {
+                          if (
+                            confirm(
+                              `Delete “${entry.word}” from your vocabulary?`,
                             )
-                              update((s) => ({
-                                ...s,
-                                vocabulary: (s.vocabulary ?? []).filter(
-                                  (v) => v.id !== entry.id,
-                                ),
-                              }));
-                          }}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <Empty>
+                          )
+                            update((s) => ({
+                              ...s,
+                              vocabulary: (s.vocabulary ?? []).filter(
+                                (v) => v.id !== entry.id,
+                              ),
+                            }));
+                        }}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="clay-card rounded-2xl p-4">
+          <Empty compact asset="vocabulary">
             {query
               ? "No words match your search."
               : "Your vocabulary starts with one word. Choose Add word to get started."}
           </Empty>
-        )}
-      </Card>
+        </div>
+      )}
       {open && (
         <Dialog
           title={editing ? "Edit word" : "Add a new word"}

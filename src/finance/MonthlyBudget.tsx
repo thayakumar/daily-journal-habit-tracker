@@ -7,7 +7,6 @@ import {
   Field,
   inputClass,
   parseNumberInput,
-  primaryClass,
   secondaryClass,
   type Update,
 } from "../workspace/ui";
@@ -119,69 +118,48 @@ export function MonthlyBudget({
   }
 
   return (
-    <div className="min-w-0 space-y-5 [contain:paint]">
-      <Card
-        title={cycle ? monthName(cycle.month) : "Your salary cycles"}
-        subtitle={
-          cycle
-            ? `${cycle.start} → ${cycle.end} · both dates included`
-            : "Name a cycle by the month it funds. Its start and end dates decide which expenses appear."
-        }
-        action={
-          <div className="flex flex-wrap gap-2">
+    <div className="min-w-0 space-y-4 [contain:paint]">
+      {/* Compact Cycle Action & Settings Bar */}
+      <div className="space-y-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h2 className="font-display text-base font-bold text-[#24201D] sm:text-lg">
+              {cycle ? monthName(cycle.month) : "Your salary cycles"}
+            </h2>
+            {cycle && (
+              <p className="text-[11px] tabular-nums text-[#6E6358]">
+                {cycle.start} → {cycle.end}
+              </p>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
             {cycle && (
               <button
                 type="button"
-                className={secondaryClass}
+                className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl border border-[#DFD5C6] bg-white px-3 py-1.5 text-xs font-semibold text-[#3B342E] shadow-xs transition-colors hover:bg-[#FAF7F2]"
                 onClick={() => openCycle(true)}
               >
-                <Pencil className="h-4 w-4" />
+                <Pencil className="h-3.5 w-3.5" />
                 Edit cycle dates
               </button>
             )}
             <button
               type="button"
-              className={primaryClass}
+              className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-[#D95D39] px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#C04C2B]"
               onClick={() => openCycle()}
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" />
               New cycle
             </button>
           </div>
-        }
-      >
-        {!storageReady && (
-          <p
-            role="status"
-            className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800"
-          >
-            Monthly plans save on this device. Your connection needs an update
-            to sync them to Sheets.
-          </p>
-        )}
-        {cycleNotice && (
-          <p
-            role="status"
-            className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
-          >
-            {cycleNotice}
-          </p>
-        )}
-        {!cycle && (
-          <div className="mb-4">
-            <Empty>
-              {plan.cycles.length
-                ? "Select a cycle above to see its monthly picture."
-                : "Create your first salary cycle to start your monthly plan."}
-            </Empty>
-          </div>
-        )}
-        <details className="rounded-xl border border-[#EFE8DC] bg-[#FAF7F2]/60">
-          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-[#473F38]">
+        </div>
+
+        <details className="rounded-xl border border-[#E7DDD0] bg-white">
+          <summary className="cursor-pointer px-3.5 py-2.5 text-xs font-semibold text-[#5C5248] hover:text-[#24201D]">
             Salary cycle settings
           </summary>
-          <div className="flex flex-wrap items-end gap-4 border-t border-[#EFE8DC] p-4">
-            <div className="w-full sm:w-48">
+          <div className="flex flex-wrap items-end gap-3 border-t border-[#EFE8DC] p-3.5">
+            <div className="w-full sm:w-44">
               <Field label="Default salary day">
                 <select
                   aria-label="Default salary day"
@@ -215,80 +193,116 @@ export function MonthlyBudget({
             </p>
           </div>
         </details>
-      </Card>
+
+        {!storageReady && (
+          <p
+            role="status"
+            className="rounded-xl border border-amber-200/80 bg-amber-50 px-3.5 py-2 text-xs text-amber-900"
+          >
+            Monthly plans save on this device. Your connection needs an update
+            to sync them to Sheets.
+          </p>
+        )}
+        {cycleNotice && (
+          <p
+            role="status"
+            className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs text-amber-900"
+          >
+            {cycleNotice}
+          </p>
+        )}
+        {!cycle && (
+          <Empty compact>
+            {plan.cycles.length
+              ? "Select a cycle above to see its monthly picture."
+              : "Create your first salary cycle to start your monthly plan."}
+          </Empty>
+        )}
+      </div>
+
       {cycle && summary && (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {/* Joined 2x3 Cashflow & Savings Bento Strips */}
+          <div className="grid gap-3 xl:grid-cols-2">
             {(
               [
-                {
-                  label: "Income",
-                  value: summary.income,
-                  hint: "Income recorded for this cycle",
-                  semantic: false,
-                },
-                {
-                  label: "Fixed commitments",
-                  value: summary.commitments,
-                  hint: "Your monthly committed payments",
-                  semantic: false,
-                },
-                {
-                  label: "Expenses",
-                  value: summary.spent,
-                  hint: `${summary.transactions.length} expenses within these dates`,
-                  semantic: false,
-                },
-                {
-                  label: "Expected savings",
-                  value: summary.expected,
-                  hint: "Income − commitments − planned budgets",
-                  semantic: true,
-                },
-                {
-                  label: "Actual surplus",
-                  value: summary.surplus,
-                  hint: "Income − commitments − recorded expenses",
-                  semantic: true,
-                },
-                {
-                  label: "Budget remaining",
-                  value: summary.remaining,
-                  hint: "Planned budgets − recorded expenses",
-                  semantic: true,
-                },
+                [
+                  {
+                    label: "Income",
+                    value: summary.income,
+                    hint: "Cycle income",
+                    semantic: false,
+                  },
+                  {
+                    label: "Commitments",
+                    value: summary.commitments,
+                    hint: "Fixed bills",
+                    semantic: false,
+                  },
+                  {
+                    label: "Expenses",
+                    value: summary.spent,
+                    hint: `${summary.transactions.length} txns`,
+                    semantic: false,
+                  },
+                ],
+                [
+                  {
+                    label: "Expected",
+                    value: summary.expected,
+                    hint: "Planned savings",
+                    semantic: true,
+                  },
+                  {
+                    label: "Surplus",
+                    value: summary.surplus,
+                    hint: "Actual surplus",
+                    semantic: true,
+                  },
+                  {
+                    label: "Remaining",
+                    value: summary.remaining,
+                    hint: "Budget left",
+                    semantic: true,
+                  },
+                ],
               ] as const
-            ).map(({ label, value, hint, semantic }) => {
-              const negative = value < 0;
-              return (
-                <div
-                  key={label}
-                  className={`min-w-0 rounded-2xl border p-5 shadow-xs ${
-                    negative
-                      ? "border-[#E8B8A9] bg-[#FBECE7]/60"
-                      : "clay-card"
-                  }`}
-                >
-                  <p className="text-xs font-semibold text-[#6E6358]">
-                    {label}
-                  </p>
-                  <p
-                    className={`mt-2 break-words font-display text-2xl font-bold tabular-nums sm:text-3xl ${
-                      negative
-                        ? "text-[#B84727]"
-                        : semantic && value > 0
-                          ? "text-[#356651]"
-                          : "text-[#24201D]"
-                    }`}
-                  >
-                    {money(value)}
-                  </p>
-                  <p className="mt-2 text-xs leading-relaxed text-[#5C5248]">
-                    {hint}
-                  </p>
-                </div>
-              );
-            })}
+            ).map((group, groupIndex) => (
+              <div
+                key={groupIndex}
+                className="clay-card grid grid-cols-3 divide-x divide-[#EFE8DC] overflow-hidden rounded-2xl"
+              >
+                {group.map(({ label, value, hint, semantic }) => {
+                  const negative = value < 0;
+                  return (
+                    <div
+                      key={label}
+                      className={`min-w-0 px-3 py-3 sm:px-4 sm:py-3.5 ${
+                        negative ? "bg-[#FBECE7]/60" : ""
+                      }`}
+                    >
+                      <p className="truncate text-[11px] font-semibold text-[#6E6358] sm:text-xs">
+                        {label}
+                      </p>
+                      <p
+                        className={`mt-1 truncate font-display text-sm font-bold tabular-nums min-[375px]:text-base sm:text-xl ${
+                          negative
+                            ? "text-[#B84727]"
+                            : semantic && value > 0
+                              ? "text-[#356651]"
+                              : "text-[#24201D]"
+                        }`}
+                      >
+                        {money(value)}
+                      </p>
+                      <p className="mt-0.5 hidden truncate text-[11px] text-[#6E6358] sm:block">
+                        {hint}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
           <CategoryDonutChart
             month={cycle.month}
@@ -452,20 +466,20 @@ export function MonthlyBudget({
                     </p>
                   )}
                   {kind === "balance" && (
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-xl bg-[#FAF7F2] p-3">
-                        <p className="text-xs text-[#8C8073]">
+                    <div className="mt-4 grid grid-cols-2 gap-2.5">
+                      <div className="rounded-xl border border-[#EFE8DC] bg-[#FAF7F2] p-3">
+                        <p className="text-[11px] font-semibold text-[#6E6358]">
                           Liquid accounts
                         </p>
-                        <p className="mt-1 break-words font-semibold">
+                        <p className="mt-1 break-words font-display text-base font-bold tabular-nums text-[#24201D]">
                           {money(summary.liquid)}
                         </p>
                       </div>
-                      <div className="rounded-xl bg-[#FAF7F2] p-3">
-                        <p className="text-xs text-[#8C8073]">
+                      <div className="rounded-xl border border-[#EFE8DC] bg-[#FAF7F2] p-3">
+                        <p className="text-[11px] font-semibold text-[#6E6358]">
                           Total assets · before debts
                         </p>
-                        <p className="mt-1 break-words font-semibold">
+                        <p className="mt-1 break-words font-display text-base font-bold tabular-nums text-[#24201D]">
                           {money(summary.assets)}
                         </p>
                       </div>

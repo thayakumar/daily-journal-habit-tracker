@@ -144,11 +144,11 @@ export function SkinOverviewTab({
             }
           >
             <div
-              className={`grid gap-3 ${angle === "all" ? "grid-cols-1 sm:grid-cols-3" : "mx-auto max-w-sm grid-cols-1"}`}
+              className={`grid gap-2 sm:gap-3 ${angle === "all" ? "grid-cols-3" : "mx-auto max-w-sm grid-cols-1"}`}
             >
               {(angle === "all" ? ANGLES : [angle]).map((a) => (
                 <div key={a} className="min-w-0">
-                  <p className="mb-2 text-center text-xs font-semibold capitalize text-[#62584E]">
+                  <p className="mb-1.5 text-center text-[11px] font-semibold capitalize text-[#5C5248] sm:text-xs">
                     {a}
                   </p>
                   <SkinPhotoTile

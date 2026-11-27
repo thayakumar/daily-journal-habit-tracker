@@ -126,6 +126,9 @@ export default function WorkspaceApp() {
 
   const [tab, setTab] = useState<Tab>(currentTab);
   const [menu, setMenu] = useState(false);
+  const [personalTab, setPersonalTab] = useState<
+    "personal" | "wishlist" | "grocery" | "watch"
+  >("personal");
   const today = useToday();
   const heading = NAV.find((n) => n.id === tab)!;
 
@@ -339,26 +342,32 @@ export default function WorkspaceApp() {
         </div>
       </aside>
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-30 border-b border-[#E7DDD0] bg-[#FAF7F2]/90 px-4 py-2.5 backdrop-blur-md sm:px-8">
-          <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-30 border-b border-[#E7DDD0] bg-[#FAF7F2]/92 px-3.5 py-2 backdrop-blur-md sm:px-6 lg:px-8 lg:py-2.5">
+          <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-2.5">
+            <div className="flex min-w-0 items-center gap-2.5">
               <button
                 type="button"
-                className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#DFD5C6] bg-white text-[#5C5248] shadow-xs transition-colors hover:bg-[#F3EDE3] lg:hidden"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#DFD5C6] bg-white text-[#5C5248] shadow-xs transition-colors hover:bg-[#F3EDE3] lg:hidden"
                 aria-label="Open navigation"
                 onClick={() => setMenu(true)}
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <div className="flex items-center gap-2 text-xs text-[#6E6358]">
-                <span className="hidden sm:inline">{data.name}</span>
-                <ChevronRight className="hidden h-3 w-3 sm:block" />
-                <span className="font-semibold text-[#24201D]">
+              {tab !== "overview" && heading.asset && (
+                <ClayObject
+                  name={heading.asset}
+                  className="h-7 w-7 shrink-0 lg:hidden"
+                />
+              )}
+              <div className="flex min-w-0 items-center gap-2 text-xs text-[#6E6358]">
+                <span className="hidden lg:inline">{data.name}</span>
+                <ChevronRight className="hidden h-3 w-3 lg:block" />
+                <span className="font-display truncate text-base font-bold text-[#24201D] lg:font-sans lg:text-xs lg:font-semibold">
                   {heading.label}
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
               <span className="hidden text-xs font-medium text-[#5C5248] md:inline">
                 {new Date(`${today}T12:00`).toLocaleDateString(undefined, {
                   weekday: "short",
@@ -382,7 +391,7 @@ export default function WorkspaceApp() {
                   }
                 }}
                 aria-label={`Sync status: ${status}`}
-                className={`flex min-h-[38px] items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-xs transition-colors ${
+                className={`flex min-h-[36px] items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium shadow-xs transition-colors sm:px-3 ${
                   effectiveSyncState === "error"
                     ? "border-[#E3A694] bg-[#FBECE7] text-[#9A381D] hover:bg-[#F7DDD4]"
                     : effectiveSyncState === "offline"
@@ -402,7 +411,14 @@ export default function WorkspaceApp() {
                 ) : (
                   <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[#356651]" />
                 )}
-                <span>
+                <span
+                  className={
+                    effectiveSyncState === "synced" ||
+                    effectiveSyncState === "local"
+                      ? "hidden sm:inline"
+                      : ""
+                  }
+                >
                   {effectiveSyncState === "error"
                     ? "Sync issue · Retry"
                     : effectiveSyncState === "offline"
@@ -430,7 +446,7 @@ export default function WorkspaceApp() {
         {bannerMessage && (
           <div
             role="status"
-            className={`border-b px-4 py-2.5 text-xs sm:px-8 ${
+            className={`border-b px-4 py-2 text-xs sm:px-8 ${
               effectiveSyncState === "error"
                 ? "border-[#E8B8A9] bg-[#FBECE7] text-[#9A381D]"
                 : "border-[#E4DBCE] bg-[#F3EDE3] text-[#4C433B]"
@@ -462,23 +478,20 @@ export default function WorkspaceApp() {
         )}
         <main
           id="main-content"
-          className="mx-auto max-w-[1440px] px-4 pb-24 pt-6 sm:px-8 sm:pt-8 lg:pb-10"
+          className="mx-auto max-w-[1440px] px-3.5 pb-24 pt-3 sm:px-6 sm:pt-5 lg:px-8 lg:pb-8 lg:pt-6"
         >
           {tab !== "overview" && (
-            <div className="mb-6 flex items-center gap-4 sm:mb-7">
+            <div className="mb-4 hidden items-center gap-3.5 lg:flex">
               {heading.asset && (
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#E7DDD0] bg-white p-2 shadow-xs sm:h-16 sm:w-16">
-                  <ClayObject
-                    name={heading.asset}
-                    className="h-10 w-10 sm:h-12 sm:w-12"
-                  />
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#E7DDD0] bg-white p-1.5 shadow-xs">
+                  <ClayObject name={heading.asset} className="h-8 w-8" />
                 </div>
               )}
-              <div className="min-w-0">
-                <h1 className="font-display text-2xl font-bold text-[#24201D] sm:text-3xl">
+              <div className="flex min-w-0 items-baseline gap-2.5">
+                <h1 className="font-display text-2xl font-bold text-[#24201D]">
                   {heading.label}
                 </h1>
-                <p className="mt-1 text-sm text-[#5C5248]">
+                <p className="truncate text-sm text-[#6E6358]">
                   {heading.description}
                 </p>
               </div>
@@ -539,39 +552,113 @@ export default function WorkspaceApp() {
               />
             )}
             {tab === "personal" && (
-              <div className="grid items-start gap-6 xl:grid-cols-2">
-                <ListPanel
-                  kind="personal"
-                  title="Personal to-do list"
-                  subtitle="Appointments, errands, and personal tasks."
-                  data={data}
-                  update={update}
-                  today={today}
-                />
-                <ListPanel
-                  kind="wishlist"
-                  title="Shopping wishlist"
-                  subtitle="Park a want for 30 days before deciding whether it still matters."
-                  data={data}
-                  update={update}
-                  today={today}
-                />
-                <ListPanel
-                  kind="grocery"
-                  title="Groceries"
-                  subtitle="Items ready for your next market trip."
-                  data={data}
-                  update={update}
-                  today={today}
-                />
-                <ListPanel
-                  kind="watch"
-                  title="Watch & read"
-                  subtitle="Books, shows, and films worth making time for."
-                  data={data}
-                  update={update}
-                  today={today}
-                />
+              <div className="space-y-3 lg:space-y-0">
+                <div className="border-b border-[#E7DDD0] lg:hidden">
+                  <div
+                    role="tablist"
+                    aria-label="Personal lists"
+                    className="grid grid-cols-4"
+                  >
+                    {(
+                      [
+                        { id: "personal", label: "To-do" },
+                        { id: "wishlist", label: "Wishlist" },
+                        { id: "grocery", label: "Groceries" },
+                        { id: "watch", label: "Watch" },
+                      ] as const
+                    ).map((t) => {
+                      const active = personalTab === t.id;
+                      const openCount = data.items.filter(
+                        (i) => i.kind === t.id && !i.done,
+                      ).length;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={active}
+                          onClick={() => setPersonalTab(t.id)}
+                          className={`relative flex min-h-10 items-center justify-center gap-1 px-1 py-2 text-xs font-semibold transition-colors ${
+                            active
+                              ? "text-[#D95D39]"
+                              : "text-[#6E6358] hover:text-[#24201D]"
+                          }`}
+                        >
+                          <span className="truncate">{t.label}</span>
+                          {openCount > 0 && (
+                            <span className="rounded-full bg-[#FBECE7] px-1.5 text-[10px] font-bold tabular-nums text-[#B84727]">
+                              {openCount}
+                            </span>
+                          )}
+                          {active && (
+                            <span
+                              aria-hidden="true"
+                              className="absolute inset-x-2 bottom-0 h-[2.5px] rounded-full bg-[#D95D39]"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="grid items-start gap-4 lg:grid-cols-2">
+                  <div
+                    className={
+                      personalTab === "personal" ? "block" : "hidden lg:block"
+                    }
+                  >
+                    <ListPanel
+                      kind="personal"
+                      title="Personal to-do list"
+                      subtitle="Appointments, errands, and personal tasks."
+                      data={data}
+                      update={update}
+                      today={today}
+                    />
+                  </div>
+                  <div
+                    className={
+                      personalTab === "wishlist" ? "block" : "hidden lg:block"
+                    }
+                  >
+                    <ListPanel
+                      kind="wishlist"
+                      title="Shopping wishlist"
+                      subtitle="Park a want for 30 days before deciding whether it still matters."
+                      data={data}
+                      update={update}
+                      today={today}
+                    />
+                  </div>
+                  <div
+                    className={
+                      personalTab === "grocery" ? "block" : "hidden lg:block"
+                    }
+                  >
+                    <ListPanel
+                      kind="grocery"
+                      title="Groceries"
+                      subtitle="Items ready for your next market trip."
+                      data={data}
+                      update={update}
+                      today={today}
+                    />
+                  </div>
+                  <div
+                    className={
+                      personalTab === "watch" ? "block" : "hidden lg:block"
+                    }
+                  >
+                    <ListPanel
+                      kind="watch"
+                      title="Watch & read"
+                      subtitle="Books, shows, and films worth making time for."
+                      data={data}
+                      update={update}
+                      today={today}
+                    />
+                  </div>
+                </div>
               </div>
             )}
             {tab === "fitness" && (
@@ -610,13 +697,13 @@ export default function WorkspaceApp() {
             )}
           </RoomErrorBoundary>
         </main>
-        <footer className="mx-auto mb-20 flex max-w-[1440px] flex-wrap items-center justify-between gap-2 border-t border-[#EFE8DC] px-4 py-4 text-xs text-[#6E6358] sm:px-8 lg:mb-0">
+        <footer className="mx-auto hidden max-w-[1440px] flex-wrap items-center justify-between gap-2 border-t border-[#EFE8DC] px-8 py-4 text-xs text-[#6E6358] lg:flex">
           <span>
             {data.name} · Habits, meals, notes, and plans in one quiet place.
           </span>
           <button
             type="button"
-            className="inline-flex min-h-[44px] items-center rounded-lg px-2 font-medium text-[#5C5248] transition-colors hover:text-[#D95D39]"
+            className="inline-flex min-h-[40px] items-center rounded-lg px-2 font-medium text-[#5C5248] transition-colors hover:text-[#D95D39]"
             onClick={() => navigate("settings")}
           >
             Your data &amp; backups{" "}

@@ -83,27 +83,65 @@ export default function Finance({
   }
   if (initialLoading && data.updatedAt === 0)
     return <RoomSkeleton label="Loading your current salary cycle…" />;
+  const portfolioCycleDisclosure = (
+    <details
+      open={false}
+      key="portfolio-cycle-disclosure"
+      className="rounded-2xl border border-[#E7DDD0] bg-white/80 px-4 py-3"
+    >
+      <summary className="cursor-pointer text-xs font-semibold text-[#5C5248] hover:text-[#24201D]">
+        Optional monthly reconciliation &amp; budget links
+      </summary>
+      <p className="mt-2 mb-2.5 text-xs leading-relaxed text-[#5C5248]">
+        Portfolio values and history span all dates. Select a cycle only for
+        opening/closing comparisons and links to Monthly Budget.
+      </p>
+      <Field label="Salary cycle">
+        <select
+          aria-label="Salary cycle"
+          className={inputClass}
+          value={selectedId}
+          onChange={(e) => chooseCycle(e.target.value)}
+        >
+          {!cycle && (
+            <option value="" disabled>
+              Set up a salary cycle
+            </option>
+          )}
+          {cycles.map((c) => (
+            <option key={c.id} value={c.id}>
+              {monthName(c.month)}
+              {c.id === current?.id ? " · Current" : ""} · {c.start} → {c.end}
+            </option>
+          ))}
+        </select>
+      </Field>
+    </details>
+  );
+
   return (
-    <div className="space-y-5">
-      <div className="clay-card rounded-2xl p-4 sm:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div
-            role="tablist"
-            aria-label="Finance modules"
-            className="clay-segmented inline-flex flex-wrap gap-1 rounded-2xl p-1"
-          >
-            {(["expenses", "monthly", "portfolio"] as const).map((tab) => (
+    <div className="space-y-4">
+      {/* Flush Top 3-Tab Underline Navigation Bar */}
+      <div className="border-b border-[#E7DDD0]">
+        <div
+          role="tablist"
+          aria-label="Finance modules"
+          className="grid grid-cols-3 sm:inline-flex sm:gap-1"
+        >
+          {(["expenses", "monthly", "portfolio"] as const).map((tab) => {
+            const active = view === tab;
+            return (
               <button
                 type="button"
                 key={tab}
                 role="tab"
-                aria-selected={view === tab}
+                aria-selected={active}
                 aria-controls={`finance-${tab}`}
                 id={`tab-${tab}`}
-                className={`min-h-10 rounded-xl px-3 py-2 text-xs font-semibold transition-colors duration-150 sm:px-4 sm:text-sm ${
-                  view === tab
-                    ? "bg-[#D95D39] text-white shadow-xs"
-                    : "text-[#5C5248] hover:bg-white/70 hover:text-[#24201D]"
+                className={`relative flex min-h-11 items-center justify-center whitespace-nowrap px-1.5 py-2.5 text-xs font-semibold transition-colors min-[375px]:text-[13px] sm:px-5 sm:text-sm ${
+                  active
+                    ? "text-[#D95D39]"
+                    : "text-[#6E6358] hover:text-[#24201D]"
                 }`}
                 onClick={() => {
                   if (tab === "portfolio") setPortfolioSection("overview");
@@ -115,88 +153,60 @@ export default function Finance({
                   : tab === "monthly"
                     ? "Monthly Budget"
                     : "Portfolio"}
+                {active && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-x-2 bottom-0 h-[2.5px] rounded-full bg-[#D95D39]"
+                  />
+                )}
               </button>
-            ))}
-          </div>
+            );
+          })}
+        </div>
+      </div>
 
-          {view !== "portfolio" ? (
-            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-end sm:gap-3">
-              <div className="min-w-0 flex-1 sm:min-w-72">
-                <Field label="Salary cycle">
-                  <select
-                    aria-label="Salary cycle"
-                    className={inputClass}
-                    value={selectedId}
-                    onChange={(e) => chooseCycle(e.target.value)}
-                  >
-                    {!cycle && (
-                      <option value="" disabled>
-                        Set up a salary cycle
-                      </option>
-                    )}
-                    {cycles.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {monthName(c.month)}
-                        {c.id === current?.id ? " · Current" : ""} · {c.start} →{" "}
-                        {c.end}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              </div>
-              {cycle && (
-                <span className="inline-flex min-h-10 w-fit items-center rounded-xl border border-[#F2C9BC] bg-[#FBECE7] px-3 py-2 text-xs font-semibold tabular-nums text-[#A83E20] sm:min-h-11">
-                  {cycle.start} → {cycle.end}
-                </span>
-              )}
-            </div>
-          ) : (
-            <details
-              open={false}
-              key="portfolio-cycle-disclosure"
-              className="w-full max-w-md rounded-xl border border-[#EFE8DC] bg-[#FAF7F2] px-3.5 py-2.5"
+      {/* Slim Single-Row Salary Cycle Selector (Expenses & Monthly Budget only) */}
+      {view !== "portfolio" && (
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <select
+              aria-label="Salary cycle"
+              className="min-h-10 w-full rounded-xl border border-[#DFD5C6] bg-white px-3 py-2 text-xs font-semibold text-[#24201D] shadow-xs outline-none transition-colors focus:border-[#D95D39] focus:ring-4 focus:ring-[#FBECE7] sm:max-w-md sm:text-sm"
+              value={selectedId}
+              onChange={(e) => chooseCycle(e.target.value)}
             >
-              <summary className="cursor-pointer text-xs font-semibold text-[#5C5248]">
-                Optional monthly reconciliation &amp; budget links
-              </summary>
-              <p className="mt-2.5 mb-2.5 text-xs leading-relaxed text-[#5C5248]">
-                Portfolio values and history span all dates. Select a cycle only
-                for opening/closing comparisons and links to Monthly Budget.
-              </p>
-              <Field label="Salary cycle">
-                <select
-                  aria-label="Salary cycle"
-                  className={inputClass}
-                  value={selectedId}
-                  onChange={(e) => chooseCycle(e.target.value)}
-                >
-                  {!cycle && (
-                    <option value="" disabled>
-                      Set up a salary cycle
-                    </option>
-                  )}
-                  {cycles.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {monthName(c.month)}
-                      {c.id === current?.id ? " · Current" : ""} · {c.start} →{" "}
-                      {c.end}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            </details>
+              {!cycle && (
+                <option value="" disabled>
+                  Set up a salary cycle
+                </option>
+              )}
+              {cycles.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {monthName(c.month)}
+                  {c.id === current?.id ? " · Current" : ""} · {c.start} →{" "}
+                  {c.end}
+                </option>
+              ))}
+            </select>
+            {cycle && (
+              <span className="hidden rounded-full border border-[#EFE8DC] bg-white px-3 py-1 text-xs font-semibold tabular-nums text-[#5C5248] sm:inline-flex">
+                {expenses.length}{" "}
+                {expenses.length === 1 ? "expense" : "expenses"} in cycle
+              </span>
+            )}
+          </div>
+          {!current && (
+            <p
+              role="status"
+              className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800"
+            >
+              Today is outside your saved cycle dates. Open Monthly Budget to
+              configure the current cycle.
+            </p>
           )}
         </div>
-        {!current && view !== "portfolio" && (
-          <p
-            role="status"
-            className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800"
-          >
-            Today is outside your saved cycle dates. Open Monthly Budget to
-            configure the current cycle.
-          </p>
-        )}
-      </div>
+      )}
+
       {view === "portfolio" ? (
         <div
           role="tabpanel"
@@ -227,6 +237,7 @@ export default function Finance({
             initialSection={portfolioSection}
             storageReady={portfolioReady}
             migrationReady={migrationReady}
+            cycleDisclosure={portfolioCycleDisclosure}
           />
         </div>
       ) : view === "monthly" ? (
