@@ -145,61 +145,84 @@ export function Fitness({
   const completed = data.fitness.completed.includes(date);
 
   return (
-    <div className="space-y-5">
-      <Card
-        title="Daily workout log"
-        subtitle="Choose a day and record every exercise. Each strength set can have its own weight and reps; cardio can have time and distance."
-        action={
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              aria-label="Previous workout day"
-              className={secondaryClass}
-              onClick={() => setDate(addDays(date, -1))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <input
-              aria-label="Workout date"
-              required
-              type="date"
-              max={today}
-              className={`${inputClass} !w-auto max-w-full`}
-              value={date}
-              onChange={(e) => {
-                if (e.target.value && e.target.value <= today)
-                  setDate(e.target.value);
-              }}
-            />
-            <button
-              type="button"
-              aria-label="Next workout day"
-              disabled={date >= today}
-              className={secondaryClass}
-              onClick={() => setDate(addDays(date, 1))}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className={secondaryClass}
-              onClick={() => setDate(today)}
-            >
-              Today
-            </button>
-          </div>
-        }
-      >
-        {isConfigured() && !logStorageReady && (
-          <p
-            role="status"
-            className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
+    <div className="space-y-4">
+      {/* Compact Session Bar */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-1.5 sm:flex-initial">
+          <button
+            type="button"
+            aria-label="Previous workout day"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#DFD5C6] bg-white text-[#3B342E] shadow-xs hover:bg-[#FAF7F2]"
+            onClick={() => setDate(addDays(date, -1))}
           >
-            Workout logs are saved on this device. The latest connection update
-            is needed to sync them to Google Sheets.
-          </p>
-        )}
-        <div className="grid gap-3 sm:grid-cols-3">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <input
+            aria-label="Workout date"
+            required
+            type="date"
+            max={today}
+            className="min-h-10 min-w-0 flex-1 rounded-xl border border-[#DFD5C6] bg-white px-3 py-1.5 text-xs font-semibold text-[#24201D] shadow-xs outline-none focus:border-[#D95D39] focus:ring-4 focus:ring-[#FBECE7] sm:w-44 sm:flex-initial sm:text-sm"
+            value={date}
+            onChange={(e) => {
+              if (e.target.value && e.target.value <= today)
+                setDate(e.target.value);
+            }}
+          />
+          <button
+            type="button"
+            aria-label="Next workout day"
+            disabled={date >= today}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#DFD5C6] bg-white text-[#3B342E] shadow-xs hover:bg-[#FAF7F2] disabled:opacity-40"
+            onClick={() => setDate(addDays(date, 1))}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="min-h-10 shrink-0 rounded-xl border border-[#DFD5C6] bg-white px-3 py-1.5 text-xs font-semibold text-[#3B342E] shadow-xs hover:bg-[#FAF7F2]"
+            onClick={() => setDate(today)}
+          >
+            Today
+          </button>
+        </div>
+        <button
+          type="button"
+          className={`min-h-10 w-full rounded-xl border px-3.5 py-2 text-xs font-semibold shadow-xs transition-colors sm:w-auto ${
+            completed
+              ? "border-[#CFE0D7] bg-[#ECF4F0] text-[#2F5B48]"
+              : "border-[#DFD5C6] bg-white text-[#3B342E] hover:bg-[#FAF7F2]"
+          }`}
+          aria-pressed={completed}
+          onClick={() =>
+            update((s) => ({
+              ...s,
+              fitness: {
+                ...s.fitness,
+                completed: completed
+                  ? s.fitness.completed.filter((d) => d !== date)
+                  : [...s.fitness.completed, date],
+              },
+            }))
+          }
+        >
+          {completed ? "✓ Session complete · undo" : "Mark session complete"}
+        </button>
+      </div>
+
+      {isConfigured() && !logStorageReady && (
+        <p
+          role="status"
+          className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs text-amber-800"
+        >
+          Workout logs are saved on this device. The latest connection update is
+          needed to sync them to Google Sheets.
+        </p>
+      )}
+
+      {/* Joined 3-Column Session KPI Strip + Slim Weekly Target Row */}
+      <div className="clay-card overflow-hidden rounded-2xl">
+        <div className="grid grid-cols-3 divide-x divide-[#EFE8DC]">
           {[
             { label: "Exercises", value: groups.length },
             {
@@ -207,7 +230,7 @@ export function Fitness({
               value: sets.filter((s) => s.type === "strength").length,
             },
             {
-              label: "Cardio minutes",
+              label: "Cardio min",
               value:
                 Math.round(
                   sets
@@ -219,76 +242,67 @@ export function Fitness({
                 ) / 100,
             },
           ].map((m) => (
-            <div key={m.label} className="rounded-xl bg-[#FAF7F2] p-4">
-              <p className="text-xs text-[#8C8073]">{m.label}</p>
-              <p className="mt-1 text-2xl font-semibold text-[#24201D]">
+            <div key={m.label} className="min-w-0 px-3 py-3 sm:px-5 sm:py-4">
+              <p className="truncate text-[11px] font-semibold text-[#6E6358] sm:text-xs">
+                {m.label}
+              </p>
+              <p className="mt-1 font-display text-xl font-bold tabular-nums text-[#24201D] sm:text-2xl">
                 {m.value}
               </p>
             </div>
           ))}
         </div>
-        <div className="mt-5 flex flex-wrap items-end justify-between gap-4 border-t border-[#EFE8DC] pt-4">
-          <div className="flex flex-wrap items-end gap-4">
-            <p className="pb-2 text-sm text-[#62584E]">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#EFE8DC] bg-[#FAF7F2]/70 px-3.5 py-2.5 sm:px-5">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold tabular-nums text-[#4C433B]">
               {daysThisWeek} training {daysThisWeek === 1 ? "day" : "days"} this
               week · target {data.fitness.target}
             </p>
-            <div className="w-36">
-              <Field label="Weekly training-day target">
-                <input
-                  aria-label="Weekly training-day target"
-                  className={inputClass}
-                  type="number"
-                  min="1"
-                  max="7"
-                  step="1"
-                  value={targetDraft}
-                  onChange={(e) => {
-                    const next = e.target.value;
-                    setTargetDraft(next);
-                    const n = Number(next);
-                    if (next !== "" && Number.isInteger(n) && n >= 1 && n <= 7) {
-                      update((s) => ({
-                        ...s,
-                        fitness: { ...s.fitness, target: n },
-                      }));
-                    }
-                  }}
-                  onBlur={() => {
-                    const n = Number(targetDraft);
-                    if (
-                      !targetDraft ||
-                      !Number.isInteger(n) ||
-                      n < 1 ||
-                      n > 7
-                    ) {
-                      setTargetDraft(String(data.fitness.target));
-                    }
-                  }}
-                />
-              </Field>
+            <div className="mt-1.5 h-1.5 max-w-xs overflow-hidden rounded-full bg-[#E7DDD0]">
+              <div
+                className="h-full rounded-full bg-[#356651] transition-[width] duration-300"
+                style={{
+                  width: `${Math.min(100, Math.round((daysThisWeek / Math.max(1, data.fitness.target)) * 100))}%`,
+                }}
+              />
             </div>
           </div>
-          <button
-            type="button"
-            className={secondaryClass}
-            aria-pressed={completed}
-            onClick={() =>
-              update((s) => ({
-                ...s,
-                fitness: {
-                  ...s.fitness,
-                  completed: completed
-                    ? s.fitness.completed.filter((d) => d !== date)
-                    : [...s.fitness.completed, date],
-                },
-              }))
-            }
-          >
-            {completed ? "✓ Session complete · undo" : "Mark session complete"}
-          </button>
+          <label className="flex shrink-0 items-center gap-2 text-xs font-semibold text-[#5C5248]">
+            <span>Weekly target</span>
+            <input
+              aria-label="Weekly training-day target"
+              className="min-h-9 w-16 rounded-xl border border-[#DFD5C6] bg-white px-2.5 py-1 text-center text-xs font-bold tabular-nums text-[#24201D] outline-none focus:border-[#D95D39] focus:ring-2 focus:ring-[#FBECE7]"
+              type="number"
+              min="1"
+              max="7"
+              step="1"
+              value={targetDraft}
+              onChange={(e) => {
+                const next = e.target.value;
+                setTargetDraft(next);
+                const n = Number(next);
+                if (next !== "" && Number.isInteger(n) && n >= 1 && n <= 7) {
+                  update((s) => ({
+                    ...s,
+                    fitness: { ...s.fitness, target: n },
+                  }));
+                }
+              }}
+              onBlur={() => {
+                const n = Number(targetDraft);
+                if (
+                  !targetDraft ||
+                  !Number.isInteger(n) ||
+                  n < 1 ||
+                  n > 7
+                ) {
+                  setTargetDraft(String(data.fitness.target));
+                }
+              }}
+            />
+          </label>
         </div>
-      </Card>
+      </div>
 
       <Card
         title={`Exercises · ${date}`}

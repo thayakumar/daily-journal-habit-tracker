@@ -57,29 +57,69 @@ export const primaryClass =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#D95D39] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_2px_8px_-2px_rgba(217,93,57,0.45),inset_0_1px_0_rgba(255,255,255,0.22)] transition duration-150 hover:bg-[#C04C2B] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed";
 export const secondaryClass =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#DFD5C6] bg-white px-3.5 py-2 text-sm font-medium text-[#3B342E] shadow-[0_1px_2px_rgba(58,44,32,0.04)] transition duration-150 hover:border-[#CFC1AE] hover:bg-[#FAF7F2] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed";
+export const compactPrimaryClass =
+  "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-[#D95D39] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_2px_6px_-2px_rgba(217,93,57,0.45)] transition duration-150 hover:bg-[#C04C2B] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed";
+export const compactSecondaryClass =
+  "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl border border-[#DFD5C6] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#3B342E] shadow-[0_1px_2px_rgba(58,44,32,0.04)] transition duration-150 hover:border-[#CFC1AE] hover:bg-[#FAF7F2] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed";
+
+export function SectionHeader({
+  title,
+  count,
+  action,
+  accent = "clay",
+  className = "",
+}: {
+  title: string;
+  count?: string | number;
+  action?: ReactNode;
+  accent?: "clay" | "sage";
+  className?: string;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between gap-2 ${className}`}
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        <span
+          aria-hidden="true"
+          className={`h-4 w-1 shrink-0 rounded-full ${accent === "sage" ? "bg-[#356651]" : "bg-[#D95D39]"}`}
+        />
+        <h2 className="font-display truncate text-[15px] font-bold text-[#24201D] sm:text-base">
+          {title}
+        </h2>
+        {count !== undefined && (
+          <span className="rounded-full bg-[#EFE8DC] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[#5C5248]">
+            {count}
+          </span>
+        )}
+      </div>
+      {action}
+    </div>
+  );
+}
 
 export function RoomSkeleton({ label }: { label: string }) {
   return (
-    <div role="status" className="space-y-5">
+    <div role="status" className="space-y-4">
       <span className="sr-only">{label}</span>
-      <div className="clay-card rounded-2xl p-6">
+      <div className="clay-card rounded-2xl p-4 sm:p-5">
         <div className="flex flex-wrap gap-2">
-          <div className="clay-skeleton h-10 w-32 rounded-xl" />
-          <div className="clay-skeleton h-10 w-32 rounded-xl" />
-          <div className="clay-skeleton h-10 w-24 rounded-xl" />
+          <div className="clay-skeleton h-9 w-28 rounded-xl" />
+          <div className="clay-skeleton h-9 w-28 rounded-xl" />
+          <div className="clay-skeleton h-9 w-20 rounded-xl" />
         </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <div className="clay-skeleton h-20 rounded-xl" />
-          <div className="clay-skeleton h-20 rounded-xl" />
-          <div className="clay-skeleton h-20 rounded-xl" />
+        <div className="mt-4 grid grid-cols-3 gap-2.5">
+          <div className="clay-skeleton h-16 rounded-xl" />
+          <div className="clay-skeleton h-16 rounded-xl" />
+          <div className="clay-skeleton h-16 rounded-xl" />
         </div>
       </div>
-      <div className="clay-card rounded-2xl p-6">
-        <div className="clay-skeleton h-5 w-44 rounded-lg" />
-        <div className="mt-4 space-y-3">
-          <div className="clay-skeleton h-12 rounded-xl" />
-          <div className="clay-skeleton h-12 rounded-xl" />
-          <div className="clay-skeleton h-12 rounded-xl" />
+      <div className="clay-card rounded-2xl p-4 sm:p-5">
+        <div className="clay-skeleton h-5 w-40 rounded-lg" />
+        <div className="mt-3 space-y-2.5">
+          <div className="clay-skeleton h-11 rounded-xl" />
+          <div className="clay-skeleton h-11 rounded-xl" />
+          <div className="clay-skeleton h-11 rounded-xl" />
         </div>
       </div>
     </div>
@@ -92,29 +132,37 @@ export function Card({
   action,
   children,
   className = "",
+  compact = false,
 }: {
   title: string;
   subtitle?: string;
   action?: ReactNode;
   children: ReactNode;
   className?: string;
+  compact?: boolean;
 }) {
   return (
     <section className={`clay-card rounded-2xl ${className}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#EFE8DC] px-5 py-4 sm:px-6 sm:py-5">
+      <div
+        className={`flex flex-wrap items-center justify-between gap-2.5 border-b border-[#EFE8DC] ${
+          compact
+            ? "px-4 py-3 sm:px-5 sm:py-3.5"
+            : "px-4 py-3.5 sm:px-5 sm:py-4"
+        }`}
+      >
         <div className="min-w-0">
-          <h2 className="font-display text-lg font-semibold text-[#24201D]">
+          <h2 className="font-display text-base font-semibold text-[#24201D] sm:text-lg">
             {title}
           </h2>
           {subtitle && (
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#5C5248]">
+            <p className="mt-0.5 max-w-2xl text-xs leading-relaxed text-[#5C5248] sm:text-sm">
               {subtitle}
             </p>
           )}
         </div>
         {action}
       </div>
-      <div className="p-5 sm:p-6">{children}</div>
+      <div className={compact ? "p-3.5 sm:p-4" : "p-4 sm:p-5"}>{children}</div>
     </section>
   );
 }
@@ -123,21 +171,33 @@ export function Empty({
   variant = "desk",
   asset,
   borderless = false,
+  compact = false,
 }: {
   children: ReactNode;
   variant?: "desk" | "mind";
   asset?: ClayAssetName;
   borderless?: boolean;
+  compact?: boolean;
 }) {
   const name = asset ?? (variant === "mind" ? "empty-mind" : "empty-desk");
   const isWide = name === "empty-desk" || name === "empty-mind";
+  if (compact) {
+    return (
+      <div
+        className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left text-xs text-[#5C5248] sm:text-sm ${borderless ? "bg-transparent" : "border border-[#EDE5D9] bg-[#FAF7F2]"}`}
+      >
+        <ClayObject name={name} className="h-11 w-11 shrink-0" />
+        <div className="min-w-0 leading-relaxed">{children}</div>
+      </div>
+    );
+  }
   return (
     <div
-      className={`flex flex-col items-center gap-3 rounded-2xl px-6 py-8 text-center text-sm text-[#62584E] ${borderless ? "bg-transparent" : "border border-[#EDE5D9] bg-[#FAF7F2]"}`}
+      className={`flex flex-col items-center gap-2.5 rounded-2xl px-5 py-6 text-center text-sm text-[#62584E] ${borderless ? "bg-transparent" : "border border-[#EDE5D9] bg-[#FAF7F2]"}`}
     >
       <ClayObject
         name={name}
-        className={isWide ? "h-24 w-36" : "h-20 w-20"}
+        className={isWide ? "h-18 w-28" : "h-16 w-16"}
       />
       <div className="max-w-sm leading-relaxed">{children}</div>
     </div>
@@ -156,7 +216,7 @@ export function Delete({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl p-2 text-[#8C8073] transition hover:bg-[#FBECE7] hover:text-[#C04C2B]"
+      className="flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-xl p-2 text-[#8C8073] transition hover:bg-[#FBECE7] hover:text-[#C04C2B]"
     >
       <Trash2 className="h-4 w-4" />
     </button>
@@ -177,12 +237,12 @@ export function Circle({
       aria-label={label}
       aria-pressed={checked}
       onClick={onClick}
-      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition"
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition"
     >
       <span
-        className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition ${checked ? "border-[#D95D39] bg-[#D95D39] text-white shadow-sm" : "border-[#DDD2C3] bg-white text-transparent hover:border-[#D95D39]"}`}
+        className={`flex h-7 w-7 items-center justify-center rounded-full border-2 transition ${checked ? "border-[#D95D39] bg-[#D95D39] text-white shadow-sm" : "border-[#DDD2C3] bg-white text-transparent hover:border-[#D95D39]"}`}
       >
-        <Check className="h-4 w-4" />
+        <Check className="h-3.5 w-3.5" />
       </span>
     </button>
   );
@@ -195,7 +255,7 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="flex min-w-0 flex-col gap-1.5 text-xs font-semibold text-[#62584E]">
+    <label className="flex min-w-0 flex-col gap-1 text-xs font-semibold text-[#5C5248]">
       {label}
       {children}
     </label>
@@ -226,6 +286,13 @@ export function ListPanel({
   const all = data.items.filter(
     (i) => i.kind === kind && (!month || i.month === month),
   );
+  const activeCount = all.filter(
+    (i) => !wishlistExpired(i, today) && !i.done,
+  ).length;
+  const doneCount = all.filter(
+    (i) => !wishlistExpired(i, today) && i.done,
+  ).length;
+  const archivedCount = all.filter((i) => wishlistExpired(i, today)).length;
   const items = all.filter((i) =>
     filter === "archived"
       ? wishlistExpired(i, today)
@@ -261,62 +328,92 @@ export function ListPanel({
     work: "No work tasks listed right now.",
     goal: "No goals added for this month yet.",
   };
+  const showDue = ["work", "personal"].includes(kind);
+  const countMap = {
+    active: activeCount,
+    done: doneCount,
+    archived: archivedCount,
+  };
   return (
     <Card
+      compact
       title={title}
       subtitle={subtitle}
       action={
-        <span className="rounded-lg bg-[#F3EDE3] px-2.5 py-1 text-xs font-semibold text-[#62584E]">
-          {all.filter((i) => i.done).length}/{all.length} done
+        <span className="rounded-full bg-[#F3EDE3] px-2.5 py-0.5 text-xs font-semibold tabular-nums text-[#5C5248]">
+          {doneCount}/{all.length} done
         </span>
       }
     >
-      <form onSubmit={add} className="mb-4 flex flex-wrap gap-2">
-        <input
-          aria-label={`New ${title.toLowerCase()} item`}
-          value={text}
-          maxLength={500}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Add an item…"
-          className={`${inputClass} min-w-40 flex-1`}
-        />
-        {["work", "personal"].includes(kind) && (
+      <form onSubmit={add} className="mb-3 space-y-2">
+        <div className="flex items-center gap-2">
           <input
-            aria-label="Due date"
-            type="date"
-            value={due}
-            onChange={(e) => setDue(e.target.value)}
-            className={`${inputClass} !w-auto`}
+            aria-label={`New ${title.toLowerCase()} item`}
+            value={text}
+            maxLength={500}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Add an item…"
+            className={`${inputClass} min-w-0 flex-1`}
           />
-        )}
-        <button type="submit" className={primaryClass} disabled={!text.trim()}>
-          <Plus className="h-4 w-4" />
-          Add
-        </button>
-      </form>
-      <div className="mb-4 flex gap-2">
-        {(
-          [
-            "active",
-            "done",
-            ...(kind === "wishlist" ? ["archived"] : []),
-          ] as const
-        ).map((f) => (
           <button
-            type="button"
-            key={f}
-            aria-pressed={filter === f}
-            onClick={() => setFilter(f as typeof filter)}
-            className={`min-h-[44px] rounded-xl px-3.5 py-2 text-xs font-semibold capitalize transition ${filter === f ? "bg-[#FBECE7] text-[#B84727]" : "text-[#62584E] hover:bg-[#F3EDE3]"}`}
+            type="submit"
+            className={`${primaryClass} shrink-0 px-3.5`}
+            disabled={!text.trim()}
           >
-            {f}
+            <Plus className="h-4 w-4" />
+            Add
           </button>
-        ))}
+        </div>
+        {showDue && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-[#6E6358]">Due</span>
+            <input
+              aria-label="Due date"
+              type="date"
+              value={due}
+              onChange={(e) => setDue(e.target.value)}
+              className="min-h-9 rounded-xl border border-[#DFD5C6] bg-[#FAF7F2] px-2.5 py-1.5 text-xs font-medium text-[#24201D] outline-none focus:border-[#D95D39] focus:bg-white focus:ring-2 focus:ring-[#FBECE7]"
+            />
+          </div>
+        )}
+      </form>
+      <div className="mb-3 flex gap-1 border-b border-[#EFE8DC]">
+        {(
+          (kind === "wishlist"
+            ? ["active", "done", "archived"]
+            : ["active", "done"]) as ("active" | "done" | "archived")[]
+        ).map((f) => {
+          const isSelected = filter === f;
+          return (
+            <button
+              type="button"
+              key={f}
+              aria-pressed={isSelected}
+              onClick={() => setFilter(f)}
+              className={`relative min-h-10 px-3 py-2 text-xs font-semibold capitalize transition-colors ${
+                isSelected
+                  ? "text-[#D95D39]"
+                  : "text-[#6E6358] hover:text-[#24201D]"
+              }`}
+            >
+              {f}{" "}
+              <span className="ml-0.5 tabular-nums opacity-75">
+                ({countMap[f]})
+              </span>
+              {isSelected && (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-2 bottom-0 h-[2px] rounded-full bg-[#D95D39]"
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
       {items.length ? (
         <ul className="divide-y divide-[#EFE8DC]">
           {items.map((item) => (
-            <li key={item.id} className="flex items-center gap-3 py-3">
+            <li key={item.id} className="flex items-center gap-2.5 py-2">
               <Circle
                 checked={item.done}
                 label={`Mark ${item.text} ${item.done ? "incomplete" : "complete"}`}
@@ -337,13 +434,13 @@ export function ListPanel({
                 </p>
                 {item.due && (
                   <p
-                    className={`mt-1 text-xs ${item.due < today && !item.done ? "font-medium text-[#C04C2B]" : "text-[#8C8073]"}`}
+                    className={`mt-0.5 text-xs tabular-nums ${item.due < today && !item.done ? "font-medium text-[#C04C2B]" : "text-[#6E6358]"}`}
                   >
                     Due {item.due}
                   </p>
                 )}
                 {kind === "wishlist" && (
-                  <p className="mt-1 text-xs text-[#8C8073]">
+                  <p className="mt-0.5 text-xs text-[#6E6358]">
                     Saved {item.created}
                     {filter === "archived"
                       ? " · 30-day review"
@@ -365,6 +462,7 @@ export function ListPanel({
         </ul>
       ) : (
         <Empty
+          compact
           asset={
             kind === "wishlist"
               ? "finance"

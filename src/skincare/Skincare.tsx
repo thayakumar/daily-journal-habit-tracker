@@ -202,57 +202,65 @@ export default function Skincare({
   }
 
   return (
-    <div className="min-w-0 space-y-5 break-words">
-      <Card
-        title="Your skincare journal"
-        subtitle="A daily record of your routine, products and how your skin feels."
-      >
+    <div className="min-w-0 space-y-4 break-words">
+      {/* Flush Top 3-Tab Underline Navigation Bar */}
+      <div className="border-b border-[#E7DDD0]">
         <div
           role="tablist"
           aria-label="Skincare modules"
-          className="clay-segmented inline-flex flex-wrap gap-1 rounded-2xl p-1"
+          className="grid grid-cols-3 sm:inline-flex sm:gap-1"
         >
-          {(["tracker", "products", "overview"] as const).map((t) => (
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === t}
-              aria-controls={`skincare-${t}`}
-              id={`skin-tab-${t}`}
-              key={t}
-              className={`min-h-10 rounded-xl px-4 py-2 text-sm font-semibold transition-colors duration-150 ${
-                tab === t
-                  ? "bg-[#D95D39] text-white shadow-xs"
-                  : "text-[#5C5248] hover:bg-white/70 hover:text-[#24201D]"
-              }`}
-              onClick={() => {
-                flushTextDrafts();
-                setTab(t);
-                setError("");
-              }}
-            >
-              {t === "tracker"
-                ? "Daily tracker"
-                : t === "products"
-                  ? "My products"
-                  : "Photo overview"}
-            </button>
-          ))}
+          {(["tracker", "products", "overview"] as const).map((t) => {
+            const active = tab === t;
+            return (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={active}
+                aria-controls={`skincare-${t}`}
+                id={`skin-tab-${t}`}
+                key={t}
+                className={`relative flex min-h-11 items-center justify-center whitespace-nowrap px-1.5 py-2.5 text-xs font-semibold transition-colors min-[375px]:text-[13px] sm:px-5 sm:text-sm ${
+                  active
+                    ? "text-[#D95D39]"
+                    : "text-[#6E6358] hover:text-[#24201D]"
+                }`}
+                onClick={() => {
+                  flushTextDrafts();
+                  setTab(t);
+                  setError("");
+                }}
+              >
+                {t === "tracker"
+                  ? "Daily tracker"
+                  : t === "products"
+                    ? "My products"
+                    : "Photo overview"}
+                {active && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-x-2 bottom-0 h-[2.5px] rounded-full bg-[#D95D39]"
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
-        {!storageReady && (
-          <p
-            role="status"
-            className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800"
-          >
-            Notes, products and habits save on this device. Deploy the updated
-            planner script to sync Skincare tables and enable photo uploads.
-          </p>
-        )}
-      </Card>
+      </div>
+
+      {!storageReady && (
+        <p
+          role="status"
+          className="rounded-xl border border-amber-200/80 bg-amber-50 px-3.5 py-2 text-xs text-amber-900"
+        >
+          Notes, products and habits save on this device. Deploy the updated
+          planner script to sync Skincare tables and enable photo uploads.
+        </p>
+      )}
       {notice && (
         <p
           role="status"
-          className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800"
+          className="rounded-xl bg-emerald-50 px-3.5 py-2.5 text-xs font-medium text-emerald-800"
         >
           {notice}
         </p>
@@ -260,7 +268,7 @@ export default function Skincare({
       {error && (
         <p
           role="alert"
-          className="rounded-xl bg-[#FBECE7] p-3 text-sm text-[#A83E20]"
+          className="rounded-xl bg-[#FBECE7] px-3.5 py-2.5 text-xs font-medium text-[#A83E20]"
         >
           {error}
         </p>
@@ -270,35 +278,35 @@ export default function Skincare({
           role="tabpanel"
           id="skincare-tracker"
           aria-labelledby="skin-tab-tracker"
-          className="space-y-5"
+          className="space-y-4"
         >
-          <div className="clay-card flex flex-wrap items-end justify-between gap-3 rounded-2xl p-4 sm:px-6">
-            <div className="flex flex-wrap items-end gap-2">
+          {/* Compact Single-Row Date Navigator */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:flex-initial">
               <button
                 type="button"
-                className={secondaryClass}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#DFD5C6] bg-white text-[#3B342E] shadow-xs hover:bg-[#FAF7F2]"
                 aria-label="Previous skincare day"
                 onClick={() => switchDate(addDays(date, -1))}
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <Field label="Journal date">
-                <input
-                  type="date"
-                  required
-                  className={inputClass}
-                  max={today}
-                  value={date}
-                  onChange={(e) => {
-                    if (e.target.value && e.target.value <= today)
-                      switchDate(e.target.value);
-                  }}
-                />
-              </Field>
+              <input
+                aria-label="Journal date"
+                type="date"
+                required
+                className="min-h-10 min-w-0 flex-1 rounded-xl border border-[#DFD5C6] bg-white px-3 py-1.5 text-xs font-semibold text-[#24201D] shadow-xs outline-none focus:border-[#D95D39] focus:ring-4 focus:ring-[#FBECE7] sm:w-44 sm:flex-initial sm:text-sm"
+                max={today}
+                value={date}
+                onChange={(e) => {
+                  if (e.target.value && e.target.value <= today)
+                    switchDate(e.target.value);
+                }}
+              />
               <button
                 type="button"
                 disabled={date >= today}
-                className={secondaryClass}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#DFD5C6] bg-white text-[#3B342E] shadow-xs hover:bg-[#FAF7F2] disabled:opacity-40"
                 aria-label="Next skincare day"
                 onClick={() => switchDate(addDays(date, 1))}
               >
@@ -306,26 +314,27 @@ export default function Skincare({
               </button>
               <button
                 type="button"
-                className={secondaryClass}
+                className="min-h-10 shrink-0 rounded-xl border border-[#DFD5C6] bg-white px-3 py-1.5 text-xs font-semibold text-[#3B342E] shadow-xs hover:bg-[#FAF7F2]"
                 onClick={() => switchDate(today)}
               >
                 Today
               </button>
             </div>
-            <p className="text-xs text-[#8C8073]">
-              Applies to journal, routine &amp; photos below · auto-saves
+            <p className="hidden text-xs text-[#6E6358] md:block">
+              Auto-saves to your daily shelf
             </p>
           </div>
           <Card
+            compact
             title="Daily face journal"
-            subtitle="Write what you applied and how your skin reacted. Changes save automatically."
+            subtitle="Write what you applied and how your skin reacted."
           >
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid gap-3.5 lg:grid-cols-2">
               <Field label="What I applied / daily notes">
                 <textarea
                   aria-label="What I applied / daily notes"
                   className={inputClass}
-                  rows={6}
+                  rows={4}
                   maxLength={10000}
                   value={notesDraft}
                   placeholder="Morning and evening routine, changes, or anything you want to remember…"
@@ -569,32 +578,30 @@ export default function Skincare({
             )}
           </Card>
           <Card
+            compact
             title="Daily progress photos"
-            subtitle={`Front, left and right views for ${date}. Photos are resized for the gallery and saved privately in your Skincare Drive folder.`}
+            subtitle={`Front, left and right views for ${date}.`}
           >
-            <p className="mb-4 text-xs text-[#62584E]">
-              Use similar lighting, distance and angles so your photos are
-              easier to compare. Uploading a replacement changes this day’s
-              journal photo; original files stay in Drive.
-            </p>
             {!photoReady && (
               <p
                 role="status"
-                className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800"
+                className="mb-3 rounded-xl border border-amber-200/80 bg-amber-50 px-3 py-2 text-xs text-amber-900"
               >
                 Photo uploads need the latest Apps Script deployment. No photo
                 key or device connection is required.
               </p>
             )}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
               {ANGLES.map((side) => {
                 const photo = dayPhotoByAngle.get(side);
                 return (
                   <div key={side} className="min-w-0">
-                    <h3 className="mb-2 font-semibold capitalize">{side}</h3>
+                    <h3 className="mb-1.5 text-center text-xs font-semibold capitalize text-[#5C5248] sm:text-left sm:text-sm">
+                      {side}
+                    </h3>
                     <SkinPhotoTile photo={photo} onOpen={setViewPhoto} />
                     <label
-                      className={`mt-3 flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-[#EAE2D6] px-3 py-2 text-sm font-semibold ${!photoReady || busy ? "cursor-not-allowed bg-[#F3EDE3] text-[#8C8073]" : "text-[#62584E] hover:bg-[#FAF7F2]"}`}
+                      className={`mt-2 flex min-h-10 cursor-pointer items-center justify-center rounded-xl border border-[#EAE2D6] px-2 py-1.5 text-center text-[11px] font-semibold sm:mt-3 sm:min-h-11 sm:px-3 sm:text-xs ${!photoReady || busy ? "cursor-not-allowed bg-[#F3EDE3] text-[#8C8073]" : "bg-white text-[#5C5248] hover:bg-[#FAF7F2]"}`}
                     >
                       <input
                         aria-label={`Upload ${side} skincare photo`}
@@ -611,13 +618,13 @@ export default function Skincare({
                       {busy === side
                         ? "Uploading…"
                         : photo
-                          ? "Replace photo"
-                          : "Upload photo"}
+                          ? "Replace"
+                          : "Upload"}
                     </label>
                     {photo && (
                       <button
                         type="button"
-                        className="mt-2 min-h-11 w-full rounded-xl text-sm text-[#D95D39]"
+                        className="mt-1.5 min-h-9 w-full rounded-xl text-[11px] font-medium text-[#D95D39] hover:bg-[#FBECE7]/60 sm:text-xs"
                         disabled={!!busy}
                         onClick={() => {
                           if (
@@ -633,7 +640,7 @@ export default function Skincare({
                             }));
                         }}
                       >
-                        Remove from journal
+                        Remove
                       </button>
                     )}
                   </div>

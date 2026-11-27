@@ -23,28 +23,29 @@ export function CategoryDonutChart({
 }) {
   return (
     <Card
+      compact
       title="Expenses by category"
-      subtitle="Every category is included automatically, including Entertainment and new categories."
+      subtitle="Every category in this cycle, updated automatically."
     >
       {!categories.length ? (
-        <Empty>
+        <Empty compact>
           No expenses in this cycle yet. Add them in Expense Tracker.
         </Empty>
       ) : (
-        <div className="grid items-center gap-6 md:grid-cols-[220px_1fr]">
+        <div className="grid items-center gap-4 md:grid-cols-[190px_1fr] md:gap-6">
           <svg
             viewBox="0 0 120 120"
             role="img"
             aria-label={`Expense categories for ${monthName(month)}. Total ${money(spent)}.`}
-            className="mx-auto h-52 w-52 max-w-full"
+            className="mx-auto h-40 w-40 max-w-full sm:h-44 sm:w-44"
           >
             <circle
               cx="60"
               cy="60"
               r="44"
               fill="none"
-              stroke="#f1f5f9"
-              strokeWidth="20"
+              stroke="#EFE8DC"
+              strokeWidth="18"
             />
             {categories.map((c, i) => {
               const before = categories
@@ -60,7 +61,7 @@ export function CategoryDonutChart({
                   pathLength="100"
                   fill="none"
                   stroke={COLORS[i % COLORS.length]}
-                  strokeWidth="20"
+                  strokeWidth="18"
                   strokeDasharray={`${fraction * 100} ${100 - fraction * 100}`}
                   strokeDashoffset={spent ? (-before / spent) * 100 : 0}
                   transform="rotate(-90 60 60)"
@@ -73,45 +74,57 @@ export function CategoryDonutChart({
             })}
             <text
               x="60"
-              y="58"
+              y="56"
               textAnchor="middle"
-              className="fill-[#8C8073]"
+              className="fill-[#6E6358]"
               fontSize="7"
+              fontWeight="600"
             >
-              TOTAL EXPENSES
+              TOTAL SPENT
             </text>
             <text
               x="60"
-              y="70"
+              y="69"
               textAnchor="middle"
               className="fill-[#24201D]"
               fontSize="9"
-              fontWeight="600"
+              fontWeight="700"
             >
               {money(spent)}
             </text>
           </svg>
-          <ul aria-label="Category breakdown" className="space-y-3">
-            {categories.map((c, i) => (
-              <li
-                key={c.name}
-                className="flex min-w-0 flex-wrap items-center gap-2 text-sm"
-              >
-                <span
-                  className="h-3 w-3 shrink-0 rounded-full"
-                  style={{ background: COLORS[i % COLORS.length] }}
-                />
-                <span className="min-w-0 flex-1 break-words text-[#62584E]">
-                  {c.name}
-                </span>
-                <span className="font-medium text-[#24201D]">
-                  {money(c.amount)}
-                </span>
-                <span className="text-xs text-[#8C8073]">
-                  ({spent ? ((c.amount / spent) * 100).toFixed(1) : "0"}%)
-                </span>
-              </li>
-            ))}
+          <ul aria-label="Category breakdown" className="space-y-2.5">
+            {categories.map((c, i) => {
+              const pct = spent ? (c.amount / spent) * 100 : 0;
+              return (
+                <li key={c.name} className="min-w-0 space-y-1 text-xs sm:text-sm">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ background: COLORS[i % COLORS.length] }}
+                    />
+                    <span className="min-w-0 flex-1 truncate font-medium text-[#3B342E]">
+                      {c.name}
+                    </span>
+                    <span className="font-semibold tabular-nums text-[#24201D]">
+                      {money(c.amount)}
+                    </span>
+                    <span className="w-10 text-right text-[11px] tabular-nums text-[#6E6358]">
+                      {pct.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#EFE8DC]">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.max(2, pct)}%`,
+                        background: COLORS[i % COLORS.length],
+                      }}
+                    />
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

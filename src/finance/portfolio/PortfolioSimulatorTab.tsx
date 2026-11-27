@@ -253,7 +253,7 @@ export function PortfolioSimulatorTab({
       ) : (
         scenario && (
           <>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
               {[
                 ["Cash after purchase / deposit", scenario.cashAfter],
                 ["Monthly instalment", scenario.payment],
@@ -264,10 +264,12 @@ export function PortfolioSimulatorTab({
               ].map(([label, value]) => (
                 <div
                   key={String(label)}
-                  className="rounded-xl bg-[#FAF7F2] p-4"
+                  className="rounded-xl border border-[#EFE8DC] bg-[#FAF7F2] p-3 sm:p-4"
                 >
-                  <p className="text-sm text-[#62584E]">{label}</p>
-                  <p className="mt-2 break-words text-xl font-bold">
+                  <p className="text-[11px] font-semibold text-[#6E6358] sm:text-xs">
+                    {label}
+                  </p>
+                  <p className="mt-1 break-words font-display text-base font-bold tabular-nums text-[#24201D] sm:text-xl">
                     {money(Number(value))}
                   </p>
                 </div>

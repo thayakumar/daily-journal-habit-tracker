@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Pencil, Plus } from "lucide-react";
 import { Delete, primaryClass, type Update } from "../workspace/ui";
 import { localDate, uid, type Workspace } from "../workspace/model";
@@ -41,6 +41,7 @@ export function Portfolio({
   storageReady,
   initialSection = "overview",
   migrationReady = false,
+  cycleDisclosure,
 }: {
   data: Workspace;
   update: Update;
@@ -48,6 +49,7 @@ export function Portfolio({
   storageReady: boolean;
   initialSection?: string;
   migrationReady?: boolean;
+  cycleDisclosure?: ReactNode;
 }) {
   const p = useMemo(
     () => data.financePortfolio ?? emptyPortfolio(),
@@ -413,21 +415,15 @@ export function Portfolio({
   );
 
   return (
-    <div className="min-w-0 space-y-5 break-words [contain:paint]">
-      <div className="clay-card rounded-2xl p-4 sm:p-5">
-        {!storageReady && (
-          <p
-            role="status"
-            className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800"
-          >
-            Portfolio changes save on this device. Update the planner connection
-            to sync the new tables.
-          </p>
-        )}
+    <div className="min-w-0 space-y-4 break-words [contain:paint]">
+      <div
+        data-horizontal-scroll
+        className="-mx-3.5 overflow-x-auto px-3.5 pb-1 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         <div
           role="tablist"
           aria-label="Portfolio sections"
-          className="clay-segmented inline-flex flex-wrap gap-1 rounded-2xl p-1"
+          className="inline-flex min-w-full items-center gap-1.5 sm:min-w-0"
         >
           {[
             "overview",
@@ -446,25 +442,34 @@ export function Portfolio({
                 setTab(id);
                 setNotice("");
               }}
-              className={`min-h-10 rounded-xl px-4 py-2 text-sm font-semibold capitalize transition-colors duration-150 ${
+              className={`min-h-9 shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold capitalize transition-colors duration-150 sm:text-[13px] ${
                 tab === id
                   ? "bg-[#24201D] text-white shadow-xs"
-                  : "text-[#5C5248] hover:bg-white/70 hover:text-[#24201D]"
+                  : "border border-[#E7DDD0] bg-white text-[#5C5248] hover:border-[#CFC1AE] hover:text-[#24201D]"
               }`}
             >
               {id}
             </button>
           ))}
         </div>
-        {notice && (
-          <p
-            role="status"
-            className="mt-4 rounded-xl bg-[#FAF7F2] p-3 text-sm text-[#62584E]"
-          >
-            {notice}
-          </p>
-        )}
       </div>
+      {!storageReady && (
+        <p
+          role="status"
+          className="rounded-xl border border-amber-200/80 bg-amber-50 px-3.5 py-2 text-xs text-amber-900"
+        >
+          Portfolio changes save on this device. Update the planner connection
+          to sync the new tables.
+        </p>
+      )}
+      {notice && (
+        <p
+          role="status"
+          className="rounded-xl border border-[#EAE2D6] bg-white px-3.5 py-2.5 text-xs font-medium text-[#5C5248]"
+        >
+          {notice}
+        </p>
+      )}
       {tab === "overview" && (
         <PortfolioOverviewTab
           p={p}
@@ -533,6 +538,7 @@ export function Portfolio({
           today={today}
         />
       )}
+      {cycleDisclosure}
       {editor && (
         <PortfolioEditorDialog
           editor={editor}

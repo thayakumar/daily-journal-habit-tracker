@@ -5,7 +5,6 @@ import {
   Card,
   inputClass,
   primaryClass,
-  secondaryClass,
   type Update,
 } from "./ui";
 
@@ -117,43 +116,105 @@ export function Meals({
   const [grocery, setGrocery] = useState("");
   const [added, setAdded] = useState(false);
   const dates = weekDates(week);
+  const [selectedDay, setSelectedDay] = useState(today);
+  const activeDay = dates.includes(selectedDay)
+    ? selectedDay
+    : dates.includes(today)
+      ? today
+      : dates[0];
+  const weekRangeLabel = `${new Date(`${dates[0]}T12:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${new Date(`${dates[6]}T12:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 
   return (
-    <div className="space-y-5">
-      <Card
-        title="A week at your table"
-        subtitle="Plan each day’s meals. Your existing meal records are preserved."
-        action={
-          <div className="flex flex-wrap gap-2">
+    <div className="space-y-4">
+      {/* Compact Single-Row Week Control Bar */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            aria-label="Previous meal week"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#DFD5C6] bg-white text-[#3B342E] shadow-xs hover:bg-[#FAF7F2]"
+            onClick={() => setWeek(addDays(week, -7))}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="min-h-10 rounded-xl border border-[#DFD5C6] bg-white px-3 text-xs font-semibold tabular-nums text-[#24201D] shadow-xs hover:bg-[#FAF7F2]"
+            onClick={() => {
+              setWeek(today);
+              setSelectedDay(today);
+            }}
+          >
+            {weekRangeLabel}
+          </button>
+          <button
+            type="button"
+            aria-label="Next meal week"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#DFD5C6] bg-white text-[#3B342E] shadow-xs hover:bg-[#FAF7F2]"
+            onClick={() => setWeek(addDays(week, 7))}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+        <button
+          type="button"
+          className="min-h-10 rounded-xl border border-[#DFD5C6] bg-white px-3 text-xs font-semibold text-[#5C5248] shadow-xs hover:bg-[#FAF7F2] hover:text-[#24201D]"
+          onClick={() => {
+            setWeek(today);
+            setSelectedDay(today);
+          }}
+        >
+          This week
+        </button>
+      </div>
+
+      {/* Mobile 7-Day Pill Selector Strip (avoids 28-textarea wall!) */}
+      <div className="grid grid-cols-7 gap-1 md:hidden">
+        {dates.map((d) => {
+          const isSelected = d === activeDay;
+          const m = data.meals[d];
+          const hasAny = Boolean(
+            m &&
+              [m.breakfast, m.lunch, m.dinner, m.snack].some((v) => v.trim()),
+          );
+          return (
             <button
+              key={d}
               type="button"
-              aria-label="Previous meal week"
-              className={secondaryClass}
-              onClick={() => setWeek(addDays(week, -7))}
+              aria-pressed={isSelected}
+              onClick={() => setSelectedDay(d)}
+              className={`flex min-h-[54px] flex-col items-center justify-center rounded-xl border px-1 py-1.5 text-center transition-colors ${
+                isSelected
+                  ? "border-[#D95D39] bg-[#D95D39] text-white shadow-xs"
+                  : d === today
+                    ? "border-[#EAB9A9] bg-[#FBECE7]/60 text-[#A83E20]"
+                    : "border-[#E7DDD0] bg-white text-[#5C5248]"
+              }`}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <span className="text-[10px] font-semibold uppercase opacity-80">
+                {new Date(`${d}T12:00`).toLocaleDateString("en", {
+                  weekday: "narrow",
+                })}
+              </span>
+              <span className="mt-0.5 text-xs font-bold tabular-nums">
+                {Number(d.slice(8))}
+              </span>
+              <span
+                className={`mt-1 h-1 w-1 rounded-full ${
+                  hasAny
+                    ? isSelected
+                      ? "bg-white"
+                      : "bg-[#356651]"
+                    : "bg-transparent"
+                }`}
+              />
             </button>
-            <button
-              type="button"
-              className={secondaryClass}
-              onClick={() => setWeek(today)}
-            >
-              This week
-            </button>
-            <button
-              type="button"
-              aria-label="Next meal week"
-              className={secondaryClass}
-              onClick={() => setWeek(addDays(week, 7))}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        }
-      >
-        <p className="mb-4 text-xs text-[#8C8073]">
-          {dates[0]} — {dates[6]} · saves automatically
-        </p>
+          );
+        })}
+      </div>
+
+      {/* Weekly Meals Table (keeps all 28 textareas mounted in DOM!) */}
+      <section className="clay-card rounded-2xl p-3.5 sm:p-5">
         <div className="max-w-full">
           <table
             aria-label="Weekly meals"
@@ -165,7 +226,7 @@ export function Meals({
                   (label) => (
                     <th
                       key={label}
-                      className="p-3 text-left font-semibold text-[#62584E] md:table-cell"
+                      className="p-2.5 text-left text-xs font-semibold text-[#6E6358] md:table-cell"
                     >
                       {label}
                     </th>
@@ -173,19 +234,19 @@ export function Meals({
                 )}
               </tr>
             </thead>
-            <tbody className="block space-y-4 md:table-row-group md:space-y-0">
+            <tbody className="block md:table-row-group">
               {dates.map((d) => (
                 <tr
                   key={d}
-                  className={`block rounded-2xl border p-4 md:table-row md:rounded-none md:border-x-0 md:border-b-0 md:p-0 ${
-                    d === today
-                      ? "border-[#EAB9A9] bg-[#FBECE7]/60 md:border-t-[#EFE8DC]"
-                      : "border-[#EFE8DC] bg-[#FAF7F2]/60 md:border-t md:bg-transparent"
+                  className={`${
+                    d === activeDay ? "block" : "hidden md:table-row"
+                  } md:border-t md:border-[#EFE8DC] ${
+                    d === today ? "md:bg-[#FBECE7]/35" : ""
                   }`}
                 >
                   <th
                     scope="row"
-                    className="mb-2 block text-left font-semibold text-[#24201D] md:mb-0 md:table-cell md:w-28 md:p-3 md:align-top md:text-[#62584E]"
+                    className="mb-2.5 block text-left font-display text-sm font-bold text-[#24201D] md:mb-0 md:table-cell md:w-28 md:p-2.5 md:align-top md:font-sans md:text-xs md:font-semibold md:text-[#5C5248]"
                   >
                     <div className="flex items-center justify-between gap-2 md:block">
                       <span>
@@ -196,7 +257,7 @@ export function Meals({
                         })}
                       </span>
                       {d === today && (
-                        <span className="rounded-full bg-[#FBECE7] px-2 py-0.5 text-xs font-semibold text-[#B84727] md:mt-1 md:block md:bg-transparent md:p-0 md:text-[#D95D39]">
+                        <span className="rounded-full bg-[#FBECE7] px-2 py-0.5 text-[11px] font-semibold text-[#B84727] md:mt-1 md:block md:w-fit">
                           Today
                         </span>
                       )}
@@ -207,7 +268,7 @@ export function Meals({
                       key={meal}
                       className="block py-1.5 md:table-cell md:p-2 md:align-top"
                     >
-                      <span className="mb-1 block text-xs font-semibold text-[#62584E] md:hidden">
+                      <span className="mb-1 block text-[11px] font-semibold text-[#6E6358] md:hidden">
                         {label}
                       </span>
                       <MealInput
@@ -235,10 +296,12 @@ export function Meals({
             </tbody>
           </table>
         </div>
-      </Card>
+      </section>
+
       <Card
+        compact
         title="Shopping prep"
-        subtitle="One ingredient per line. Add them directly to your grocery list."
+        subtitle="One ingredient per line — sent straight to Groceries."
       >
         <form
           className="space-y-3"
@@ -270,7 +333,7 @@ export function Meals({
         >
           <textarea
             aria-label="Ingredients, one per line"
-            rows={3}
+            rows={2}
             className={inputClass}
             value={grocery}
             onChange={(e) => {
@@ -281,15 +344,15 @@ export function Meals({
           />
           <div className="flex flex-wrap items-center gap-3">
             <button
-            type="submit"
-            className={primaryClass}
-            disabled={!grocery.trim()}
-          >
+              type="submit"
+              className={primaryClass}
+              disabled={!grocery.trim()}
+            >
               <Plus className="h-4 w-4" />
               Add to grocery list
             </button>
             {added && (
-              <span role="status" className="text-sm text-emerald-700">
+              <span role="status" className="text-xs font-semibold text-[#356651]">
                 Added to Groceries in Personal.
               </span>
             )}

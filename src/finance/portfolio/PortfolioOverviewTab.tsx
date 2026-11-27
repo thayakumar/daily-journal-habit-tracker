@@ -90,100 +90,299 @@ export function PortfolioOverviewTab({
     } as Record<string, { text: string; items: string[] }>;
   }, [p, totals]);
 
+  const assetShare =
+    totals.assets + totals.debt > 0
+      ? Math.round((totals.assets / (totals.assets + totals.debt)) * 100)
+      : 100;
+
   return (
-    <>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {(
-          [
-            {
-              label: "Recorded net worth",
-              value: totals.netWorth,
-              Icon: Landmark,
-              tone:
-                totals.netWorth < 0
-                  ? "border-[#E8B8A9] bg-[#FBECE7]/60 text-[#A83E20]"
-                  : "border-[#EAE2D6] bg-white text-[#24201D]",
-              valueClass:
-                totals.netWorth < 0 ? "text-[#B84727]" : "text-[#24201D]",
-            },
-            {
-              label: "Total assets",
-              value: totals.assets,
-              Icon: Landmark,
-              tone: "border-[#EAE2D6] bg-white text-[#24201D]",
-              valueClass: "text-[#24201D]",
-            },
-            {
-              label: "Liquid funds",
-              value: totals.liquid,
-              Icon: Wallet,
-              tone: "border-[#EAE2D6] bg-white text-[#24201D]",
-              valueClass: "text-[#356651]",
-            },
-            {
-              label: "Outstanding debt",
-              value: totals.debt,
-              Icon: CreditCard,
-              tone: "border-[#EAE2D6] bg-white text-[#24201D]",
-              valueClass: totals.debt > 0 ? "text-[#B84727]" : "text-[#24201D]",
-            },
-          ] as const
-        ).map(({ label, value, Icon, tone, valueClass }) => (
-          <div
-            key={label}
-            className={`min-w-0 rounded-2xl border p-5 shadow-xs ${tone}`}
+    <div className="space-y-4">
+      {/* Row 1 — Terracotta Net Worth Hero + 2x2 Primary Bento Grid */}
+      <div className="grid gap-3 lg:grid-cols-12">
+        <div
+          className={`flex min-w-0 flex-col justify-between rounded-[22px] p-5 lg:col-span-5 ${
+            totals.netWorth < 0
+              ? "border border-[#E8B8A9] bg-[#FBECE7] text-[#9A381D]"
+              : "bg-gradient-to-br from-[#D95D39] to-[#B84727] text-white shadow-[0_12px_28px_-12px_rgba(184,71,39,0.55)]"
+          }`}
+        >
+          <p
+            className={`flex items-center justify-between gap-2 text-xs font-semibold ${
+              totals.netWorth < 0 ? "text-[#9A381D]" : "text-white/85"
+            }`}
           >
-            <p className="flex items-center justify-between gap-2 text-xs font-semibold text-[#6E6358]">
-              {label}
-              <Icon className="h-4 w-4 shrink-0 text-[#6E6358]" />
-            </p>
-            <p
-              className={`mt-2.5 break-words font-display text-2xl font-bold tabular-nums sm:text-3xl ${valueClass}`}
+            Recorded net worth
+            <span
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl ${
+                totals.netWorth < 0 ? "bg-white/60" : "bg-white/15"
+              }`}
             >
-              {money(value)}
-            </p>
-            <p className="mt-2 text-xs leading-relaxed text-[#5C5248]">
-              {kpiInfo[label].text}
-            </p>
+              <Landmark className="h-3.5 w-3.5" />
+            </span>
+          </p>
+          <p className="mt-2 break-words font-display text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
+            {money(totals.netWorth)}
+          </p>
+          <p
+            className={`mt-1.5 text-[11px] leading-snug ${
+              totals.netWorth < 0 ? "text-[#9A381D]/85" : "text-white/80"
+            }`}
+          >
+            {kpiInfo["Recorded net worth"].text}
+          </p>
+          <div className="mt-3.5 space-y-1.5">
+            <div
+              className={`h-1.5 w-full overflow-hidden rounded-full ${
+                totals.netWorth < 0 ? "bg-[#E8B8A9]" : "bg-white/25"
+              }`}
+            >
+              <div
+                className={`h-full rounded-full ${
+                  totals.netWorth < 0 ? "bg-[#B84727]" : "bg-white"
+                }`}
+                style={{ width: `${assetShare}%` }}
+              />
+            </div>
+            <div
+              className={`flex flex-wrap justify-between gap-2 text-[11px] font-semibold tabular-nums ${
+                totals.netWorth < 0 ? "text-[#9A381D]" : "text-white/90"
+              }`}
+            >
+              <span>Assets {money(totals.assets)}</span>
+              <span>Debt {money(totals.debt)}</span>
+            </div>
           </div>
-        ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:col-span-7">
+          {(
+            [
+              {
+                label: "Total assets",
+                value: totals.assets,
+                Icon: Landmark,
+                valueClass: "text-[#24201D]",
+              },
+              {
+                label: "Liquid funds",
+                value: totals.liquid,
+                Icon: Wallet,
+                valueClass: "text-[#356651]",
+              },
+              {
+                label: "Outstanding debt",
+                value: totals.debt,
+                Icon: CreditCard,
+                valueClass:
+                  totals.debt > 0 ? "text-[#B84727]" : "text-[#24201D]",
+              },
+              {
+                label: "Monthly obligations",
+                value: monthlyObligations,
+                Icon: CreditCard,
+                valueClass: "text-[#24201D]",
+              },
+            ] as const
+          ).map(({ label, value, Icon, valueClass }) => (
+            <div
+              key={label}
+              className="clay-card min-w-0 rounded-2xl p-3.5 sm:p-4"
+            >
+              <p className="flex items-center justify-between gap-1.5 text-[11px] font-semibold text-[#6E6358] sm:text-xs">
+                {label}
+                <Icon className="h-3.5 w-3.5 shrink-0 text-[#8C8073]" />
+              </p>
+              <p
+                className={`mt-1.5 break-words font-display text-lg font-bold tabular-nums sm:text-2xl ${valueClass}`}
+              >
+                {money(value)}
+              </p>
+              <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-[#5C5248]">
+                {kpiInfo[label].text}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+
+      {/* Row 2 — Asset Class Breakdown Strip */}
+      <div className="grid grid-cols-1 gap-2.5 min-[360px]:grid-cols-3 sm:gap-3">
         {(
           [
             ["Bank balances", totals.bank, Landmark],
             ["Investments", totals.investments, TrendingUp],
             ["Physical gold", totals.gold, Gem],
-            ["Monthly obligations", monthlyObligations, CreditCard],
           ] as const
         ).map(([label, value, Icon]) => (
           <div
             key={label}
-            className="min-w-0 rounded-2xl border border-[#E7DDD0] bg-[#FAF7F2] p-4"
+            className="min-w-0 rounded-2xl border border-[#E7DDD0] bg-[#FAF7F2] p-3.5 sm:p-4"
           >
-            <p className="flex items-center justify-between gap-2 text-xs font-semibold text-[#5C5248]">
+            <p className="flex items-center justify-between gap-1.5 text-[11px] font-semibold text-[#5C5248] sm:text-xs">
               {label}
-              <Icon className="h-4 w-4 shrink-0 text-[#6E6358]" />
+              <Icon className="h-3.5 w-3.5 shrink-0 text-[#6E6358]" />
             </p>
-            <p className="mt-1.5 break-words font-display text-xl font-bold tabular-nums text-[#24201D]">
+            <p className="mt-1 break-words font-display text-base font-bold tabular-nums text-[#24201D] sm:text-xl">
               {money(value)}
             </p>
-            <p className="mt-1.5 text-xs leading-relaxed text-[#5C5248]">
+            <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[#5C5248] sm:text-[11px]">
               {kpiInfo[label].text}
             </p>
           </div>
         ))}
       </div>
-      <p className="text-xs leading-relaxed text-[#8C8073]">
+
+      <p className="text-[11px] leading-relaxed text-[#6E6358]">
         Older snapshots, purchase costs and monthly income are not added again.
       </p>
+
+      {(!p.accounts.length || totals.missing > 0) && (
+        <p
+          role="status"
+          className="rounded-xl border border-amber-200/80 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900"
+        >
+          {!p.accounts.length
+            ? "Add accounts and their balances for a complete net-worth picture."
+            : `${totals.missing} accounts still need a recorded valuation. The totals include known balances only.`}
+        </p>
+      )}
+
+      {/* Row 3 — Desktop 2-Column Split: Accounts List & Cycle Reconciliation */}
+      <div className="grid gap-4 xl:grid-cols-12">
+        <Card
+          compact
+          className="xl:col-span-5"
+          title="Recorded account values"
+          subtitle="Latest dated valuation per account."
+        >
+          {!p.accounts.length ? (
+            <Empty compact>
+              Add your bank accounts, investments and physical assets in
+              Accounts.
+            </Empty>
+          ) : (
+            <div className="divide-y divide-[#EFE8DC]">
+              {totals.values.map(({ account, snapshot }) => (
+                <div
+                  key={account.id}
+                  className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-[#24201D]">
+                      {account.name}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-[#6E6358]">
+                      {snapshot
+                        ? `As of ${snapshot.date} · ${snapshot.phase}`
+                        : "Update in Accounts"}
+                    </p>
+                  </div>
+                  <p className="shrink-0 font-display text-sm font-bold tabular-nums text-[#24201D] sm:text-base">
+                    {snapshot ? money(snapshot.value) : "No valuation"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <Card
+          compact
+          className="xl:col-span-7"
+          title="Cycle closing and reconciliation"
+          subtitle={
+            cycle
+              ? `${cycle.start} → ${cycle.end} · Opening and closing records kept separately.`
+              : "Select a salary cycle to compare your plan with actual balances."
+          }
+        >
+          {summary && recon ? (
+            <>
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                {[
+                  ["Planned savings", summary.expected],
+                  ["Logged surplus", summary.surplus],
+                  ["Actual wealth movement", recon.movement],
+                  ["Opening net worth", recon.complete ? recon.opening : null],
+                  ["Closing net worth", recon.complete ? recon.closing : null],
+                ].map(([label, value]) => (
+                  <div
+                    key={String(label)}
+                    className="rounded-xl border border-[#EFE8DC] bg-[#FAF7F2] p-3"
+                  >
+                    <p className="text-[11px] font-semibold text-[#6E6358]">
+                      {label}
+                    </p>
+                    <p className="mt-1 break-words font-display text-base font-bold tabular-nums text-[#24201D] sm:text-lg">
+                      {value === null
+                        ? "Incomplete"
+                        : money(Number(value))}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              {!recon.complete ? (
+                <p className="mt-3 text-xs text-amber-800">
+                  Record opening and closing asset and loan balances to complete
+                  this comparison.
+                  {recon.missing.length > 0 &&
+                    ` Missing: ${recon.missing.join(", ")}.`}
+                </p>
+              ) : (
+                <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+                  <p>
+                    Investment / gold result:{" "}
+                    <strong className="tabular-nums">
+                      {money(recon.investmentReturn)}
+                    </strong>
+                  </p>
+                  <p>
+                    Debt balance reduction:{" "}
+                    <strong className="tabular-nums">
+                      {money(recon.debtReduction)}
+                    </strong>
+                  </p>
+                  <p>
+                    External movements outside budget:{" "}
+                    <strong className="tabular-nums">
+                      {money(recon.external)}
+                    </strong>
+                  </p>
+                  <p
+                    className={
+                      Math.abs(recon.unreconciled ?? 0) > 0.01
+                        ? "text-amber-700"
+                        : "text-emerald-700"
+                    }
+                  >
+                    Unreconciled difference:{" "}
+                    <strong className="tabular-nums">
+                      {money(recon.unreconciled ?? 0)}
+                    </strong>
+                  </p>
+                </div>
+              )}
+              <p className="mt-3 text-[11px] leading-relaxed text-[#6E6358]">
+                Transfers between your accounts do not create wealth. Investment
+                results adjust for recorded contributions and withdrawals. An
+                unexplained difference can include missing entries, new
+                borrowing, fees or commitments also recorded as expenses; it is
+                not automatically an investment loss.
+              </p>
+            </>
+          ) : (
+            <Empty compact>Create or select a salary cycle first.</Empty>
+          )}
+        </Card>
+      </div>
+
       <details className="clay-card rounded-2xl">
-        <summary className="cursor-pointer px-5 py-4 text-sm font-semibold text-[#473F38]">
+        <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-[#473F38] sm:text-sm">
           Calculation breakdown by account &amp; loan
         </summary>
-        <div className="grid gap-4 border-t border-[#EFE8DC] p-5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 border-t border-[#EFE8DC] p-4 sm:grid-cols-2 xl:grid-cols-4">
           {Object.entries(kpiInfo).map(([label, info]) => (
-            <div key={label} className="min-w-0 rounded-xl bg-[#FAF7F2] p-3.5">
+            <div key={label} className="min-w-0 rounded-xl bg-[#FAF7F2] p-3">
               <p className="text-xs font-semibold text-[#24201D]">{label}</p>
               <p className="mt-1 text-xs leading-relaxed text-[#62584E]">
                 {info.text}
@@ -197,7 +396,7 @@ export function PortfolioOverviewTab({
                   ))}
                 </ul>
               ) : (
-                <p className="mt-2 text-xs text-[#8C8073]">
+                <p className="mt-2 text-xs text-[#6E6358]">
                   No matching records yet.
                 </p>
               )}
@@ -205,121 +404,6 @@ export function PortfolioOverviewTab({
           ))}
         </div>
       </details>
-      {(!p.accounts.length || totals.missing > 0) && (
-        <p
-          role="status"
-          className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800"
-        >
-          {!p.accounts.length
-            ? "Add accounts and their balances for a complete net-worth picture."
-            : `${totals.missing} accounts still need a recorded valuation. The totals include known balances only.`}
-        </p>
-      )}
-      <Card
-        title="Cycle closing and reconciliation"
-        subtitle={
-          cycle
-            ? `${cycle.start} → ${cycle.end}. Opening and closing records are kept separately.`
-            : "Select a salary cycle to compare your plan with actual balances."
-        }
-      >
-        {summary && recon ? (
-          <>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {[
-                ["Planned savings", summary.expected],
-                ["Logged surplus", summary.surplus],
-                ["Actual wealth movement", recon.movement],
-                ["Opening net worth", recon.complete ? recon.opening : null],
-                ["Closing net worth", recon.complete ? recon.closing : null],
-              ].map(([label, value]) => (
-                <div
-                  key={String(label)}
-                  className="rounded-xl bg-[#FAF7F2] p-4"
-                >
-                  <p className="text-sm text-[#62584E]">{label}</p>
-                  <p className="mt-2 break-words text-xl font-bold">
-                    {value === null
-                      ? "Closing incomplete"
-                      : money(Number(value))}
-                  </p>
-                </div>
-              ))}
-            </div>
-            {!recon.complete ? (
-              <p className="mt-4 text-sm text-amber-700">
-                Record opening and closing asset and loan balances to complete
-                this comparison.
-                {recon.missing.length > 0 &&
-                  ` Missing: ${recon.missing.join(", ")}.`}
-              </p>
-            ) : (
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <p>
-                  Investment / gold result:{" "}
-                  <strong>{money(recon.investmentReturn)}</strong>
-                </p>
-                <p>
-                  Debt balance reduction:{" "}
-                  <strong>{money(recon.debtReduction)}</strong>
-                </p>
-                <p>
-                  External movements outside budget:{" "}
-                  <strong>{money(recon.external)}</strong>
-                </p>
-                <p
-                  className={
-                    Math.abs(recon.unreconciled ?? 0) > 0.01
-                      ? "text-amber-700"
-                      : "text-emerald-700"
-                  }
-                >
-                  Unreconciled difference:{" "}
-                  <strong>{money(recon.unreconciled ?? 0)}</strong>
-                </p>
-              </div>
-            )}
-            <p className="mt-4 text-xs leading-relaxed text-[#62584E]">
-              Transfers between your accounts do not create wealth. Investment
-              results adjust for recorded contributions and withdrawals. An
-              unexplained difference can include missing entries, new borrowing,
-              fees or commitments also recorded as expenses; it is not
-              automatically an investment loss.
-            </p>
-          </>
-        ) : (
-          <Empty>Create or select a salary cycle first.</Empty>
-        )}
-      </Card>
-      <Card
-        title="Recorded account values"
-        subtitle="Each account is counted once using its latest dated valuation."
-      >
-        {!p.accounts.length ? (
-          <Empty>
-            Add your bank accounts, investments and physical assets in Accounts.
-          </Empty>
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2">
-            {totals.values.map(({ account, snapshot }) => (
-              <div
-                key={account.id}
-                className="min-w-0 rounded-xl border border-[#EFE8DC] p-4"
-              >
-                <p className="break-words font-semibold">{account.name}</p>
-                <p className="mt-2 text-xl font-bold">
-                  {snapshot ? money(snapshot.value) : "No valuation"}
-                </p>
-                <p className="mt-1 text-xs text-[#8C8073]">
-                  {snapshot
-                    ? `As of ${snapshot.date} · ${snapshot.phase}`
-                    : "Update this account in Accounts"}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-    </>
+    </div>
   );
 }

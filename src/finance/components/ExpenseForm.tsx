@@ -214,65 +214,35 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
     >
       <div
         id="form-header"
-        className="border-b border-[#EFE8DC] bg-[#FAF7F2]/70 px-5 py-4 sm:px-6 sm:py-5"
+        className="flex items-center justify-between gap-2 border-b border-[#EFE8DC] bg-[#FAF7F2]/70 px-4 py-2.5 sm:px-5 sm:py-3"
       >
-        <h2 className="font-display text-lg font-semibold text-[#24201D]">
+        <h2 className="font-display text-sm font-semibold text-[#24201D] sm:text-base">
           New expense
         </h2>
-        <p className="mt-0.5 text-xs text-[#5C5248]">
-          Log a transaction and attach an optional receipt.
-        </p>
+        {!receiptReady && (
+          <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-900">
+            Local save
+          </span>
+        )}
       </div>
 
-      <div className="p-5 sm:p-6">
-        {!receiptReady && (
-          <p className="mb-5 rounded-xl border border-amber-200/80 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
-            Expenses save on this device. Connect sync to upload receipts to the
-            cloud.
-          </p>
-        )}
+      <div className="p-3.5 sm:p-4">
         <form
           id="expense-entry-form"
           onSubmit={handleSubmit}
-          className="space-y-4"
+          className="space-y-3"
         >
-          {/* Date Row */}
-          <div id="input-group-date">
-            <label
-              htmlFor="expense-date-input"
-              className="mb-1.5 block text-xs font-semibold text-[#5C5248]"
-            >
-              Date of expense <span className="text-[#D95D39]">*</span>
-            </label>
-            <div className="relative">
-              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-[#6E6358]">
-                <Calendar className="h-4 w-4" />
-              </span>
-              <input
-                id="expense-date-input"
-                type="date"
-                aria-label="Expense date"
-                min={cycle.start}
-                max={cycle.end}
-                required
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="min-w-0 w-full rounded-xl border border-[#DFD5C6] bg-[#FAF7F2]/60 py-2.5 pl-10 pr-4 text-sm text-[#24201D] outline-none transition-colors focus:border-[#D95D39] focus:bg-white focus:ring-4 focus:ring-[#FBECE7]"
-              />
-            </div>
-          </div>
-
           {/* Item Row */}
           <div id="input-group-item">
             <label
               htmlFor="expense-item-input"
-              className="mb-1.5 block text-xs font-semibold text-[#5C5248]"
+              className="mb-1 block text-[11px] font-semibold text-[#5C5248]"
             >
               Item or description <span className="text-[#D95D39]">*</span>
             </label>
             <div className="relative">
-              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-[#6E6358]">
-                <Tag className="h-4 w-4" />
+              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#6E6358]">
+                <Tag className="h-3.5 w-3.5" />
               </span>
               <input
                 id="expense-item-input"
@@ -282,50 +252,77 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
                 placeholder="e.g., Lunch, groceries, broadband"
                 value={item}
                 onChange={(e) => setItem(e.target.value)}
-                className="min-w-0 w-full rounded-xl border border-[#DFD5C6] bg-[#FAF7F2]/60 py-2.5 pl-10 pr-4 text-sm text-[#24201D] placeholder:text-[#7C7064] outline-none transition-colors focus:border-[#D95D39] focus:bg-white focus:ring-4 focus:ring-[#FBECE7]"
+                className="min-w-0 w-full rounded-xl border border-[#DFD5C6] bg-[#FAF7F2]/60 py-2 pl-9 pr-3 text-sm text-[#24201D] placeholder:text-[#7C7064] outline-none transition-colors focus:border-[#D95D39] focus:bg-white focus:ring-4 focus:ring-[#FBECE7]"
               />
             </div>
           </div>
 
-          {/* Amount Row */}
-          <div id="input-group-amount">
-            <label
-              htmlFor="expense-amount-input"
-              className="mb-1.5 block text-xs font-semibold text-[#5C5248]"
-            >
-              Amount (RM) <span className="text-[#D95D39]">*</span>
-            </label>
-            <div className="relative">
-              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-[#6E6358]">
-                <Coins className="h-4 w-4" />
-              </span>
-              <input
-                id="expense-amount-input"
-                type="number"
-                aria-label="Expense amount"
-                step="0.01"
-                required
-                min="0.01"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="min-w-0 w-full rounded-xl border border-[#DFD5C6] bg-[#FAF7F2]/60 py-2.5 pl-10 pr-4 text-sm tabular-nums text-[#24201D] placeholder:text-[#7C7064] outline-none transition-colors focus:border-[#D95D39] focus:bg-white focus:ring-4 focus:ring-[#FBECE7]"
-              />
+          {/* Date + Amount Side-by-Side */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <div id="input-group-amount" className="min-w-0">
+              <label
+                htmlFor="expense-amount-input"
+                className="mb-1 block text-[11px] font-semibold text-[#5C5248]"
+              >
+                Amount (RM) <span className="text-[#D95D39]">*</span>
+              </label>
+              <div className="relative">
+                <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#6E6358]">
+                  <Coins className="h-3.5 w-3.5" />
+                </span>
+                <input
+                  id="expense-amount-input"
+                  type="number"
+                  aria-label="Expense amount"
+                  step="0.01"
+                  required
+                  min="0.01"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="min-w-0 w-full rounded-xl border border-[#DFD5C6] bg-[#FAF7F2]/60 py-2 pl-9 pr-2.5 text-sm tabular-nums text-[#24201D] placeholder:text-[#7C7064] outline-none transition-colors focus:border-[#D95D39] focus:bg-white focus:ring-4 focus:ring-[#FBECE7]"
+                />
+              </div>
+            </div>
+
+            <div id="input-group-date" className="min-w-0">
+              <label
+                htmlFor="expense-date-input"
+                className="mb-1 block text-[11px] font-semibold text-[#5C5248]"
+              >
+                Date <span className="text-[#D95D39]">*</span>
+              </label>
+              <div className="relative">
+                <span className="pointer-events-none absolute inset-y-0 left-0 hidden items-center pl-2.5 text-[#6E6358] sm:flex">
+                  <Calendar className="h-3.5 w-3.5" />
+                </span>
+                <input
+                  id="expense-date-input"
+                  type="date"
+                  aria-label="Expense date"
+                  min={cycle.start}
+                  max={cycle.end}
+                  required
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="min-w-0 w-full rounded-xl border border-[#DFD5C6] bg-[#FAF7F2]/60 px-2.5 py-2 text-xs text-[#24201D] outline-none transition-colors focus:border-[#D95D39] focus:bg-white focus:ring-4 focus:ring-[#FBECE7] sm:pl-8 sm:text-sm"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Category Row with Rich Selector */}
+          {/* Category Compact Chip Grid */}
           <div id="input-group-category">
             <span
               id="expense-category-label"
-              className="mb-2 block text-xs font-semibold text-[#5C5248]"
+              className="mb-1.5 block text-[11px] font-semibold text-[#5C5248]"
             >
               Category <span className="text-[#D95D39]">*</span>
             </span>
             <div
               role="group"
               aria-labelledby="expense-category-label"
-              className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2"
+              className="grid grid-cols-2 gap-1.5 min-[360px]:grid-cols-3"
             >
               {CATEGORY_META.map((meta) => {
                 const Icon = meta.icon;
@@ -335,139 +332,129 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
                     key={meta.name}
                     type="button"
                     onClick={() => setSelectedCategory(meta.name)}
-                    className={`flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs transition-colors duration-150 ${
+                    className={`flex min-h-10 cursor-pointer items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-left text-[11px] transition-colors duration-150 ${
                       isSelected
                         ? "border-[#D95D39] bg-[#FBECE7] font-semibold text-[#A83E20] shadow-xs"
                         : "border-[#E7DDD0] bg-[#FAF7F2]/70 text-[#5C5248] hover:border-[#D6C8B6] hover:bg-[#F3EDE3]"
                     }`}
                   >
                     <Icon className="h-3.5 w-3.5 shrink-0" />
-                    <span className="break-words">{meta.label}</span>
+                    <span className="truncate">{meta.label}</span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Receipt Upload Row */}
+          {/* Compact 1-Line Receipt Upload Strip */}
           <div id="input-group-receipt">
-            <label
-              htmlFor="expense-receipt-input"
-              className="mb-1.5 block text-xs font-semibold text-[#5C5248]"
-            >
-              Receipt file{" "}
-              <span className="font-normal text-[#6E6358]">(optional)</span>
-            </label>
-
-          {!receiptFile ? (
-            <div
-              onDragEnter={handleDrag}
-              onDragOver={handleDrag}
-              onDragLeave={handleDrag}
-              onDrop={handleDrop}
-              role="button"
-              tabIndex={0}
-              aria-label="Choose a receipt file"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  fileInputRef.current?.click();
-                }
-              }}
-              onClick={() => fileInputRef.current?.click()}
-              className={`border border-dashed rounded-lg p-5 text-center flex flex-col items-center justify-center cursor-pointer transition-colors duration-150 ${
-                dragActive
-                  ? "border-[#D95D39] bg-[#FBECE7]/40"
-                  : "border-[#EAE2D6] bg-[#FAF7F2]/60 hover:bg-[#FAF7F2]"
-              }`}
-            >
-              <FileUp className="h-6 w-6 text-[#8C8073] mb-2" />
-              <p className="text-xs text-[#3B342E] font-medium">
-                Drag-and-drop or click to browse
-              </p>
-              <p className="text-[10px] text-[#8C8073] mt-1">
-                Supports PDF, JPG, PNG under 10MB
-              </p>
-              <input
-                id="expense-receipt-input"
-                type="file"
-                aria-label="Expense receipt"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept="image/*,application/pdf"
-                className="hidden"
-              />
-            </div>
-          ) : (
-            <div className="flex items-center justify-between p-3 bg-[#FAF7F2] border border-[#EAE2D6] rounded-lg">
-              <div className="flex items-center gap-2.5 overflow-hidden">
-                <div className="p-2 bg-[#EAE2D6] border border-[#DDD2C3] rounded-md shrink-0">
-                  <FileText className="h-4 w-4 text-[#62584E]" />
-                </div>
-                <div className="overflow-hidden">
-                  <p className="text-xs text-[#24201D] font-medium truncate">
-                    {receiptFile.name}
-                  </p>
-                  <p className="text-[10px] text-[#8C8073] mt-0.5">
-                    {(receiptFile.size / 1024).toFixed(1)} KB
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                aria-label="Remove selected receipt"
-                onClick={handleRemoveFile}
-                className="flex h-11 w-11 shrink-0 items-center justify-center hover:bg-[#EAE2D6] rounded-full text-[#8C8073] hover:text-[#24201D] cursor-pointer"
+            {!receiptFile ? (
+              <div
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                role="button"
+                tabIndex={0}
+                aria-label="Choose a receipt file"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
+                onClick={() => fileInputRef.current?.click()}
+                className={`flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-xl border border-dashed px-3 py-2 transition-colors duration-150 ${
+                  dragActive
+                    ? "border-[#D95D39] bg-[#FBECE7]/40"
+                    : "border-[#DFD5C6] bg-[#FAF7F2]/60 hover:bg-[#FAF7F2]"
+                }`}
               >
-                <X className="h-4 w-4" />
-              </button>
+                <span className="flex min-w-0 items-center gap-2 text-xs font-medium text-[#5C5248]">
+                  <FileUp className="h-4 w-4 shrink-0 text-[#6E6358]" />
+                  <span className="truncate">Attach receipt (optional)</span>
+                </span>
+                <span className="shrink-0 rounded-lg border border-[#E7DDD0] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#3B342E]">
+                  Browse
+                </span>
+                <input
+                  id="expense-receipt-input"
+                  type="file"
+                  aria-label="Expense receipt"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-between rounded-xl border border-[#EAE2D6] bg-[#FAF7F2] px-3 py-2">
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <FileText className="h-4 w-4 shrink-0 text-[#62584E]" />
+                  <div className="overflow-hidden">
+                    <p className="truncate text-xs font-medium text-[#24201D]">
+                      {receiptFile.name}
+                    </p>
+                    <p className="text-[10px] text-[#6E6358]">
+                      {(receiptFile.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Remove selected receipt"
+                  onClick={handleRemoveFile}
+                  className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-[#6E6358] hover:bg-[#EAE2D6] hover:text-[#24201D]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Messaging Feedback */}
+          {submitError && (
+            <div
+              id="submit-error"
+              className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-600"
+            >
+              {submitError}
             </div>
           )}
-        </div>
 
-        {/* Messaging Feedback */}
-        {submitError && (
-          <div
-            id="submit-error"
-            className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-xs font-medium"
-          >
-            {submitError}
-          </div>
-        )}
-
-        {submitSuccess && (
-          <div
-            id="submit-success"
-            className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-xs flex items-center gap-2 font-medium"
-          >
-            <Check className="h-4 w-4 text-emerald-600" />
-            <span>
-              Expense saved. Sheet sync follows your planner connection.
-            </span>
-          </div>
-        )}
-
-        {/* Form Action */}
-        <button
-          id="btn-submit-expense"
-          type="submit"
-          disabled={isSubmitting || (!!receiptFile && !receiptReady)}
-          className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#D95D39] hover:bg-[#C04C2B] text-white font-bold rounded-lg shadow-md shadow-[#D95D39]/15 hover:shadow-lg hover:shadow-[#D95D39]/25 transition-colors cursor-pointer disabled:bg-[#D5C9B9] text-sm"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+          {submitSuccess && (
+            <div
+              id="submit-success"
+              className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-medium text-emerald-700"
+            >
+              <Check className="h-4 w-4 shrink-0 text-emerald-600" />
               <span>
-                {isUploading
-                  ? "Uploading receipt to Drive..."
-                  : "Saving expense..."}
+                Expense saved. Sheet sync follows your planner connection.
               </span>
-            </>
-          ) : (
-          <span>Save expense</span>
-        )}
-      </button>
-      </form>
+            </div>
+          )}
+
+          {/* Form Action */}
+          <button
+            id="btn-submit-expense"
+            type="submit"
+            disabled={isSubmitting || (!!receiptFile && !receiptReady)}
+            className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#D95D39] py-2.5 text-sm font-semibold text-white shadow-[0_2px_8px_-2px_rgba(217,93,57,0.45)] transition duration-150 hover:bg-[#C04C2B] active:scale-[0.98] disabled:bg-[#D5C9B9]"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>
+                  {isUploading
+                    ? "Uploading receipt to Drive..."
+                    : "Saving expense..."}
+                </span>
+              </>
+            ) : (
+              <span>Save expense</span>
+            )}
+          </button>
+        </form>
       </div>
     </div>
   );
